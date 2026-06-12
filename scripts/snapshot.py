@@ -21,7 +21,11 @@ TOKENS = {
  "EQAtwo6qMNwtr0iTA9eKVZ32cuACFJ0VKd78GrBWOe83-X1P": "GROYP",
  "EQBynBO23ywHy_CgarY9NK9FTz0yDsG82PtcbSTQgGoXwiuA": "jUSDT",
  "EQDuGgqZU7_AEgiOwEe-abozIefuoairTWLOyd7c_f8GhzMf": "MTONGA",
- "EQD0vdSA_NedR9uvbgN9EikRX-suesDxGeFg69XQMavfLqIw": "BOLT"
+ "EQACLXDwit01stiqK9FvYiJo15luVzfD5zU8uwDSq6JXxbP8": "SP",
+ "EQDV0Q8euPPdsxHfaOQAmtdDrh3j5o_odMYIJM4nuiUO6t88": "SCAT",
+ "EQC4Dx5Mqy9qhqHpH0cl_U8hejBnchNXZn_L0_Oj2zLY5B3P": "COIN",
+ "EQD0vdSA_NedR9uvbgN9EikRX-suesDxGeFg69XQMavfLqIw": "BOLT",
+ "EQBARQjzu8ZnTzJJMXlDqrnaZ-CH_nrV2XbzL28l6-p8xNo9": "GTA"
 }
 
 def get(url, ton=False):
