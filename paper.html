@@ -59,6 +59,13 @@
 </div>
 
 <div class="card">
+  <h3>🎯 Signal scoreboard — forward outcomes</h3>
+  <div class="h-sub">Every journaled signal scored by raw price move +1d/+3d/+7d after firing (no stops, no costs — pure predictive power; recomputed daily from <a href="https://github.com/xpyct1337/ton-quant/tree/main/data/signals">data/signals</a>). Verdict needs n≥5 on the 3d horizon: <span class="pill good">edge</span> = WR≥55% &amp; avg&gt;0, <span class="pill bad">noise</span> = WR&lt;45% or avg&lt;0.</div>
+  <table><thead><tr><th>Signal</th><th class="num">1d WR</th><th class="num">1d avg</th><th class="num">3d WR</th><th class="num">3d avg</th><th class="num">7d WR</th><th class="num">7d avg</th><th class="num">n</th><th>Verdict</th></tr></thead>
+  <tbody id="scoreBody"><tr><td colspan="9" class="empty">Collecting outcomes — journal started 2026-06-13, first scores ~2026-06-14.</td></tr></tbody></table>
+</div>
+
+<div class="card">
   <h3>Open positions</h3>
   <table><thead><tr><th>Bot</th><th>Token</th><th>Signal</th><th>Opened</th><th class="num">Entry (eff.)</th><th class="num">Day</th></tr></thead>
   <tbody id="posBody"><tr><td colspan="6" class="empty">None</td></tr></tbody></table>
@@ -173,6 +180,28 @@ function drawEq(bots){
   renderLog(10);
   const more=document.getElementById("logMore");
   if(tr.length>10){more.style.display="";more.textContent="Show all "+tr.length;more.onclick=()=>{renderLog(tr.length);more.style.display="none";};}
+})();
+
+/* signal scoreboard (Alpha Engine stage 3) */
+(async()=>{
+  let sc=null;
+  for(const u of ["data/signals/scores.json","https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data/signals/scores.json"]){
+    try{const r=await fetch(u,{cache:"no-store"});if(r.ok){sc=await r.json();break;}}catch(e){}
+  }
+  if(!sc||!Object.keys(sc.per_sig||{}).length)return;
+  const V={edge:["edge","good"],noise:["noise","bad"],neutral:["neutral","warn"],collecting:["collecting\u2026",""]};
+  const cell=(h,k)=>{const x=h&&h[k];return x==null?"\u2014":(k==="wr"?x.toFixed(0)+"%":(x>0?"+":"")+x.toFixed(1)+"%");};
+  const cls=(h,k)=>h&&h[k]!=null?(k==="wr"?(h[k]>=55?"up":h[k]<45?"down":""):(h[k]>0?"up":"down")):"";
+  const rows=Object.entries(sc.per_sig).sort((a,b)=>((b[1].h3.avg??b[1].h1.avg??-999))-((a[1].h3.avg??a[1].h1.avg??-999)));
+  document.getElementById("scoreBody").innerHTML=rows.map(([sig,a])=>{
+    const v=V[a.verdict]||[esc(a.verdict),""];
+    const n=Math.max(a.h1.n,a.h3.n,a.h7.n);
+    return `<tr><td><span class="pill">${esc(sig)}</span></td>
+      <td class="num ${cls(a.h1,"wr")}">${cell(a.h1,"wr")}</td><td class="num ${cls(a.h1,"avg")}">${cell(a.h1,"avg")}</td>
+      <td class="num ${cls(a.h3,"wr")}">${cell(a.h3,"wr")}</td><td class="num ${cls(a.h3,"avg")}">${cell(a.h3,"avg")}</td>
+      <td class="num ${cls(a.h7,"wr")}">${cell(a.h7,"wr")}</td><td class="num ${cls(a.h7,"avg")}">${cell(a.h7,"avg")}</td>
+      <td class="num">${n}</td><td><span class="pill ${v[1]}">${v[0]}</span></td></tr>`;
+  }).join("");
 })();
 </script>
 </body>
