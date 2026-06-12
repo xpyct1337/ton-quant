@@ -7,9 +7,13 @@
 <meta name="description" content="Live TON jetton dashboard: price, market cap, holders, DEX liquidity, on-chain activity. Data from TONAPI + DexScreener." />
 <meta name="theme-color" content="#0098ea" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%230098ea'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3EQ%3C/text%3E%3C/svg%3E" />
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
+<link rel="preconnect" href="https://tonapi.io" crossorigin />
+<link rel="preconnect" href="https://api.dexscreener.com" crossorigin />
+<link rel="preconnect" href="https://api.ston.fi" crossorigin />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
 <style>
   :root { color-scheme: light;
     --bg:#f4f7fb; --card:#fff; --ink:#0b1220; --muted:#5b6573; --line:#e4e9f0;
@@ -251,7 +255,8 @@ function applyUnit(){
   document.getElementById("optGram").classList.toggle("on",u==="GRAM");
 }
 document.getElementById("gramSwitch").addEventListener("click",()=>{
-  localStorage.setItem("tq_unit",unit()==="GRAM"?"TON":"GRAM"); applyUnit(); load();
+  localStorage.setItem("tq_unit",unit()==="GRAM"?"TON":"GRAM"); applyUnit();
+  if(typeof chartCur!=="undefined"&&chartCur==="ton")loadPriceChart(parseInt(document.querySelector("#tfTabs .active").dataset.tf));
 });
 
 /* ---------- helpers ---------- */
@@ -286,7 +291,9 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const safeUrl=u=>/^https?:\/\//.test(u||"")?u:"#";
 const TONAPI_KEY="AEUCH5S5SBNE64AAAAAMCL5S6MOL6AFR42PEXAR3OL2K2VJTQS77IQCN7I3O54EQK76ZIFA";
-let tonapiTail=Promise.resolve();
+const POOL=4; let poolActive=0; const poolWait=[];
+async function acquire(){ if(poolActive<POOL){poolActive++;return;} await new Promise(r=>poolWait.push(r)); poolActive++; }
+function release(){ poolActive--; const w=poolWait.shift(); if(w)w(); }
 function jget(url){
   const isTon=url.includes("tonapi.io");
   const hdrs={Accept:"application/json"};
@@ -301,12 +308,8 @@ function jget(url){
       throw new Error(`${url} \u2192 ${r.status}`);
     }
   };
-  if(isTon){
-    const p=tonapiTail.then(fetchRetry);
-    tonapiTail=p.then(()=>sleep(120),()=>sleep(120));
-    return p;
-  }
-  return fetchRetry();
+  if(!isTon)return fetchRetry();
+  return (async()=>{ await acquire(); try{ return await fetchRetry(); } finally{ release(); } })();
 }
 
 let priceChart=null,holderChart=null;
@@ -355,6 +358,7 @@ async function load(){
   }
   try{
     DEC=parseInt(info.metadata?.decimals??9);
+    MASTER_RAW=(info.metadata?.address||"").replace(/^0:/,"");
     SYM=info.metadata?.symbol||"TOKEN";
     document.title=`${SYM} — TON Quant`;
     document.getElementById("name").textContent=info.metadata?.name||SYM;
@@ -555,13 +559,15 @@ async function load(){
 }
 
 /* ---- whale-filtered feed ---- */
-let lastEvents=[],lastUsd=0,lastTonUsd=0,whaleMin=0;
+let lastEvents=[],lastUsd=0,lastTonUsd=0,whaleMin=0,MASTER_RAW="";
 function actionUsd(a){
   try{
-    if(a.type==="TonTransfer"&&a.TonTransfer)return Number(a.TonTransfer.amount)/1e9*lastTonUsd;
+    if(a.type==="TonTransfer"&&a.TonTransfer&&lastTonUsd)return Number(a.TonTransfer.amount)/1e9*lastTonUsd;
     if(a.type==="JettonTransfer"&&a.JettonTransfer){
       const jt=a.JettonTransfer;
-      if((jt.jetton?.address||"").length&&lastUsd)return Number(jt.amount)/Math.pow(10,parseInt(jt.jetton?.decimals??DEC))*lastUsd;
+      const jaddr=(jt.jetton?.address||"").replace(/^0:/,"");
+      // price ONLY the master jetton itself — foreign jettons have unknown price
+      if(lastUsd&&MASTER_RAW&&jaddr===MASTER_RAW)return Number(jt.amount)/Math.pow(10,parseInt(jt.jetton?.decimals??DEC))*lastUsd;
     }
   }catch(e){}
   return null;
@@ -610,9 +616,8 @@ document.getElementById("refreshBtn").addEventListener("click",async()=>{
 });
 setInterval(()=>{ if(!document.hidden){ load(); loadPriceChart(parseInt(document.querySelector("#tfTabs .active").dataset.tf)); } },60000);
 
-applyUnit();
-load();
-loadPriceChart(7);
+function start(){applyUnit();load();loadPriceChart(7);}
+if(typeof Chart==="undefined"){window.addEventListener("DOMContentLoaded",start);}else{start();}
 </script>
 </body>
 </html>

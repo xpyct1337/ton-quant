@@ -9,6 +9,8 @@
 <meta property="og:title" content="TON Quant — TON Ecosystem Analytics" />
 <meta property="og:description" content="Top-20 TON jettons live: prices, market caps, holders. Full dashboard for any jetton by address." />
 <meta property="og:type" content="website" />
+<link rel="preconnect" href="https://tonapi.io" crossorigin />
+<link rel="preconnect" href="https://api.dexscreener.com" crossorigin />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%230098ea'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3EQ%3C/text%3E%3C/svg%3E" />
 <style>
   :root { color-scheme: light;
@@ -272,17 +274,25 @@ function render(){
 /* ---------- live prices ---------- */
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const TONAPI_KEY="AEUCH5S5SBNE64AAAAAMCL5S6MOL6AFR42PEXAR3OL2K2VJTQS77IQCN7I3O54EQK76ZIFA";
-async function jget(url){
+const POOL=4; let poolActive=0; const poolWait=[];
+async function acquire(){ if(poolActive<POOL){poolActive++;return;} await new Promise(r=>poolWait.push(r)); poolActive++; }
+function release(){ poolActive--; const w=poolWait.shift(); if(w)w(); }
+function jget(url){
+  const isTon=url.includes("tonapi.io");
   const hdrs={Accept:"application/json"};
-  if(url.includes("tonapi.io")&&TONAPI_KEY)hdrs.Authorization="Bearer "+TONAPI_KEY;
-  for(let i=0;;i++){
-    let r;
-    try{ r=await fetch(url,{headers:hdrs}); }
-    catch(e){ if(i>=3)throw e; await sleep(800*(i+1)); continue; }
-    if(r.ok)return r.json();
-    if(r.status===429&&i<4){ await sleep(1100*(i+1)); continue; }
-    throw new Error(url+" \u2192 "+r.status);
-  }
+  if(isTon&&TONAPI_KEY)hdrs.Authorization="Bearer "+TONAPI_KEY;
+  const fetchRetry=async()=>{
+    for(let i=0;;i++){
+      let r;
+      try{ r=await fetch(url,{headers:hdrs}); }
+      catch(e){ if(i>=3)throw e; await sleep(800*(i+1)); continue; }
+      if(r.ok)return r.json();
+      if(r.status===429&&i<4){ await sleep(1100*(i+1)); continue; }
+      throw new Error(url+" \u2192 "+r.status);
+    }
+  };
+  if(!isTon)return fetchRetry();
+  return (async()=>{ await acquire(); try{ return await fetchRetry(); } finally{ release(); } })();
 }
 async function refresh(){
   try{
@@ -324,7 +334,7 @@ function go(){
 }
 document.getElementById("goBtn").addEventListener("click",go);
 document.getElementById("searchInput").addEventListener("keydown",e=>{if(e.key==="Enter")go();});
-document.getElementById("searchInput").addEventListener("input",render);
+let _sd;document.getElementById("searchInput").addEventListener("input",()=>{clearTimeout(_sd);_sd=setTimeout(render,120);});
 
 /* ---------- DexScreener batch ---------- */
 async function loadDex(){
@@ -425,7 +435,7 @@ function treemap(){
     const d=d24Of(r.it.t);
     const big=r.w>70&&r.h>40;
     return `<div class="tm" style="left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px;background:${tmColor(d)}"
-      onclick="location.href='token.html?a=${r.it.t.address}'" title="${r.it.t.name}: ${fmtUsd(r.it.value)} mcap, ${isFinite(d)?d+"%":"?"} 24h">
+      onclick="location.href='token.html?a=${r.it.t.address}'" title="${esc2(r.it.t.name)}: ${fmtUsd(r.it.value)} mcap, ${isFinite(d)?d+"%":"?"} 24h">
       <span class="ts" style="font-size:${big?14:10}px">${r.it.t.symbol}</span>
       ${big?`<span class="tp">${isFinite(d)?(d>0?"+":"")+d.toFixed(1)+"%":""}</span>`:""}</div>`;
   }).join("");
@@ -448,6 +458,10 @@ function mxColor(c){
   return x>=0?`rgba(0,152,234,${(0.08+x*0.85).toFixed(2)})`:`rgba(214,59,59,${(0.08-x*0.85).toFixed(2)})`;
 }
 async function matrix(){
+  try{
+    const c=JSON.parse(sessionStorage.getItem("tq_mx_v1")||"null");
+    if(c&&Date.now()-c.ts<15*60*1000){document.getElementById("mxWrap").innerHTML=c.html;applyUnit();return;}
+  }catch(e){}
   const now=Math.floor(Date.now()/1000), start=now-7*86400;
   const STEP=3*3600, grid=[];
   for(let t=start;t<=now;t+=STEP)grid.push(t);
@@ -491,6 +505,7 @@ async function matrix(){
   }
   html+="</table>";
   document.getElementById("mxWrap").innerHTML=html;
+  try{sessionStorage.setItem("tq_mx_v1",JSON.stringify({ts:Date.now(),html}));}catch(e){}
   applyUnit();
 }
 const esc2=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -508,6 +523,13 @@ function arb(){
 /* ---------- Whale tape ---------- */
 let tapeItems=[],tapeShown=8;
 async function whaleTape(){
+  try{
+    const c=JSON.parse(sessionStorage.getItem("tq_tape_v1")||"null");
+    if(c&&Date.now()-c.ts<5*60*1000){
+      tapeItems=c.items.map(x=>({...x,t:TOKENS.find(t=>t.address===x.addr)||{symbol:x.symX,address:x.addr}}));
+      renderTape();return;
+    }
+  }catch(e){}
   const items=[];
   for(const t of TOKENS){
     try{
@@ -531,6 +553,7 @@ async function whaleTape(){
   }
   items.sort((a,b)=>b.ts-a.ts);
   tapeItems=items.slice(0,30);
+  try{sessionStorage.setItem("tq_tape_v1",JSON.stringify({ts:Date.now(),items:tapeItems.map(x=>({ts:x.ts,usd:x.usd,desc:x.desc,type:x.type,addr:x.t.address,symX:x.t.symbol}))}));}catch(e){}
   renderTape();
 }
 function renderTape(){
