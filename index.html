@@ -57,9 +57,37 @@
   .rank{color:var(--muted);font-size:12px;width:28px}
   .footer{text-align:center;color:var(--muted);font-size:12px;margin-top:28px;padding:16px 0;border-top:1px solid var(--line)}
   .footer a{color:var(--accent);text-decoration:none}
+  .sumbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:6px 0 18px}
+  .sum{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px;box-shadow:var(--shadow)}
+  .sum .l{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.05em}
+  .sum .v{font-size:19px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums}
+  .sum .s{font-size:11px;color:var(--muted);margin-top:2px}
+  .cardbox{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:16px 18px;margin-bottom:18px}
+  .cardbox h3{margin:0 0 4px;font-size:15px}
+  .cardbox .h-sub{color:var(--muted);font-size:12px;margin-bottom:12px}
+  #tmap{position:relative;height:340px;border-radius:10px;overflow:hidden}
+  .tm{position:absolute;display:flex;flex-direction:column;justify-content:center;align-items:center;overflow:hidden;cursor:pointer;border:1px solid rgba(255,255,255,.6);transition:filter .1s;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+  .tm:hover{filter:brightness(1.12)}
+  .tm .ts{font-weight:800}
+  .tm .tp{font-size:11px;opacity:.9}
+  .matrix-wrap{overflow-x:auto}
+  table.mx{border-collapse:collapse;font-size:10px}
+  table.mx td,table.mx th{padding:0;border:1px solid #fff}
+  table.mx th{font-weight:600;color:var(--muted);padding:2px 4px;text-align:right;white-space:nowrap}
+  table.mx td{width:26px;height:22px;text-align:center;font-variant-numeric:tabular-nums;color:#1b2536}
   .mover{display:inline-flex;gap:6px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:5px 12px;margin:0 6px 6px 0;cursor:pointer;font-weight:600;box-shadow:var(--shadow)}
   .mover:hover{border-color:var(--accent)}
   .mover img{width:18px;height:18px;border-radius:50%}
+  .chipsbar{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}
+  .fchip{font-size:12px;font-weight:600;padding:6px 14px;border-radius:999px;background:var(--card);border:1px solid var(--line);color:var(--muted);cursor:pointer;box-shadow:var(--shadow)}
+  .fchip:hover{border-color:var(--accent)}
+  .fchip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .arb-row{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;align-items:center}
+  .arb-row:last-child{border-bottom:none}
+  .tape{display:flex;flex-direction:column;gap:8px}
+  .tape .ev{display:flex;gap:10px;align-items:center;padding:9px 12px;border:1px solid var(--line);border-radius:10px;font-size:13px;flex-wrap:wrap}
+  .tape .tk{font-weight:700;cursor:pointer;color:var(--accent)}
+  .tape .tm2{color:var(--muted);font-size:11px;margin-left:auto}
   .live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--good);margin-right:6px;animation:pulse 2s ease infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
   @media(max-width:860px){ .hide-m{display:none} body{padding:16px} }
@@ -83,21 +111,63 @@
 </div>
 <div class="gram-note" style="margin:0 0 14px 68px">Toncoin is being renamed to <strong>Gram</strong> (ticker GRAM) on Jun 15, 2026 &middot; the blockchain stays &laquo;TON&raquo;. The switch relabels the native coin across TON Quant.</div>
 
+<div class="sumbar" id="sumbar" style="display:none">
+  <div class="sum"><div class="l">Top-20 Market Cap</div><div class="v" id="sMcap">&mdash;</div><div class="s" id="sMcapD"></div></div>
+  <div class="sum"><div class="l">DEX Liquidity</div><div class="v" id="sTvl">&mdash;</div><div class="s">across all pools</div></div>
+  <div class="sum"><div class="l">Volume 24h</div><div class="v" id="sVol">&mdash;</div><div class="s" id="sTx"></div></div>
+  <div class="sum"><div class="l">TON-20 Index</div><div class="v" id="sIdx">&mdash;</div><div class="s">mcap-weighted 24h</div></div>
+  <div class="sum"><div class="l">Breadth</div><div class="v" id="sBr">&mdash;</div><div class="s">above own 7d average</div></div>
+</div>
+
 <div class="searchbar">
   <input id="searchInput" placeholder="Filter top-20, or paste any jetton master address (EQ&hellip; / UQ&hellip;) to open its dashboard" autocomplete="off" spellcheck="false" />
   <button id="goBtn">Open dashboard</button>
 </div>
 <div id="movers" style="display:none;margin:-6px 0 16px;font-size:13px"></div>
+<div class="chipsbar" id="chipsbar">
+  <span class="fchip active" data-f="all">All 20</span>
+  <span class="fchip" data-f="movers">\ud83d\udd25 Movers</span>
+  <span class="fchip" data-f="dormant">\ud83d\udc80 Dormant</span>
+  <span class="fchip" data-f="wash">\ud83d\udebf Wash?</span>
+  <span class="fchip" data-f="liquid">\ud83d\udca7 Liquid</span>
+</div>
 <div class="hint">Click a row to open the full dashboard: price history, holders, DEX liquidity, on-chain activity.</div>
+
+<div class="cardbox">
+  <h3>Market map</h3>
+  <div class="h-sub">Tile size = market cap &middot; color = 24h change. Click to open the dashboard.</div>
+  <div id="tmap"></div>
+</div>
 
 <div class="card">
 <table>
   <thead><tr>
     <th class="rank">#</th><th>Token</th><th class="num">Price</th><th class="num">24h</th>
-    <th class="num hide-m">7d chart</th><th class="num">Market cap</th><th class="num hide-m">Holders</th><th class="num hide-m">Price (<span data-unit>TON</span>)</th>
+    <th class="num hide-m">7d chart</th><th class="num">Market cap</th><th class="num hide-m">Vol 24h</th><th class="num hide-m">TVL</th><th class="num hide-m">Vol/TVL</th><th class="num hide-m">Holders</th>
   </tr></thead>
   <tbody id="tbody"></tbody>
 </table>
+</div>
+
+<div class="row" style="display:grid;grid-template-columns:1fr 1.4fr;gap:18px;margin-top:18px">
+  <div class="cardbox" style="margin-bottom:0">
+    <h3>Arbitrage radar</h3>
+    <div class="h-sub">Cross-DEX price gaps per token (pools with &gt;$5K liquidity and real volume).</div>
+    <div id="arbList"><div class="hint">Computing&hellip;</div></div>
+  </div>
+  <div class="cardbox" style="margin-bottom:0">
+    <h3>Whale tape</h3>
+    <div class="h-sub">Recent large on-chain moves (&ge;$500) across the top-20 jetton masters. Newest first.</div>
+    <div id="tape" class="tape"><div class="hint">Scanning whale moves&hellip;</div></div>
+    <div style="text-align:center;margin-top:8px"><span class="fchip" id="tapeMore" style="display:none">Show more</span></div>
+  </div>
+</div>
+<style>@media(max-width:920px){.row{grid-template-columns:1fr !important}}</style>
+
+<div class="cardbox" style="margin-top:18px">
+  <h3>Correlation matrix (7d) &amp; beta to <span data-unit>TON</span></h3>
+  <div class="h-sub">Pearson correlation of daily returns between top-20 tokens. &beta; &gt; 1 = amplifies <span data-unit>TON</span> moves; &beta; &asymp; 0 = lives its own life. Blue = moves together, red = moves opposite.</div>
+  <div class="matrix-wrap" id="mxWrap"><div class="hint">Computing&hellip;</div></div>
 </div>
 
 <div class="footer">
@@ -153,17 +223,33 @@ function spark(canvas,pts,upTrend){
 
 /* ---------- state & render ---------- */
 let live={};   // address -> {usd, ton, d24}
+let dex={};    // address -> {tvl, vol, buys, sells}
+let spreads={};
 let tonUsd=null;
+let tonSeries=null;
+let FILT="all";
+function passFilter(t){
+  const dx=dex[t.address];
+  const d=d24Of(t);
+  const mc=mcapOf(t);
+  if(FILT==="movers")return isFinite(d)&&Math.abs(d)>=5;
+  if(FILT==="dormant")return dx&&mc>0&&dx.vol/mc<0.001;
+  if(FILT==="wash")return dx&&dx.tvl>0&&dx.vol/dx.tvl>=3&&isFinite(d)&&Math.abs(d)<2;
+  if(FILT==="liquid")return dx&&dx.tvl>=100000;
+  return true;
+}
 function render(){
   const q=(document.getElementById("searchInput").value||"").trim().toLowerCase();
   const tb=document.getElementById("tbody");
   tb.innerHTML="";
-  TOKENS.filter(t=>!q||q.length>40||t.symbol.toLowerCase().includes(q)||t.name.toLowerCase().includes(q))
+  TOKENS.filter(t=>passFilter(t)&&(!q||q.length>40||t.symbol.toLowerCase().includes(q)||t.name.toLowerCase().includes(q)))
    .forEach((t,i)=>{
     const lv=live[t.address]||{};
     const usd=lv.usd??t.price, d24=lv.d24||"";
+    const dnum=parseFloat(String(d24).replace("\u2212","-").replace("%",""));
     const mcap=usd*Number(t.supply)/Math.pow(10,t.decimals);
-    const pTon=(tonUsd&&usd)?usd/tonUsd:null;
+    const dx=dex[t.address];
+    const vt=(dx&&dx.tvl>0)?dx.vol/dx.tvl:null;
     const tr=document.createElement("tr");
     tr.innerHTML=`<td class="rank">${i+1}</td>
       <td><div class="tok"><img loading="lazy" src="${t.image}" onerror="this.style.visibility=\'hidden\'"/><div><div class="nm">${t.name}</div><div class="sy">${t.symbol}</div></div></div></td>
@@ -171,8 +257,10 @@ function render(){
       <td class="num ${cls(d24)}">${d24||"\u2014"}</td>
       <td class="num hide-m"><canvas></canvas></td>
       <td class="num">${fmtUsd(mcap)}</td>
-      <td class="num hide-m">${fmtInt(t.holders)}</td>
-      <td class="num hide-m">${pTon!=null?pTon.toFixed(pTon<0.01?6:4):"\u2014"}</td>`;
+      <td class="num hide-m">${dx?fmtUsd(dx.vol):"\u2014"}</td>
+      <td class="num hide-m">${dx?fmtUsd(dx.tvl):"\u2014"}</td>
+      <td class="num hide-m">${vt!=null?(vt>=3&&Math.abs(dnum||0)<2?'<span class="pill bad" title="volume/TVL high with flat price \u2014 wash?">'+vt.toFixed(1)+"x \ud83d\udebf</span>":vt.toFixed(2)+"x"):"\u2014"}</td>
+      <td class="num hide-m">${fmtInt(t.holders)}</td>`;
     tr.addEventListener("click",()=>location.href="token.html?a="+t.address);
     tb.appendChild(tr);
     const up=t.spark.length>1?t.spark[t.spark.length-1]>=t.spark[0]:true;
@@ -238,9 +326,237 @@ document.getElementById("goBtn").addEventListener("click",go);
 document.getElementById("searchInput").addEventListener("keydown",e=>{if(e.key==="Enter")go();});
 document.getElementById("searchInput").addEventListener("input",render);
 
+/* ---------- DexScreener batch ---------- */
+async function loadDex(){
+  try{
+    const addrs=TOKENS.map(t=>t.address);
+    let pairs=[];
+    for(const chunk of [addrs.slice(0,10),addrs.slice(10)]){
+      const d=await jget("https://api.dexscreener.com/latest/dex/tokens/"+chunk.join(","));
+      pairs=pairs.concat((d.pairs||[]).filter(p=>p.chainId==="ton"));
+    }
+    const known=new Set(pairs.map(p=>p.pairAddress));
+    const noBase=addrs.filter(a=>!pairs.some(p=>p.baseToken?.address===a));
+    for(const a of noBase){
+      try{
+        const d=await jget("https://api.dexscreener.com/latest/dex/tokens/"+a);
+        for(const p of (d.pairs||[]).filter(p=>p.chainId==="ton"&&!known.has(p.pairAddress))){p._forced=a;pairs.push(p);known.add(p.pairAddress);}
+      }catch(e){}
+    }
+    dex={}; spreads={};
+    for(const t of TOKENS){
+      const ps=pairs.filter(p=>p.baseToken?.address===t.address&&(p.liquidity?.usd||0)>5000&&(p.volume?.h24||0)>100&&p.priceUsd);
+      if(ps.length>=2){
+        const vals=ps.map(p=>parseFloat(p.priceUsd));
+        spreads[t.address]={spread:(Math.max(...vals)-Math.min(...vals))/Math.min(...vals)*100,pools:ps.length};
+      }
+    }
+    for(const p of pairs){
+      const owner=p._forced||((TOKENS.some(t=>t.address===p.baseToken?.address))?p.baseToken.address:(TOKENS.some(t=>t.address===p.quoteToken?.address)?p.quoteToken.address:null));
+      if(!owner)continue;
+      const d=dex[owner]||(dex[owner]={tvl:0,vol:0,buys:0,sells:0,pools:0});
+      d.tvl+=p.liquidity?.usd||0; d.vol+=p.volume?.h24||0;
+      d.buys+=p.txns?.h24?.buys||0; d.sells+=p.txns?.h24?.sells||0; d.pools++;
+    }
+  }catch(e){console.warn("dex batch failed",e);}
+  render(); summary(); treemap(); arb();
+}
+
+/* ---------- summary bar ---------- */
+function mcapOf(t){const lv=live[t.address]||{};return (lv.usd??t.price)*Number(t.supply)/Math.pow(10,t.decimals);}
+function d24Of(t){return parseFloat(String((live[t.address]||{}).d24||"").replace("\u2212","-").replace("%",""));}
+function summary(){
+  const totalM=TOKENS.reduce((s,t)=>s+mcapOf(t),0);
+  const totalT=Object.values(dex).reduce((s,d)=>s+d.tvl,0);
+  const totalV=Object.values(dex).reduce((s,d)=>s+d.vol,0);
+  const totalTx=Object.values(dex).reduce((s,d)=>s+d.buys+d.sells,0);
+  let wsum=0,wm=0;
+  for(const t of TOKENS){const d=d24Of(t);if(isFinite(d)){wsum+=d*mcapOf(t);wm+=mcapOf(t);}}
+  const idx=wm?wsum/wm:null;
+  let above=0,n=0;
+  for(const t of TOKENS){
+    if(t.spark&&t.spark.length>5){n++;
+      const avg=t.spark.reduce((a,b)=>a+b,0)/t.spark.length;
+      const cur=(live[t.address]||{}).usd??t.price;
+      if(cur>avg)above++;
+    }
+  }
+  document.getElementById("sumbar").style.display="";
+  document.getElementById("sMcap").textContent=fmtUsd(totalM);
+  document.getElementById("sTvl").textContent=totalT?fmtUsd(totalT):"\u2014";
+  document.getElementById("sVol").textContent=totalV?fmtUsd(totalV):"\u2014";
+  document.getElementById("sTx").textContent=totalTx?totalTx.toLocaleString()+" trades":"";
+  const si=document.getElementById("sIdx");
+  if(idx!=null){si.textContent=(idx>0?"+":"")+idx.toFixed(2)+"%";si.className="v "+(idx>0?"up":idx<0?"down":"");}
+  document.getElementById("sBr").textContent=above+" / "+n;
+  document.getElementById("sBr").className="v "+(above>=n*0.6?"up":above<=n*0.35?"down":"");
+}
+
+/* ---------- treemap (squarified) ---------- */
+function squarify(items,W,H){
+  const total=items.reduce((s,i)=>s+i.value,0);
+  const sc=items.map(i=>({it:i,area:i.value/total*W*H}));
+  let rects=[],x=0,y=0,w=W,h=H,row=[];
+  const worst=(row,len)=>{const s=row.reduce((a,b)=>a+b.area,0);let mx=0;
+    for(const r of row){const ratio=Math.max(len*len*r.area/(s*s),s*s/(len*len*r.area));mx=Math.max(mx,ratio);}return mx;};
+  const layout=row=>{const s=row.reduce((a,b)=>a+b.area,0);
+    if(w>=h){const rw=s/h;let yy=y;for(const r of row){const rh=r.area/rw;rects.push({it:r.it,x,y:yy,w:rw,h:rh});yy+=rh;}x+=rw;w-=rw;}
+    else{const rh=s/w;let xx=x;for(const r of row){const rw2=r.area/rh;rects.push({it:r.it,x:xx,y,w:rw2,h:rh});xx+=rw2;}y+=rh;h-=rh;}};
+  for(const it of sc){
+    const len=Math.min(w,h);
+    if(!row.length||worst([...row,it],len)<=worst(row,len))row.push(it);
+    else{layout(row);row=[it];}
+  }
+  if(row.length)layout(row);
+  return rects;
+}
+function tmColor(d){
+  if(!isFinite(d))return "#a4adbf";
+  const x=Math.max(-10,Math.min(10,d))/10;
+  return x>=0?`rgb(${Math.round(24+(1-x)*60)},${Math.round(140+x*45)},${Math.round(87+(1-x)*30)})`
+             :`rgb(${Math.round(180+(-x)*35)},${Math.round(80-(-x)*25)},${Math.round(70-(-x)*15)})`;
+}
+function treemap(){
+  const el=document.getElementById("tmap");
+  const W=el.clientWidth||1200,H=el.clientHeight||340;
+  const items=TOKENS.map(t=>({value:Math.max(mcapOf(t),1),t})).sort((a,b)=>b.value-a.value);
+  el.innerHTML=squarify(items,W,H).map(r=>{
+    const d=d24Of(r.it.t);
+    const big=r.w>70&&r.h>40;
+    return `<div class="tm" style="left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px;background:${tmColor(d)}"
+      onclick="location.href='token.html?a=${r.it.t.address}'" title="${r.it.t.name}: ${fmtUsd(r.it.value)} mcap, ${isFinite(d)?d+"%":"?"} 24h">
+      <span class="ts" style="font-size:${big?14:10}px">${r.it.t.symbol}</span>
+      ${big?`<span class="tp">${isFinite(d)?(d>0?"+":"")+d.toFixed(1)+"%":""}</span>`:""}</div>`;
+  }).join("");
+}
+window.addEventListener("resize",()=>{clearTimeout(window._tmr);window._tmr=setTimeout(treemap,200);});
+
+/* ---------- correlation matrix + beta ---------- */
+const rets=a=>{const r=[];for(let i=1;i<a.length;i++){r.push(a[i-1]>0?Math.log(a[i]/a[i-1]):0);}return r;};
+function pearson(x,y){
+  const n=Math.min(x.length,y.length);if(n<5)return null;
+  let sx=0,sy=0;for(let i=0;i<n;i++){sx+=x[i];sy+=y[i];}
+  const mx=sx/n,my=sy/n;let num=0,dx=0,dy=0;
+  for(let i=0;i<n;i++){num+=(x[i]-mx)*(y[i]-my);dx+=(x[i]-mx)**2;dy+=(y[i]-my)**2;}
+  if(dx===0||dy===0)return 0;
+  return num/Math.sqrt(dx*dy);
+}
+function mxColor(c){
+  if(c==null)return "#eef0f3";
+  const x=Math.max(-1,Math.min(1,c));
+  return x>=0?`rgba(0,152,234,${(0.08+x*0.85).toFixed(2)})`:`rgba(214,59,59,${(0.08-x*0.85).toFixed(2)})`;
+}
+async function matrix(){
+  const now=Math.floor(Date.now()/1000), start=now-7*86400;
+  const STEP=3*3600, grid=[];
+  for(let t=start;t<=now;t+=STEP)grid.push(t);
+  const resample=pts=>{ // pts: [[ts,val],...] ascending -> forward-filled grid values
+    const sorted=pts.slice().sort((a,b)=>a[0]-b[0]);
+    const out=[];let k=0,last=null;
+    for(const g of grid){
+      while(k<sorted.length&&sorted[k][0]<=g){last=sorted[k][1];k++;}
+      out.push(last);
+    }
+    return out.map(v=>v==null?out.find(x=>x!=null):v);
+  };
+  async function series(token){
+    try{
+      const d=await jget(`https://tonapi.io/v2/rates/chart?token=${token}&currency=usd&start_date=${start}&end_date=${now}&points_count=120`);
+      const pts=d.points||[];
+      if(pts.length<10)return null;
+      return resample(pts);
+    }catch(e){return null;}
+  }
+  const tonS=await series("ton");
+  const S=[];
+  for(const t of TOKENS)S.push(await series(t.address));
+  const R=S.map(x=>x?rets(x):[]);
+  const tonR=tonS?rets(tonS):null;
+  let html='<table class="mx"><tr><th></th>'+TOKENS.map(t=>`<th style="text-align:center" title="${esc2(t.name)}">${esc2(t.symbol.slice(0,5))}</th>`).join("")+'<th style="text-align:center">&beta; <span data-unit>TON</span></th></tr>';
+  for(let i=0;i<TOKENS.length;i++){
+    html+=`<tr><th title="${esc2(TOKENS[i].name)}">${esc2(TOKENS[i].symbol.slice(0,6))}</th>`;
+    for(let j=0;j<TOKENS.length;j++){
+      const c=i===j?1:pearson(R[i],R[j]);
+      html+=`<td style="background:${mxColor(c)}" title="${esc2(TOKENS[i].symbol)} \u00d7 ${esc2(TOKENS[j].symbol)}: ${c==null?"n/a":c.toFixed(2)}">${i===j?"1":(c!=null&&Math.abs(c)>=0.5?(Math.round(c*10)/10).toString().replace("0.","."):"")}</td>`;
+    }
+    let beta=null;
+    if(tonR&&R[i].length){
+      const n=Math.min(R[i].length,tonR.length);
+      let mx=0,my=0;for(let k=0;k<n;k++){mx+=R[i][k];my+=tonR[k];}mx/=n;my/=n;
+      let cv=0,v=0;for(let k=0;k<n;k++){cv+=(R[i][k]-mx)*(tonR[k]-my);v+=(tonR[k]-my)**2;}
+      if(v>0)beta=cv/v;
+    }
+    html+=`<td style="width:46px;font-weight:700;background:#f4f7fb">${beta==null?"\u2014":beta.toFixed(2)}</td></tr>`;
+  }
+  html+="</table>";
+  document.getElementById("mxWrap").innerHTML=html;
+  applyUnit();
+}
+const esc2=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function arb(){
+  const el=document.getElementById("arbList");
+  const list=TOKENS.map(t=>({t,s:spreads[t.address]})).filter(x=>x.s).sort((a,b)=>b.s.spread-a.s.spread).slice(0,10);
+  el.innerHTML=list.length?list.map(x=>`<div class="arb-row">
+    <span style="font-weight:700;cursor:pointer;color:var(--accent)" onclick="location.href='token.html?a=${x.t.address}'">${x.t.symbol}</span>
+    <span class="hint" style="margin:0">${x.s.pools} pools</span>
+    <span class="${x.s.spread>2?"down":""}" style="font-weight:700;font-variant-numeric:tabular-nums">${x.s.spread.toFixed(2)}%</span>
+  </div>`).join(""):'<div class="hint">No multi-pool tokens with meaningful spread.</div>';
+}
+
+/* ---------- Whale tape ---------- */
+let tapeItems=[],tapeShown=8;
+async function whaleTape(){
+  const items=[];
+  for(const t of TOKENS){
+    try{
+      const ev=await jget(`https://tonapi.io/v2/accounts/${t.address}/events?limit=10`);
+      const price=(live[t.address]||{}).usd??t.price;
+      for(const e of (ev.events||[])){
+        for(const a of (e.actions||[])){
+          let usd=null,desc="";
+          if(a.type==="TonTransfer"&&a.TonTransfer&&tonUsd){usd=Number(a.TonTransfer.amount)/1e9*tonUsd;desc=(Number(a.TonTransfer.amount)/1e9).toFixed(1)+" TON";}
+          else if(a.type==="JettonTransfer"&&a.JettonTransfer){
+            const jt=a.JettonTransfer;
+            if(jt.jetton?.address&&price&&(jt.jetton.symbol===t.symbol||jt.jetton?.address)){
+              const amt=Number(jt.amount)/Math.pow(10,parseInt(jt.jetton?.decimals??9));
+              if(jt.jetton.symbol===t.symbol){usd=amt*price;desc=amt.toLocaleString(undefined,{maximumFractionDigits:0})+" "+t.symbol;}
+            }
+          }
+          if(usd!=null&&usd>=500)items.push({ts:e.timestamp,usd,desc,type:a.type,t});
+        }
+      }
+    }catch(e){}
+  }
+  items.sort((a,b)=>b.ts-a.ts);
+  tapeItems=items.slice(0,30);
+  renderTape();
+}
+function renderTape(){
+  const el=document.getElementById("tape");
+  if(!tapeItems.length){el.innerHTML='<div class="hint">No moves \u2265 $500 in recent events of the jetton masters.</div>';return;}
+  el.innerHTML=tapeItems.slice(0,tapeShown).map(x=>`<div class="ev">
+    <span class="tk" onclick="location.href='token.html?a=${x.t.address}'">${x.t.symbol}</span>
+    <span class="pill ${x.usd>=10000?"down":""}" style="${x.usd>=10000?"background:var(--bad);color:#fff":""}">${fmtUsd(x.usd)}</span>
+    <span>${x.desc}</span>
+    <span class="hint" style="margin:0">${x.type}</span>
+    <span class="tm2">${new Date(x.ts*1000).toISOString().slice(5,16).replace("T"," ")} UTC</span>
+  </div>`).join("");
+  const more=document.getElementById("tapeMore");
+  more.style.display=tapeItems.length>tapeShown?"":"none";
+  more.onclick=()=>{tapeShown=30;renderTape();};
+}
+
+document.querySelectorAll(".fchip").forEach(c=>c.addEventListener("click",()=>{
+  document.querySelectorAll(".fchip").forEach(x=>x.classList.remove("active"));
+  c.classList.add("active");FILT=c.dataset.f;render();
+}));
+
 render();
-refresh();
-setInterval(()=>{ if(!document.hidden) refresh(); },60000);
+refresh().then(()=>{summary();treemap();whaleTape();});
+loadDex();
+matrix();
+setInterval(()=>{ if(!document.hidden){refresh().then(()=>{summary();treemap();});loadDex();} },60000);
 </script>
 </body>
 </html>

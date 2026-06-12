@@ -633,13 +633,21 @@ async function load(){
         const pct=Number(h.balance)/Number(supplyRaw)*100;
         const owner=esc(h.owner?.name||shortAddr(h.owner?.address));
         const isDex=/ston|dedust/i.test(h.owner?.name||"");
-        return `<tr><td>${i+1}</td>
+        return `<tr${i>=10?' class="xrow" style="display:none"':""}><td>${i+1}</td>
           <td><div><a href="${esc(tonviewerUrl(h.owner?.address))}" target="_blank" rel="noopener noreferrer">${owner}</a> ${isDex?'<span class="pill">DEX</span>':""}</div>
           ${h.owner?.name?`<div class="mono small">${esc(shortAddr(h.owner?.address))}</div>`:""}</td>
           <td style="text-align:right;font-variant-numeric:tabular-nums">${fmtNum(bal,4)}</td>
           <td style="text-align:right;font-variant-numeric:tabular-nums">${pct.toFixed(pct<0.01?6:3)}%
           <div class="pct-bar"><div style="width:${Math.min(100,pct*4).toFixed(2)}%"></div></div></td></tr>`;
       }).join("");
+      if(addresses.length>10){
+        tbody.innerHTML+=`<tr id="hMoreRow"><td colspan="4" style="text-align:center;padding:10px">
+          <span class="pill" style="cursor:pointer" id="hMore">Show all ${Math.min(addresses.length,25)} \u25be</span></td></tr>`;
+        document.getElementById("hMore").onclick=()=>{
+          document.querySelectorAll("#holderTbody .xrow").forEach(r=>r.style.display="");
+          document.getElementById("hMoreRow").remove();
+        };
+      }
     }
 
     /* events feed with whale filter */
