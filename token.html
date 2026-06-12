@@ -52,6 +52,11 @@
   .kpi .value{font-size:22px;font-weight:700;margin-top:6px;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
   .kpi .delta{font-size:12px;margin-top:4px;color:var(--muted)}
   .kpi .delta.up{color:var(--good)} .kpi .delta.down{color:var(--bad)}
+  .pressure{height:6px;border-radius:3px;background:var(--bad-soft);overflow:hidden;margin-top:8px}
+  .pressure>div{height:100%;background:var(--good)}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .chip{font-size:11px;padding:3px 9px;border-radius:999px;background:#eef0f3;color:var(--muted);font-weight:600}
+  .chip.up{background:var(--good-soft);color:var(--good)} .chip.down{background:var(--bad-soft);color:var(--bad)}
   .row{display:grid;gap:18px;margin-bottom:18px}
   .row.r-2{grid-template-columns:1.3fr 1fr}
   @media(max-width:920px){.row.r-2{grid-template-columns:1fr}}
@@ -143,6 +148,7 @@
 </div>
 
 <div class="kpi-grid">
+  <div class="kpi" id="scoreKpi" title=""><div class="label">TON Quant Score</div><div class="value" id="kScore">&mdash;</div><div class="delta" id="kScoreSub">hover for breakdown</div></div>
   <div class="kpi"><div class="label">Price (USD)</div><div class="value" id="kPrice">&mdash;</div><div class="delta" id="kPriceDelta">24h</div></div>
   <div class="kpi"><div class="label">Price (<span data-unit>TON</span>)</div><div class="value" id="kPriceTon">&mdash;</div><div class="delta" id="kPriceTonDelta">24h</div></div>
   <div class="kpi"><div class="label">Market Cap</div><div class="value" id="kMcap">&mdash;</div><div class="delta">supply &times; price</div></div>
@@ -151,18 +157,24 @@
   <div class="kpi"><div class="label">7d Change</div><div class="value" id="k7d">&mdash;</div><div class="delta">USD</div></div>
   <div class="kpi"><div class="label"><span data-unit>TON</span> Price</div><div class="value" id="kTon">&mdash;</div><div class="delta" id="kTonDelta">24h</div></div>
   <div class="kpi"><div class="label">Liquidity (DEX)</div><div class="value" id="kTvl">&mdash;</div><div class="delta" id="kTvlSub">across pools</div></div>
-  <div class="kpi"><div class="label">Volume 24h</div><div class="value" id="kVol">&mdash;</div><div class="delta" id="kTxns">&mdash;</div></div>
+  <div class="kpi"><div class="label">Volume 24h</div><div class="value" id="kVol">&mdash;</div><div class="delta" id="kTxns">&mdash;</div><div class="pressure" id="pressureBar" style="display:none"><div></div></div></div>
   <div class="kpi"><div class="label">Top-10 Hold</div><div class="value" id="kTop10">&mdash;</div><div class="delta">share of supply</div></div>
 </div>
 
 <div class="row">
   <div class="card">
-    <h3>Price history (USD)
+    <h3>Price history (<span id="chartCur">USD</span>)
+      <span style="display:flex;gap:10px;align-items:center">
+      <span class="tf-tabs" id="curTabs">
+        <button data-cur="usd" class="active">USD</button>
+        <button data-cur="ton"><span data-unit>TON</span></button>
+      </span>
       <span class="tf-tabs" id="tfTabs">
         <button data-tf="1">24h</button>
         <button data-tf="7" class="active">7d</button>
         <button data-tf="30">30d</button>
         <button data-tf="90">90d</button>
+      </span>
       </span>
     </h3>
     <div class="h-sub">Source: TONAPI rates aggregator. Hover for exact values.</div>
@@ -173,16 +185,22 @@
 <div class="row r-2">
   <div class="card">
     <h3>Holder concentration</h3>
-    <div class="h-sub">Share of supply held by top addresses (of top-100 sample).</div>
+    <div class="h-sub">Share of supply held by top addresses (of top-100 sample). <span id="hhi"></span></div>
     <div class="chart-wrap short"><canvas id="holderChart"></canvas></div>
   </div>
   <div class="card">
     <h3>DEX liquidity</h3>
     <div class="h-sub">Top pools across TON DEXes. Source: DexScreener.</div>
+    <div class="chips" id="pcChips" style="display:none"></div>
     <table>
       <thead><tr><th>DEX</th><th>Pair</th><th style="text-align:right">Liquidity</th><th style="text-align:right">Vol 24h</th><th style="text-align:right">Buys/Sells</th></tr></thead>
       <tbody id="poolTbody"><tr><td colspan="5" class="empty">Loading&hellip;</td></tr></tbody>
     </table>
+    <dl class="kv" style="margin-top:12px">
+      <dt>Cross-DEX spread</dt><dd id="dexSpread">&mdash;</dd>
+      <dt>FDV</dt><dd id="dexFdv">&mdash;</dd>
+      <dt>Trading since</dt><dd id="dexAge">&mdash;</dd>
+    </dl>
   </div>
 </div>
 
@@ -199,8 +217,14 @@
 
 <div class="row">
   <div class="card">
-    <h3>Recent on-chain activity</h3>
-    <div class="h-sub">Last 20 events touching the jetton master contract.</div>
+    <h3>Recent on-chain activity
+      <span class="tf-tabs" id="whaleTabs">
+        <button data-min="0" class="active">All</button>
+        <button data-min="1000">&gt;$1K</button>
+        <button data-min="10000">&gt;$10K</button>
+      </span>
+    </h3>
+    <div class="h-sub">Last 20 events touching the jetton master contract. Whale filter estimates USD value per action.</div>
     <div id="feed" class="feed"><div class="empty">Loading&hellip;</div></div>
   </div>
 </div>
@@ -266,10 +290,12 @@ async function jget(url){
 
 let priceChart=null,holderChart=null;
 
+let chartCur="usd";
+const fmtCur=v=>chartCur==="usd"?fmtUsd(v):(v==null||!isFinite(v)?"—":v.toFixed(v<0.01?8:4).replace(/0+$/,"").replace(/\.$/,"")+" "+unit());
 async function loadPriceChart(days=7){
   const now=Math.floor(Date.now()/1000), start=now-days*86400;
   let data;
-  try{ data=await jget(`https://tonapi.io/v2/rates/chart?token=${MASTER}&currency=usd&start_date=${start}&end_date=${now}&points_count=200`); }
+  try{ data=await jget(`https://tonapi.io/v2/rates/chart?token=${MASTER}&currency=${chartCur}&start_date=${start}&end_date=${now}&points_count=200`); }
   catch(e){ data={points:[]}; }
   const points=(data.points||[]).map(p=>({x:p[0]*1000,y:p[1]})).sort((a,b)=>a.x-b.x);
   const ctx=document.getElementById("priceChart").getContext("2d");
@@ -277,11 +303,12 @@ async function loadPriceChart(days=7){
   grad.addColorStop(0,"rgba(0,152,234,0.20)"); grad.addColorStop(1,"rgba(0,152,234,0.00)");
   if(priceChart)priceChart.destroy();
   priceChart=new Chart(ctx,{type:"line",
-    data:{datasets:[{label:`${SYM} / USD`,data:points,borderColor:"#0098ea",backgroundColor:grad,fill:true,tension:.25,borderWidth:2,pointRadius:0,pointHoverRadius:4}]},
+    data:{datasets:[{label:`${SYM} / ${chartCur==="usd"?"USD":unit()}`,data:points,borderColor:"#0098ea",backgroundColor:grad,fill:true,tension:.25,borderWidth:2,pointRadius:0,pointHoverRadius:4}]},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
       scales:{x:{type:"time",time:{unit:days<=1?"hour":(days<=7?"day":"week")},grid:{display:false},ticks:{color:"#5b6573",maxRotation:0}},
-              y:{grid:{color:"#eef1f5"},ticks:{color:"#5b6573",callback:v=>fmtUsd(v)}}},
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${fmtUsd(c.parsed.y)} at ${new Date(c.parsed.x).toLocaleString()}`}}}}});
+              y:{grid:{color:"#eef1f5"},ticks:{color:"#5b6573",callback:v=>fmtCur(v)}}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${fmtCur(c.parsed.y)} at ${new Date(c.parsed.x).toLocaleString()}`}}}}});
+  document.getElementById("chartCur").textContent=chartCur==="usd"?"USD":unit();
 }
 
 async function load(){
@@ -363,6 +390,38 @@ async function load(){
     document.getElementById("kTvlSub").textContent=pairs.length+" pool"+(pairs.length===1?"":"s");
     document.getElementById("kVol").textContent=fmtUsd(totVol);
     document.getElementById("kTxns").textContent=buys+sells?`${buys} buys / ${sells} sells`:"—";
+    const pb=document.getElementById("pressureBar");
+    if(buys+sells>0){pb.style.display="";pb.firstElementChild.style.width=(buys/(buys+sells)*100).toFixed(1)+"%";}else pb.style.display="none";
+    /* multi-window price change from top-liquidity pair */
+    const best=pairs.find(p=>p.baseToken?.address===MASTER)||pairs[0];
+    const chipsEl=document.getElementById("pcChips");
+    if(best&&best.priceChange){
+      const w={m5:"5m",h1:"1h",h6:"6h",h24:"24h"};
+      chipsEl.style.display="";
+      chipsEl.innerHTML=Object.entries(w).map(([k,lbl])=>{
+        const v=best.priceChange[k];
+        if(v==null)return "";
+        const c=v>0?"up":(v<0?"down":"");
+        return `<span class="chip ${c}">${lbl} ${v>0?"+":""}${v}%</span>`;
+      }).join("")+(best.txns?`<span class="chip">${(best.txns.h24?.buys||0)+(best.txns.h24?.sells||0)} txns 24h</span>`:"");
+    }else chipsEl.style.display="none";
+    /* cross-DEX spread */
+    const liqPairs=pairs.filter(p=>p.baseToken?.address===MASTER&&(p.liquidity?.usd||0)>5000&&(p.volume?.h24||0)>100&&p.priceUsd);
+    if(liqPairs.length>=2){
+      const ps=liqPairs.map(p=>parseFloat(p.priceUsd));
+      const spread=(Math.max(...ps)-Math.min(...ps))/Math.min(...ps)*100;
+      document.getElementById("dexSpread").innerHTML=spread.toFixed(2)+"% <span class='small'>across "+liqPairs.length+" pools</span>"+(spread>2?' <span class="pill warn">arb?</span>':"");
+    }else document.getElementById("dexSpread").textContent=liqPairs.length?"single pool":"—";
+    /* FDV */
+    const fdv=best?.fdv;
+    document.getElementById("dexFdv").textContent=fdv?fmtUsd(fdv):"—";
+    /* age */
+    const created=Math.min(...pairs.map(p=>p.pairCreatedAt||Infinity));
+    let ageDays=null;
+    if(isFinite(created)){
+      ageDays=Math.floor((Date.now()-created)/86400000);
+      document.getElementById("dexAge").textContent=new Date(created).toISOString().slice(0,10)+` (${ageDays}d)`;
+    }else document.getElementById("dexAge").textContent="—";
     const ptb=document.getElementById("poolTbody");
     ptb.innerHTML=pairs.length?pairs.slice(0,6).map(p=>`<tr>
       <td><span class="pill">${p.dexId}</span></td>
@@ -388,7 +447,28 @@ async function load(){
       if(topPct>20)risks.push(`Top holder controls <strong>${topPct.toFixed(2)}%</strong> of supply.`);
       const top10=addresses.slice(0,10).reduce((s,h)=>s+Number(h.balance),0)/Number(supplyRaw)*100;
       document.getElementById("kTop10").textContent=top10.toFixed(1)+"%";
+      const hhi=addresses.reduce((s,h)=>{const sh=Number(h.balance)/Number(supplyRaw);return s+sh*sh;},0);
+      const hl=hhi<0.01?["distributed","good"]:(hhi<0.1?["moderate","warn"]:["concentrated","bad"]);
+      document.getElementById("hhi").innerHTML=`HHI ${hhi.toFixed(3)} <span class="pill ${hl[1]}">${hl[0]}</span>`;
     }
+    if(ageDays!=null&&ageDays<30)risks.push(`Token has been trading for only <strong>${ageDays} days</strong> — very young contract.`);
+    /* ---- TON Quant Score ---- */
+    let top10pct=null;
+    if(addresses.length&&supplyRaw>0n)top10pct=addresses.slice(0,10).reduce((s,h)=>s+Number(h.balance),0)/Number(supplyRaw)*100;
+    const F=[];
+    F.push(["Verification",v==="whitelist"?20:(v==="blacklist"?-60:0),20]);
+    F.push(["Admin key",adminIsZero?15:0,15]);
+    F.push(["Liquidity",totLiq>100000?20:totLiq>10000?12:totLiq>1000?5:0,20]);
+    F.push(["Top-10 concentration",top10pct==null?5:top10pct<20?15:top10pct<40?10:top10pct<60?5:0,15]);
+    F.push(["Holders",totalHolders>10000?15:totalHolders>1000?9:totalHolders>100?4:0,15]);
+    F.push(["Age",ageDays==null?3:ageDays>365?10:ageDays>90?6:ageDays>30?3:0,10]);
+    F.push(["Not taxable",isTaxable?0:5,5]);
+    const score=Math.max(0,Math.min(100,Math.round(F.reduce((s,f)=>s+f[1],0))));
+    const kS=document.getElementById("kScore");
+    kS.textContent=score+" / 100";
+    kS.style.color=score>=70?"var(--good)":score>=40?"var(--warn)":"var(--bad)";
+    document.getElementById("kScoreSub").textContent=score>=70?"healthy":score>=40?"caution":"high risk";
+    document.getElementById("scoreKpi").title=F.map(f=>`${f[0]}: ${f[1]}/${f[2]}`).join("\n");
     const rb=document.getElementById("riskBanner");
     if(risks.length){
       rb.style.display="flex";
@@ -428,21 +508,10 @@ async function load(){
       }).join("");
     }
 
-    /* events feed */
-    const feed=document.getElementById("feed");
-    const evs=events.events||[];
-    if(!evs.length){feed.innerHTML='<div class="empty">No recent events.</div>';}
-    else{
-      const items=[];
-      for(const e of evs)for(const a of (e.actions||[])){
-        const ts=new Date(e.timestamp*1000);
-        const body=a.simple_preview?.value||a.simple_preview?.description||a.type;
-        items.push(`<div class="ev"><div class="ev-head"><span class="ev-tag ${a.type}">${a.type}</span>
-          <span class="ev-time">${ts.toISOString().replace("T"," ").slice(0,19)} UTC</span></div>
-          <div class="ev-body">${body}</div></div>`);
-      }
-      feed.innerHTML=items.join("");
-    }
+    /* events feed with whale filter */
+    lastEvents=events.events||[];
+    lastUsd=usd; lastTonUsd=tonUsd||0;
+    renderFeed();
 
     document.getElementById("modePill").innerHTML="&#9679; Live";
     document.getElementById("modePill").className="pill good";
@@ -456,6 +525,49 @@ async function load(){
   }
 }
 
+/* ---- whale-filtered feed ---- */
+let lastEvents=[],lastUsd=0,lastTonUsd=0,whaleMin=0;
+function actionUsd(a){
+  try{
+    if(a.type==="TonTransfer"&&a.TonTransfer)return Number(a.TonTransfer.amount)/1e9*lastTonUsd;
+    if(a.type==="JettonTransfer"&&a.JettonTransfer){
+      const jt=a.JettonTransfer;
+      if((jt.jetton?.address||"").length&&lastUsd)return Number(jt.amount)/Math.pow(10,parseInt(jt.jetton?.decimals??DEC))*lastUsd;
+    }
+  }catch(e){}
+  return null;
+}
+function renderFeed(){
+  const feed=document.getElementById("feed");
+  if(!lastEvents.length){feed.innerHTML='<div class="empty">No recent events.</div>';return;}
+  const items=[];
+  for(const e of lastEvents)for(const a of (e.actions||[])){
+    const uv=actionUsd(a);
+    if(whaleMin>0&&(uv==null||uv<whaleMin))continue;
+    const ts=new Date(e.timestamp*1000);
+    const body=a.simple_preview?.value||a.simple_preview?.description||a.type;
+    items.push(`<div class="ev"><div class="ev-head"><span class="ev-tag ${a.type}">${a.type}</span>
+      <span>${uv!=null?'<span class="pill '+(uv>=10000?"bad":uv>=1000?"warn":"muted")+'">'+fmtUsd(uv)+"</span> ":""}<span class="ev-time">${ts.toISOString().replace("T"," ").slice(0,19)} UTC</span></span></div>
+      <div class="ev-body">${body}</div></div>`);
+  }
+  feed.innerHTML=items.length?items.join(""):'<div class="empty">No actions above this size in the last 20 events.</div>';
+}
+document.querySelectorAll("#whaleTabs button").forEach(b=>{
+  b.addEventListener("click",()=>{
+    document.querySelectorAll("#whaleTabs button").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    whaleMin=parseInt(b.dataset.min);
+    renderFeed();
+  });
+});
+document.querySelectorAll("#curTabs button").forEach(b=>{
+  b.addEventListener("click",()=>{
+    document.querySelectorAll("#curTabs button").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    chartCur=b.dataset.cur;
+    loadPriceChart(parseInt(document.querySelector("#tfTabs .active").dataset.tf));
+  });
+});
 document.querySelectorAll("#tfTabs button").forEach(b=>{
   b.addEventListener("click",()=>{
     document.querySelectorAll("#tfTabs button").forEach(x=>x.classList.remove("active"));

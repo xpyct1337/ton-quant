@@ -57,6 +57,9 @@
   .rank{color:var(--muted);font-size:12px;width:28px}
   .footer{text-align:center;color:var(--muted);font-size:12px;margin-top:28px;padding:16px 0;border-top:1px solid var(--line)}
   .footer a{color:var(--accent);text-decoration:none}
+  .mover{display:inline-flex;gap:6px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:5px 12px;margin:0 6px 6px 0;cursor:pointer;font-weight:600;box-shadow:var(--shadow)}
+  .mover:hover{border-color:var(--accent)}
+  .mover img{width:18px;height:18px;border-radius:50%}
   .live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--good);margin-right:6px;animation:pulse 2s ease infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
   @media(max-width:860px){ .hide-m{display:none} body{padding:16px} }
@@ -84,6 +87,7 @@
   <input id="searchInput" placeholder="Filter top-20, or paste any jetton master address (EQ&hellip; / UQ&hellip;) to open its dashboard" autocomplete="off" spellcheck="false" />
   <button id="goBtn">Open dashboard</button>
 </div>
+<div id="movers" style="display:none;margin:-6px 0 16px;font-size:13px"></div>
 <div class="hint">Click a row to open the full dashboard: price history, holders, DEX liquidity, on-chain activity.</div>
 
 <div class="card">
@@ -193,6 +197,17 @@ async function refresh(){
     }
     document.getElementById("livePill").innerHTML="&#9679; Live";
     document.getElementById("livePill").className="pill good";
+    /* trending: top movers 24h */
+    const movers=TOKENS.map(t=>{
+      const d=parseFloat(String((live[t.address]||{}).d24||"").replace("\u2212","-").replace("%",""));
+      return {t,d};
+    }).filter(x=>isFinite(x.d)&&Math.abs(x.d)>=2).sort((a,b)=>Math.abs(b.d)-Math.abs(a.d)).slice(0,4);
+    const mv=document.getElementById("movers");
+    if(movers.length){
+      mv.style.display="";
+      mv.innerHTML='<span style="color:var(--muted);margin-right:6px">\ud83d\udd25 24h movers:</span>'+movers.map(x=>
+        `<span class="mover" onclick="location.href='token.html?a=${x.t.address}'"><img src="${x.t.image}"/>${x.t.symbol} <span class="${x.d>0?"up":"down"}">${x.d>0?"+":""}${x.d}%</span></span>`).join("");
+    }else mv.style.display="none";
   }catch(e){
     console.warn("refresh failed",e);
     document.getElementById("livePill").textContent="Snapshot";
