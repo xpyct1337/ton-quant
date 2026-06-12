@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Paper Bot — TON Quant</title>
+<meta name="description" content="TON Quant paper-trading bot: virtual portfolio trading on cross-metric signals. Live PnL, win-rate by signal type." />
+<meta name="theme-color" content="#0098ea" />
+<link rel="preconnect" href="https://raw.githubusercontent.com" crossorigin />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%230098ea'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3EQ%3C/text%3E%3C/svg%3E" />
+<style>
+  :root{color-scheme:light;--bg:#f4f7fb;--card:#fff;--ink:#0b1220;--muted:#5b6573;--line:#e4e9f0;--accent:#0098ea;--accent-soft:#e4f4fd;--good:#18a957;--good-soft:#e3f6e9;--warn:#d59312;--warn-soft:#fef3df;--bad:#d63b3b;--bad-soft:#fde8e8;--shadow:0 1px 2px rgba(11,18,32,.04),0 8px 24px rgba(11,18,32,.05)}
+  *{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Arial,sans-serif}
+  body{padding:28px clamp(16px,4vw,48px)}
+  a{color:var(--accent)}
+  .top-nav{margin-bottom:14px;font-size:13px}.top-nav a{text-decoration:none;font-weight:600}
+  h1{margin:0 0 4px;font-size:26px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:20px}
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:18px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .kpi .label{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+  .kpi .value{font-size:22px;font-weight:700;margin-top:6px;font-variant-numeric:tabular-nums}
+  .kpi .delta{font-size:12px;margin-top:4px;color:var(--muted)}
+  .up{color:var(--good)}.down{color:var(--bad)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);margin-bottom:18px}
+  .card h3{margin:0 0 6px;font-size:15px}
+  .h-sub{color:var(--muted);font-size:12px;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--muted);font-weight:500;padding:8px 10px;border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase}
+  td{padding:9px 10px;border-bottom:1px solid var(--line)}
+  tr:last-child td{border-bottom:none}
+  .pill{display:inline-block;padding:2px 8px;font-size:11px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:600}
+  .pill.good{background:var(--good-soft);color:var(--good)}.pill.bad{background:var(--bad-soft);color:#7a1a1a}.pill.warn{background:var(--warn-soft);color:#8a5d10}
+  .chart-wrap{position:relative;height:240px}
+  .empty{color:var(--muted);font-size:13px;text-align:center;padding:18px 0}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+  .banner{background:var(--warn-soft);border:1px solid #f3dfae;color:#6b4d10;border-radius:12px;padding:12px 16px;font-size:13px;margin-bottom:18px}
+  .footer{text-align:center;color:var(--muted);font-size:12px;margin-top:28px;padding-top:16px;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div class="top-nav"><a href="index.html">&larr; TON Quant</a></div>
+<h1>📄 Paper Bot</h1>
+<div class="sub">Virtual $1,000 portfolio trading the Alpha-digest signals once a day (03:10 UTC, GitHub Actions). Entries pay realistic costs: CPMM slippage from pool depth + 0.3% DEX fee per leg. Exits: +20% take / &minus;10% stop / 3-day timeout. This is the honest test of whether our signals have edge &mdash; before any real bot.</div>
+
+<div class="kpi-grid">
+  <div class="kpi"><div class="label">Equity</div><div class="value" id="kEq">&mdash;</div><div class="delta" id="kEqD">vs $1,000 start</div></div>
+  <div class="kpi"><div class="label">Closed PnL</div><div class="value" id="kPnl">&mdash;</div><div class="delta" id="kTrades">&mdash;</div></div>
+  <div class="kpi"><div class="label">Win rate</div><div class="value" id="kWin">&mdash;</div><div class="delta">closed trades</div></div>
+  <div class="kpi"><div class="label">Open positions</div><div class="value" id="kOpen">&mdash;</div><div class="delta" id="kCash">&mdash;</div></div>
+  <div class="kpi"><div class="label">Days running</div><div class="value" id="kDays">&mdash;</div><div class="delta" id="kSince">&mdash;</div></div>
+</div>
+
+<div class="card">
+  <h3>Equity curve</h3>
+  <div class="h-sub">Daily mark-to-market of the virtual portfolio.</div>
+  <div class="chart-wrap"><canvas id="eqChart" width="1200" height="240"></canvas></div>
+</div>
+
+<div class="card">
+  <h3>Edge by signal type</h3>
+  <div class="h-sub">Which signals actually make money. This table decides what the real bot will trade.</div>
+  <table><thead><tr><th>Signal</th><th class="num">Trades</th><th class="num">Win rate</th><th class="num">Avg return</th><th class="num">Total PnL</th></tr></thead>
+  <tbody id="sigBody"><tr><td colspan="5" class="empty">No closed trades yet — the bot needs a few days of history.</td></tr></tbody></table>
+</div>
+
+<div class="card">
+  <h3>Open positions</h3>
+  <table><thead><tr><th>Token</th><th>Signal</th><th>Opened</th><th class="num">Entry (eff.)</th><th class="num">Day</th></tr></thead>
+  <tbody id="posBody"><tr><td colspan="5" class="empty">None</td></tr></tbody></table>
+</div>
+
+<div class="card">
+  <h3>Trade log</h3>
+  <table><thead><tr><th>Token</th><th>Signal</th><th>Opened&rarr;Closed</th><th class="num">Return</th><th class="num">PnL</th><th>Exit</th></tr></thead>
+  <tbody id="logBody"><tr><td colspan="6" class="empty">No trades yet</td></tr></tbody></table>
+  <div style="text-align:center;margin-top:8px"><span class="pill" id="logMore" style="cursor:pointer;display:none">Show all</span></div>
+</div>
+
+<div class="footer"><strong>TON Quant</strong> &mdash; paper trading, no real funds. Not financial advice.</div>
+
+<script>
+const esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt$=n=>(n<0?"−$":"$")+Math.abs(n).toLocaleString(undefined,{maximumFractionDigits:2});
+async function getState(){
+  for(const u of ["data/paper/state.json","https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data/paper/state.json"]){
+    try{const r=await fetch(u,{cache:"no-store"});if(r.ok)return await r.json();}catch(e){}
+  }
+  return null;
+}
+function drawEq(eq){
+  const c=document.getElementById("eqChart"),ctx=c.getContext("2d");
+  const W=c.width=c.parentElement.clientWidth,H=c.height=240;
+  if(eq.length<1)return;
+  const vs=eq.map(p=>p.v),mn=Math.min(...vs,995),mx=Math.max(...vs,1005),rng=mx-mn;
+  ctx.strokeStyle="#e4e9f0";ctx.beginPath();
+  const y0=H-14-((1000-mn)/rng)*(H-28);
+  ctx.setLineDash([4,4]);ctx.moveTo(0,y0);ctx.lineTo(W,y0);ctx.stroke();ctx.setLineDash([]);
+  ctx.strokeStyle=vs[vs.length-1]>=1000?"#18a957":"#d63b3b";ctx.lineWidth=2;ctx.beginPath();
+  eq.forEach((p,i)=>{
+    const x=eq.length===1?W/2:i/(eq.length-1)*(W-20)+10;
+    const y=H-14-((p.v-mn)/rng)*(H-28);
+    i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+    ctx.fillStyle="#5b6573";ctx.font="10px sans-serif";
+    if(i%Math.ceil(eq.length/8)===0||i===eq.length-1)ctx.fillText(p.d.slice(5),x-12,H-2);
+  });
+  ctx.stroke();
+}
+(async()=>{
+  const s=await getState();
+  if(!s){document.getElementById("kEq").textContent="no data yet";return;}
+  const eq=s.equity||[],cur=eq.length?eq[eq.length-1].v:1000;
+  const kEq=document.getElementById("kEq");
+  kEq.textContent=fmt$(cur);kEq.className="value "+(cur>1000?"up":cur<1000?"down":"");
+  const d=(cur/1000-1)*100;
+  document.getElementById("kEqD").textContent=(d>=0?"+":"")+d.toFixed(2)+"% vs start";
+  const tr=s.trades||[];
+  const pnl=tr.reduce((a,t)=>a+t.pnl,0);
+  const kP=document.getElementById("kPnl");kP.textContent=fmt$(pnl);kP.className="value "+(pnl>0?"up":pnl<0?"down":"");
+  document.getElementById("kTrades").textContent=tr.length+" closed";
+  document.getElementById("kWin").textContent=tr.length?Math.round(tr.filter(t=>t.pnl>0).length/tr.length*100)+"%":"—";
+  document.getElementById("kOpen").textContent=(s.positions||[]).length;
+  document.getElementById("kCash").textContent="cash "+fmt$(s.cash);
+  document.getElementById("kDays").textContent=eq.length;
+  if(eq.length)document.getElementById("kSince").textContent="since "+eq[0].d;
+  drawEq(eq);
+  /* edge by signal */
+  if(tr.length){
+    const by={};
+    for(const t of tr){(by[t.signal]=by[t.signal]||[]).push(t);}
+    document.getElementById("sigBody").innerHTML=Object.entries(by).map(([sig,ts])=>{
+      const wr=ts.filter(t=>t.pnl>0).length/ts.length*100;
+      const avg=ts.reduce((a,t)=>a+t.ret,0)/ts.length;
+      const tot=ts.reduce((a,t)=>a+t.pnl,0);
+      return `<tr><td><span class="pill">${esc(sig)}</span></td><td class="num">${ts.length}</td>
+        <td class="num ${wr>=55?"up":wr<45?"down":""}">${wr.toFixed(0)}%</td>
+        <td class="num ${avg>0?"up":"down"}">${avg>0?"+":""}${avg.toFixed(1)}%</td>
+        <td class="num ${tot>0?"up":"down"}">${fmt$(tot)}</td></tr>`;
+    }).join("");
+  }
+  /* open positions */
+  const ps=s.positions||[];
+  if(ps.length){
+    document.getElementById("posBody").innerHTML=ps.map(p=>`<tr>
+      <td><a href="token.html?a=${esc(p.addr)}">${esc(p.sym)}</a></td>
+      <td><span class="pill">${esc(p.signal)}</span></td><td>${esc(p.opened)}</td>
+      <td class="num">$${p.entry_eff<0.01?p.entry_eff.toExponential(2):p.entry_eff.toFixed(6)}</td>
+      <td class="num">${p.days}/3</td></tr>`).join("");
+  }
+  /* trade log: 10 + expand */
+  const logB=document.getElementById("logBody");
+  const renderLog=n=>{
+    const rows=tr.slice().reverse().slice(0,n);
+    if(!rows.length)return;
+    logB.innerHTML=rows.map(t=>`<tr>
+      <td><a href="token.html?a=${esc(t.addr)}">${esc(t.sym)}</a></td>
+      <td><span class="pill">${esc(t.signal)}</span></td>
+      <td>${esc(t.opened)} → ${esc(t.closed)}</td>
+      <td class="num ${t.ret>0?"up":"down"}">${t.ret>0?"+":""}${t.ret}%</td>
+      <td class="num ${t.pnl>0?"up":"down"}">${fmt$(t.pnl)}</td>
+      <td><span class="pill ${t.reason==="tp"?"good":t.reason==="sl"?"bad":"warn"}">${esc(t.reason)}</span></td></tr>`).join("");
+  };
+  renderLog(10);
+  const more=document.getElementById("logMore");
+  if(tr.length>10){more.style.display="";more.textContent="Show all "+tr.length;more.onclick=()=>{renderLog(tr.length);more.style.display="none";};}
+})();
+</script>
+</body>
+</html>
