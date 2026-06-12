@@ -56,6 +56,10 @@
   .kpi .value{font-size:22px;font-weight:700;margin-top:6px;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
   .kpi .delta{font-size:12px;margin-top:4px;color:var(--muted)}
   .kpi .delta.up{color:var(--good)} .kpi .delta.down{color:var(--bad)}
+  .sig{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1px solid var(--line);border-radius:10px;font-size:13px}
+  .sig .dot{width:10px;height:10px;border-radius:50%;margin-top:3px;flex:none}
+  .sig.good .dot{background:var(--good)} .sig.warn .dot{background:var(--warn)} .sig.bad .dot{background:var(--bad)} .sig.info .dot{background:var(--accent)}
+  .sig b{font-weight:700}
   .pressure{height:6px;border-radius:3px;background:var(--bad-soft);overflow:hidden;margin-top:8px}
   .pressure>div{height:100%;background:var(--good)}
   .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
@@ -163,6 +167,27 @@
   <div class="kpi"><div class="label">Liquidity (DEX)</div><div class="value" id="kTvl">&mdash;</div><div class="delta" id="kTvlSub">across pools</div></div>
   <div class="kpi"><div class="label">Volume 24h</div><div class="value" id="kVol">&mdash;</div><div class="delta" id="kTxns">&mdash;</div><div class="pressure" id="pressureBar" style="display:none"><div></div></div></div>
   <div class="kpi"><div class="label">Top-10 Hold</div><div class="value" id="kTop10">&mdash;</div><div class="delta">share of supply</div></div>
+  <div class="kpi"><div class="label">Mcap / Holder</div><div class="value" id="kPH">&mdash;</div><div class="delta" id="kPHSub">vs top-20 median $220</div></div>
+  <div class="kpi"><div class="label">In Profit (90d est.)</div><div class="value" id="kProfit">&mdash;</div><div class="delta" id="kProfitSub">days below current price</div></div>
+</div>
+
+<div class="row">
+  <div class="card">
+    <h3>Signals <span class="pill warn" id="demoPill" style="display:none">DEMO — all signal types with sample data</span></h3>
+    <div class="h-sub">Cross-metric reads: divergences between volume, price, liquidity and holders. Auto-generated, not financial advice.</div>
+    <div id="signals" class="feed" style="max-height:none"><div class="empty">Computing&hellip;</div></div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="card">
+    <h3>Slippage map</h3>
+    <div class="h-sub">Exact constant-product math from pool reserves: how much a market buy of each size moves the price, per pool.</div>
+    <table>
+      <thead><tr><th>Pool</th><th style="text-align:right">Liquidity</th><th style="text-align:right">$100</th><th style="text-align:right">$1K</th><th style="text-align:right">$10K</th><th style="text-align:right">Max size &lt;1% impact</th></tr></thead>
+      <tbody id="slipTbody"><tr><td colspan="6" class="empty">Loading&hellip;</td></tr></tbody>
+    </table>
+  </div>
 </div>
 
 <div class="row">
@@ -241,6 +266,7 @@
 <script>
 /* ---------- token from URL ---------- */
 const MASTER=(new URLSearchParams(location.search)).get("a")||"";
+const DEMO=(new URLSearchParams(location.search)).has("demo");
 if(!/^[EU]Q[A-Za-z0-9_-]{46}$/.test(MASTER)){ location.replace("index.html"); }
 let DEC=9, SYM="TOKEN";
 
@@ -447,6 +473,93 @@ async function load(){
       ageDays=Math.floor((Date.now()-created)/86400000);
       document.getElementById("dexAge").textContent=new Date(created).toISOString().slice(0,10)+` (${ageDays}d)`;
     }else document.getElementById("dexAge").textContent="—";
+
+    /* ---- Slippage map (CPMM: price_after/price_before = ((q+S)/q)^2) ---- */
+    const slipBody=document.getElementById("slipTbody");
+    const slipPools=pairs.filter(p=>(p.liquidity?.usd||0)>100).slice(0,4);
+    const impact=(q,S)=>(Math.pow((q+S)/q,2)-1)*100;
+    const impCell=v=>{const c=v<1?"good":v<5?"warn":"bad";return `<td style="text-align:right"><span class="pill ${c}">${v<100?v.toFixed(2)+"%":"&gt;100%"}</span></td>`;};
+    if(slipPools.length){
+      slipBody.innerHTML=slipPools.map(p=>{
+        const q=(p.liquidity?.usd||0)/2;
+        const max1=q*(Math.sqrt(1.01)-1);
+        return `<tr><td><span class="pill">${esc(p.dexId)}</span> ${esc(p.baseToken?.symbol)}/${esc(p.quoteToken?.symbol)}</td>
+          <td style="text-align:right">${fmtUsd(p.liquidity?.usd)}</td>
+          ${impCell(impact(q,100))}${impCell(impact(q,1000))}${impCell(impact(q,10000))}
+          <td style="text-align:right;font-weight:700">${fmtUsd(max1)}</td></tr>`;
+      }).join("");
+    }else slipBody.innerHTML='<tr><td colspan="6" class="empty">No pools with liquidity.</td></tr>';
+
+    /* ---- In-Profit (90d est.) via 90d chart ---- */
+    let pctBelow=null;
+    try{
+      const now90=Math.floor(Date.now()/1000);
+      const ch90=await jget(`https://tonapi.io/v2/rates/chart?token=${MASTER}&currency=usd&start_date=${now90-90*86400}&end_date=${now90}&points_count=180`);
+      const pts=(ch90.points||[]).map(p=>p[1]).filter(x=>x>0);
+      if(pts.length>20&&usd>0){
+        pctBelow=pts.filter(x=>x<usd).length/pts.length*100;
+        document.getElementById("kProfit").textContent=pctBelow.toFixed(0)+"%";
+        const ps=document.getElementById("kProfitSub");
+        if(pctBelow>=85){ps.textContent="profit-taking zone";ps.className="delta down";}
+        else if(pctBelow<=15){ps.textContent="capitulation zone";ps.className="delta down";}
+        else{ps.textContent="days below current price";ps.className="delta";}
+      }
+    }catch(e){}
+
+    /* ---- P/H ratio ---- */
+    const MEDIAN_PH=220;
+    if(totalHolders>0&&supplyTokens*usd>0){
+      const ph=supplyTokens*usd/totalHolders;
+      document.getElementById("kPH").textContent=fmtUsd(ph);
+      const sub=document.getElementById("kPHSub");
+      const x=ph/MEDIAN_PH;
+      sub.textContent=x>3?`${x.toFixed(1)}x median — rich per holder`:x<0.33?`${x.toFixed(2)}x median — cheap per holder`:`${x.toFixed(1)}x top-20 median`;
+      sub.className="delta "+(x>3?"down":x<0.33?"up":"");
+    }
+
+    /* ---- Signals (cross-metric divergences) ---- */
+    const sigs=[];
+    const ch24=parseFloat(String(r.diff_24h?.USD||"").replace("\u2212","-").replace("%",""));
+    const flat=isFinite(ch24)&&Math.abs(ch24)<2;
+    if(buys+sells>30){
+      if(buys>sells*1.5&&flat)sigs.push(["warn","Absorption (sell wall)",`${buys} buys vs ${sells} sells in 24h, yet price is flat (${ch24}%) — a large seller is absorbing demand.`]);
+      if(sells>buys*1.5&&flat)sigs.push(["good","Hidden buyer",`${sells} sells vs ${buys} buys in 24h, yet price holds (${ch24}%) — someone is quietly buying the dip.`]);
+      if(buys>sells*1.3&&isFinite(ch24)&&ch24>5)sigs.push(["good","Momentum confirmed",`Buy pressure (${buys}/${sells}) and price (+${ch24}%) agree — trend is supported by flow.`]);
+    }
+    if(totLiq>0&&totVol/totLiq>3&&flat)sigs.push(["bad","Wash trading suspected",`24h volume is ${(totVol/totLiq).toFixed(1)}x the liquidity while price barely moved — classic wash pattern (volume/TVL + flat price).`]);
+    const mc=supplyTokens*usd;
+    if(mc>0&&totVol/mc>0.5)sigs.push(["warn","Overheated turnover",`24h volume is ${(totVol/mc*100).toFixed(0)}% of market cap — extreme churn, expect volatility.`]);
+    if(mc>0&&totVol>0&&totVol/mc<0.001)sigs.push(["info","Dormant",`24h volume is ${(totVol/mc*100).toFixed(2)}% of market cap — market interest is minimal.`]);
+    if(pctBelow!=null&&pctBelow>=85)sigs.push(["warn","Profit-taking zone",`Price is above ${pctBelow.toFixed(0)}% of the last 90 days — most positions are in profit, selling pressure risk is elevated.`]);
+    if(pctBelow!=null&&pctBelow<=15)sigs.push(["info","Capitulation zone",`Price is below ${(100-pctBelow).toFixed(0)}% of the last 90 days — late-stage bear territory in Glassnode terms.`]);
+    if(liqPairs.length>=2){
+      const ps2=liqPairs.map(p=>parseFloat(p.priceUsd));
+      const spr=(Math.max(...ps2)-Math.min(...ps2))/Math.min(...ps2)*100;
+      if(spr>2)sigs.push(["info","Cross-DEX arbitrage",`${spr.toFixed(1)}% price gap between pools — arb opportunity (mind the taxable flag and gas).`]);
+    }
+    const hAddrs=holders.addresses||[];
+    if(hAddrs.length&&supplyRaw>0n){
+      const t10=hAddrs.slice(0,10).reduce((acc,h)=>acc+Number(h.balance),0)/Number(supplyRaw)*100;
+      if(t10>50)sigs.push(["bad","Whale-controlled",`Top-10 wallets hold ${t10.toFixed(0)}% of supply — price is at the mercy of a few hands.`]);
+    }
+    if(DEMO){
+      sigs.length=0;
+      document.getElementById("demoPill").style.display="";
+      sigs.push(
+        ["good","Hidden buyer","412 sells vs 198 buys in 24h, yet price holds (−0.4%) — someone is quietly buying the dip."],
+        ["good","Momentum confirmed","Buy pressure (310/142) and price (+12.6%) agree — trend is supported by flow."],
+        ["warn","Absorption (sell wall)","287 buys vs 119 sells in 24h, yet price is flat (+0.8%) — a large seller is absorbing demand."],
+        ["warn","Overheated turnover","24h volume is 73% of market cap — extreme churn, expect volatility."],
+        ["warn","Profit-taking zone","Price is above 91% of the last 90 days — most positions are in profit, selling pressure risk is elevated."],
+        ["bad","Wash trading suspected","24h volume is 5.2x the liquidity while price barely moved — classic wash pattern (volume/TVL + flat price)."],
+        ["bad","Whale-controlled","Top-10 wallets hold 78% of supply — price is at the mercy of a few hands."],
+        ["info","Cross-DEX arbitrage","4.7% price gap between pools — arb opportunity (mind the taxable flag and gas)."],
+        ["info","Capitulation zone","Price is below 92% of the last 90 days — late-stage bear territory in Glassnode terms."],
+        ["info","Dormant","24h volume is 0.03% of market cap — market interest is minimal."]
+      );
+    }
+    const sigEl=document.getElementById("signals");
+    sigEl.innerHTML=sigs.length?sigs.map(x=>`<div class="sig ${x[0]}"><span class="dot"></span><div><b>${x[1]}.</b> ${x[2]}</div></div>`).join(""):'<div class="empty">No notable cross-metric signals right now — metrics agree with price.</div>';
     const ptb=document.getElementById("poolTbody");
     ptb.innerHTML=pairs.length?pairs.slice(0,6).map(p=>`<tr>
       <td><span class="pill">${esc(p.dexId)}</span></td>
