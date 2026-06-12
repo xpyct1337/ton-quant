@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Token — TON Quant (v2 beta)</title>
+<meta name="description" content="Live TON jetton dashboard: price, market cap, holders, DEX liquidity, on-chain activity. Data from TONAPI + DexScreener." />
+<meta name="theme-color" content="#0098ea" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%230098ea'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3EQ%3C/text%3E%3C/svg%3E" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
+<style>
+  :root { color-scheme: light;
+    --bg:#f4f7fb; --card:#fff; --ink:#0b1220; --muted:#5b6573; --line:#e4e9f0;
+    --accent:#0098ea; --accent-soft:#e4f4fd; --good:#18a957; --good-soft:#e3f6e9;
+    --warn:#d59312; --warn-soft:#fef3df; --bad:#d63b3b; --bad-soft:#fde8e8;
+    --shadow:0 1px 2px rgba(11,18,32,.04), 0 8px 24px rgba(11,18,32,.05); }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  body{padding:28px clamp(16px,4vw,48px)}
+  a{color:var(--accent)}
+  .top-nav{margin-bottom:14px;font-size:13px}
+  .top-nav a{text-decoration:none;font-weight:600}
+  .header{display:flex;align-items:center;gap:18px;margin-bottom:24px;flex-wrap:wrap}
+  .header img{width:64px;height:64px;border-radius:16px;background:var(--accent-soft);object-fit:cover}
+  .title-block{flex:1;min-width:240px}
+  .title-block h1{margin:0;font-size:26px;letter-spacing:-.01em}
+  .title-block .sub{color:var(--muted);font-size:14px;margin-top:4px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .addr-chip{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;background:var(--card);padding:4px 10px;border-radius:999px;border:1px solid var(--line);cursor:pointer}
+  .addr-chip:hover{background:var(--accent-soft);border-color:var(--accent)}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .btn{padding:9px 14px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer}
+  .btn.ghost{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+  .btn:hover{filter:brightness(1.05)}
+  .gram-box{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:7px 12px}
+  .gram-box .opt{font-size:12px;font-weight:700;color:var(--muted)}
+  .gram-box .opt.on{color:var(--ink)}
+  .switch{position:relative;width:38px;height:21px;border-radius:999px;background:#d6ddea;cursor:pointer;transition:background .2s;border:none;padding:0}
+  .switch.on{background:var(--accent)}
+  .switch::after{content:"";position:absolute;top:3px;left:3px;width:15px;height:15px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+  .switch.on::after{left:20px}
+  .banner{display:flex;gap:12px;border-radius:14px;padding:14px 18px;margin-bottom:18px;font-size:13px;border:1px solid}
+  .banner.warn{background:var(--warn-soft);border-color:#f3dfae;color:#6b4d10}
+  .banner.good{background:var(--good-soft);border-color:#bfe8cc;color:#115f33}
+  .banner.bad{background:var(--bad-soft);border-color:#f3bcbc;color:#7a1a1a}
+  .banner .icon{font-size:16px}
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:18px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .kpi .label{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+  .kpi .value{font-size:22px;font-weight:700;margin-top:6px;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+  .kpi .delta{font-size:12px;margin-top:4px;color:var(--muted)}
+  .kpi .delta.up{color:var(--good)} .kpi .delta.down{color:var(--bad)}
+  .sig{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1px solid var(--line);border-radius:10px;font-size:13px}
+  .sig .dot{width:10px;height:10px;border-radius:50%;margin-top:3px;flex:none}
+  .sig.good .dot{background:var(--good)} .sig.warn .dot{background:var(--warn)} .sig.bad .dot{background:var(--bad)} .sig.info .dot{background:var(--accent)}
+  .sig b{font-weight:700}
+  .pressure{height:6px;border-radius:3px;background:var(--bad-soft);overflow:hidden;margin-top:8px}
+  .pressure>div{height:100%;background:var(--good)}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .chip{font-size:11px;padding:3px 9px;border-radius:999px;background:#eef0f3;color:var(--muted);font-weight:600}
+  .chip.up{background:var(--good-soft);color:var(--good)} .chip.down{background:var(--bad-soft);color:var(--bad)}
+  .row{display:grid;gap:18px;margin-bottom:18px}
+  .row.r-2{grid-template-columns:1.3fr 1fr}
+  @media(max-width:920px){.row.r-2{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)}
+  .card h3{margin:0 0 6px 0;font-size:15px;letter-spacing:-.01em;display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .card .h-sub{color:var(--muted);font-size:12px;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--muted);font-weight:500;padding:8px 10px;border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+  td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top}
+  td.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+  .small{font-size:12px;color:var(--muted)}
+  td .pct-bar{height:4px;background:var(--accent-soft);border-radius:2px;overflow:hidden;margin-top:4px}
+  td .pct-bar>div{height:100%;background:var(--accent)}
+  td a{color:var(--accent);text-decoration:none}
+  td a:hover{text-decoration:underline}
+  .pill{display:inline-block;padding:2px 8px;font-size:11px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:600}
+  .pill.good{background:var(--good-soft);color:var(--good)}
+  .pill.warn{background:var(--warn-soft);color:#8a5d10}
+  .pill.bad{background:var(--bad-soft);color:#7a1a1a}
+  .pill.muted{background:#eef0f3;color:var(--muted)}
+  .chart-wrap{position:relative;height:280px}
+  .chart-wrap.short{height:220px}
+  .tf-tabs{display:inline-flex;gap:4px}
+  .tf-tabs button{background:transparent;color:var(--muted);border:1px solid var(--line);padding:4px 10px;border-radius:8px;font-size:12px;cursor:pointer}
+  .tf-tabs button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .kv{display:grid;grid-template-columns:max-content 1fr;gap:8px 18px;font-size:13px}
+  .kv dt{color:var(--muted)} .kv dd{margin:0;font-variant-numeric:tabular-nums}
+  .feed{display:flex;flex-direction:column;gap:10px;max-height:480px;overflow-y:auto}
+  .ev{padding:12px 14px;border:1px solid var(--line);border-radius:10px;font-size:13px}
+  .ev .ev-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .ev .ev-time{color:var(--muted);font-size:11px}
+  .ev .ev-tag{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:600}
+  .ev .ev-tag.JettonTransfer{background:#e6f7fd;color:#0876aa}
+  .ev .ev-tag.JettonMint{background:var(--good-soft);color:var(--good)}
+  .ev .ev-tag.JettonBurn{background:var(--bad-soft);color:var(--bad)}
+  .ev .ev-tag.TonTransfer{background:#f4eafe;color:#6b3dd0}
+  .ev .ev-tag.JettonSwap{background:var(--good-soft);color:var(--good)}
+  .ev .ev-tag.SmartContractExec{background:var(--warn-soft);color:#8a5d10}
+  .ev .ev-tag.ContractDeploy{background:#f4eafe;color:#6b3dd0}
+  .ev .ev-body{margin-top:6px;color:var(--muted)}
+  .empty{color:var(--muted);font-size:13px;text-align:center;padding:20px 0}
+  .loading{opacity:.5;pointer-events:none}
+  .footer{text-align:center;color:var(--muted);font-size:12px;margin-top:28px;padding:16px 0;border-top:1px solid var(--line)}
+  .live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--good);margin-right:6px;animation:pulse 2s ease infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+</style>
+</head>
+<body>
+
+<div class="top-nav"><a href="index.html">&larr; TON Quant &middot; top-20</a> <span class="pill" style="margin-left:8px">v2 beta</span></div>
+
+<div class="header">
+  <img id="logo" alt="token logo" src="" />
+  <div class="title-block">
+    <h1 id="name">Loading&hellip;</h1>
+    <div class="sub">
+      <span id="symbol">&mdash;</span>
+      <span class="addr-chip" id="addrChip" title="Click to copy">&mdash;</span>
+      <span id="verifyPill" class="pill muted">&mdash;</span>
+      <span id="taxablePill" class="pill warn" style="display:none">Taxable</span>
+      <span id="liqPill" class="pill warn" style="display:none">Low liquidity</span>
+      <span id="modePill" class="pill muted">&hellip;</span>
+      <span class="small">Updated: <span id="updatedAt">&mdash;</span></span>
+    </div>
+  </div>
+  <div class="actions">
+    <div class="gram-box">
+      <span class="opt" id="optTon">TON</span>
+      <button class="switch" id="gramSwitch" aria-label="Toggle TON/GRAM"></button>
+      <span class="opt" id="optGram">GRAM</span>
+    </div>
+    <button class="btn ghost" id="tvBtn">Tonviewer &nearr;</button>
+    <button class="btn ghost" id="swapBtn">Swap on STON.fi &nearr;</button>
+    <button class="btn" id="refreshBtn">&#8635; Refresh</button>
+  </div>
+</div>
+
+<div id="errBanner" class="banner bad" style="display:none">
+  <span class="icon">&#9888;</span>
+  <div><strong>Could not load token data.</strong> <span id="errText"></span></div>
+</div>
+
+<div id="riskBanner" class="banner warn" style="display:none">
+  <span class="icon">&#9888;</span>
+  <div>
+    <strong>Heads up on this token.</strong>
+    <div id="riskList" style="margin-top:4px"></div>
+  </div>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi" id="scoreKpi" title=""><div class="label">TON Quant Score</div><div class="value" id="kScore">&mdash;</div><div class="delta" id="kScoreSub">hover for breakdown</div></div>
+  <div class="kpi"><div class="label">Price (USD)</div><div class="value" id="kPrice">&mdash;</div><div class="delta" id="kPriceDelta">24h</div></div>
+  <div class="kpi"><div class="label">Price (<span data-unit>TON</span>)</div><div class="value" id="kPriceTon">&mdash;</div><div class="delta" id="kPriceTonDelta">24h</div></div>
+  <div class="kpi"><div class="label">Market Cap</div><div class="value" id="kMcap">&mdash;</div><div class="delta">supply &times; price</div></div>
+  <div class="kpi"><div class="label">Total Supply</div><div class="value" id="kSupply">&mdash;</div><div class="delta" id="kSupplyUnit">&mdash;</div></div>
+  <div class="kpi"><div class="label">Holders</div><div class="value" id="kHolders">&mdash;</div><div class="delta">unique wallets</div></div>
+  <div class="kpi"><div class="label">7d Change</div><div class="value" id="k7d">&mdash;</div><div class="delta">USD</div></div>
+  <div class="kpi"><div class="label"><span data-unit>TON</span> Price</div><div class="value" id="kTon">&mdash;</div><div class="delta" id="kTonDelta">24h</div></div>
+  <div class="kpi"><div class="label">Liquidity (DEX)</div><div class="value" id="kTvl">&mdash;</div><div class="delta" id="kTvlSub">across pools</div></div>
+  <div class="kpi"><div class="label">Volume 24h</div><div class="value" id="kVol">&mdash;</div><div class="delta" id="kTxns">&mdash;</div><div class="pressure" id="pressureBar" style="display:none"><div></div></div></div>
+  <div class="kpi"><div class="label">Top-10 Hold</div><div class="value" id="kTop10">&mdash;</div><div class="delta">share of supply</div></div>
+  <div class="kpi"><div class="label">Mcap / Holder</div><div class="value" id="kPH">&mdash;</div><div class="delta" id="kPHSub">vs top-20 median $220</div></div>
+  <div class="kpi"><div class="label">In Profit (90d est.)</div><div class="value" id="kProfit">&mdash;</div><div class="delta" id="kProfitSub">days below current price</div></div>
+</div>
+
+<div class="row">
+  <div class="card">
+    <h3>Signals</h3>
+    <div class="h-sub">Cross-metric reads: divergences between volume, price, liquidity and holders. Auto-generated, not financial advice.</div>
+    <div id="signals" class="feed" style="max-height:none"><div class="empty">Computing&hellip;</div></div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="card">
+    <h3>Slippage map</h3>
+    <div class="h-sub">Exact constant-product math from pool reserves: how much a market buy of each size moves the price, per pool.</div>
+    <table>
+      <thead><tr><th>Pool</th><th style="text-align:right">Liquidity</th><th style="text-align:right">$100</th><th style="text-align:right">$1K</th><th style="text-align:right">$10K</th><th style="text-align:right">Max size &lt;1% impact</th></tr></thead>
+      <tbody id="slipTbody"><tr><td colspan="6" class="empty">Loading&hellip;</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="row">
+  <div class="card">
+    <h3><span>Price history (<span id="chartCur">USD</span>)</span>
+      <span style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <span class="tf-tabs" id="curTabs">
+        <button data-cur="usd" class="active">USD</button>
+        <button data-cur="ton"><span data-unit>TON</span></button>
+      </span>
+      <span class="tf-tabs" id="tfTabs">
+        <button data-tf="1">24h</button>
+        <button data-tf="7" class="active">7d</button>
+        <button data-tf="30">30d</button>
+        <button data-tf="90">90d</button>
+      </span>
+      </span>
+    </h3>
+    <div class="h-sub">Source: TONAPI rates aggregator. Hover for exact values.</div>
+    <div class="chart-wrap"><canvas id="priceChart"></canvas></div>
+  </div>
+</div>
+
+<div class="row r-2">
+  <div class="card">
+    <h3>Holder concentration</h3>
+    <div class="h-sub">Share of supply held by top addresses (of top-100 sample). <span id="hhi"></span></div>
+    <div class="chart-wrap short"><canvas id="holderChart"></canvas></div>
+  </div>
+  <div class="card">
+    <h3>DEX liquidity</h3>
+    <div class="h-sub">Top pools across TON DEXes. Source: DexScreener.</div>
+    <div class="chips" id="pcChips" style="display:none"></div>
+    <table>
+      <thead><tr><th>DEX</th><th>Pair</th><th style="text-align:right">Liquidity</th><th style="text-align:right">Vol 24h</th><th style="text-align:right">Buys/Sells</th></tr></thead>
+      <tbody id="poolTbody"><tr><td colspan="5" class="empty">Loading&hellip;</td></tr></tbody>
+    </table>
+    <dl class="kv" style="margin-top:12px">
+      <dt>Cross-DEX spread</dt><dd id="dexSpread">&mdash;</dd>
+      <dt>FDV</dt><dd id="dexFdv">&mdash;</dd>
+      <dt>Trading since</dt><dd id="dexAge">&mdash;</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="row">
+  <div class="card">
+    <h3>Top holders</h3>
+    <div class="h-sub">Top 25 wallets by jetton balance. Click an address to open it on Tonviewer.</div>
+    <table id="holderTable">
+      <thead><tr><th>#</th><th>Owner</th><th style="text-align:right">Balance</th><th style="text-align:right">Share</th></tr></thead>
+      <tbody id="holderTbody"><tr><td colspan="4" class="empty">Loading&hellip;</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="row">
+  <div class="card">
+    <h3>Recent on-chain activity
+      <span class="tf-tabs" id="whaleTabs">
+        <button data-min="0" class="active">All</button>
+        <button data-min="1000">&gt;$1K</button>
+        <button data-min="10000">&gt;$10K</button>
+      </span>
+    </h3>
+    <div class="h-sub">Last 20 events touching the jetton master contract. Whale filter estimates USD value per action.</div>
+    <div id="feed" class="feed"><div class="empty">Loading&hellip;</div></div>
+  </div>
+</div>
+
+<div class="footer">
+  <span class="live-dot"></span>Live data from <a href="https://tonapi.io">tonapi.io</a> + <a href="https://dexscreener.com">DexScreener</a>. Auto-refreshes every 60s.
+  <div style="margin-top:6px"><strong>TON Quant</strong> &mdash; analytics for the TON ecosystem. Not financial advice. DYOR.</div>
+</div>
+
+<script>
+/* ---------- token from URL ---------- */
+const MASTER=(new URLSearchParams(location.search)).get("a")||"";
+if(!/^[EU]Q[A-Za-z0-9_-]{46}$/.test(MASTER)){ location.replace("index.html"); }
+let DEC=9, SYM="TOKEN";
+
+/* ---------- GRAM switch ---------- */
+const GRAM_TS=Date.UTC(2026,5,15,12,0,0);
+function unit(){ return localStorage.getItem("tq_unit")||(Date.now()>=GRAM_TS?"GRAM":"TON"); }
+function applyUnit(){
+  const u=unit();
+  document.querySelectorAll("[data-unit]").forEach(el=>el.textContent=u);
+  document.getElementById("gramSwitch").classList.toggle("on",u==="GRAM");
+  document.getElementById("optTon").classList.toggle("on",u==="TON");
+  document.getElementById("optGram").classList.toggle("on",u==="GRAM");
+}
+document.getElementById("gramSwitch").addEventListener("click",()=>{
+  localStorage.setItem("tq_unit",unit()==="GRAM"?"TON":"GRAM"); applyUnit(); load();
+});
+
+/* ---------- helpers ---------- */
+const fmtNum=(n,maxFD=2)=>{
+  if(n==null||!isFinite(n))return "—";
+  if(n===0)return "0";
+  const a=Math.abs(n);
+  if(a>=1e9)return (n/1e9).toFixed(2)+"B";
+  if(a>=1e6)return (n/1e6).toFixed(2)+"M";
+  if(a>=1e3)return (n/1e3).toFixed(2)+"K";
+  if(a>=1)return n.toLocaleString(undefined,{maximumFractionDigits:maxFD});
+  return n.toFixed(6).replace(/0+$/,"").replace(/\.$/,"");
+};
+const fmtUsd=n=>{
+  if(n==null||!isFinite(n))return "—";
+  if(n===0)return "$0.00";
+  if(n<0.0001)return "$"+n.toExponential(2);
+  if(n<1)return "$"+n.toFixed(6).replace(/0+$/,"").replace(/\.$/,"");
+  if(n>=1e9)return "$"+(n/1e9).toFixed(2)+"B";
+  if(n>=1e6)return "$"+(n/1e6).toFixed(2)+"M";
+  if(n>=1e3)return "$"+(n/1e3).toFixed(2)+"K";
+  return "$"+n.toLocaleString(undefined,{maximumFractionDigits:2});
+};
+const shortAddr=a=>a?a.slice(0,6)+"…"+a.slice(-6):"—";
+const tonviewerUrl=a=>`https://tonviewer.com/${a}`;
+const setDelta=(el,str)=>{
+  if(!str){el.textContent="—";return;}
+  el.textContent=str;
+  el.className="delta "+((str.startsWith("−")||str.startsWith("-"))?"down":(str.startsWith("+")?"up":""));
+};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const safeUrl=u=>/^https?:\/\//.test(u||"")?u:"#";
+const TONAPI_KEY="AEUCH5S5SBNE64AAAAAMCL5S6MOL6AFR42PEXAR3OL2K2VJTQS77IQCN7I3O54EQK76ZIFA";
+let tonapiTail=Promise.resolve();
+function jget(url){
+  const isTon=url.includes("tonapi.io");
+  const hdrs={Accept:"application/json"};
+  if(isTon&&TONAPI_KEY)hdrs.Authorization="Bearer "+TONAPI_KEY;
+  const fetchRetry=async()=>{
+    for(let i=0;;i++){
+      let r;
+      try{ r=await fetch(url,{headers:hdrs}); }
+      catch(e){ if(i>=3)throw e; await sleep(800*(i+1)); continue; }
+      if(r.ok)return r.json();
+      if(r.status===429&&i<4){ await sleep(1100*(i+1)); continue; }
+      throw new Error(`${url} \u2192 ${r.status}`);
+    }
+  };
+  if(isTon){
+    const p=tonapiTail.then(fetchRetry);
+    tonapiTail=p.then(()=>sleep(120),()=>sleep(120));
+    return p;
+  }
+  return fetchRetry();
+}
+
+let priceChart=null,holderChart=null;
+
+let chartCur="usd";
+const fmtCur=v=>chartCur==="usd"?fmtUsd(v):(v==null||!isFinite(v)?"—":v.toFixed(v<0.01?8:4).replace(/0+$/,"").replace(/\.$/,"")+" "+unit());
+async function loadPriceChart(days=7){
+  const now=Math.floor(Date.now()/1000), start=now-days*86400;
+  let data;
+  try{ data=await jget(`https://tonapi.io/v2/rates/chart?token=${MASTER}&currency=${chartCur}&start_date=${start}&end_date=${now}&points_count=200`); }
+  catch(e){ data={points:[]}; }
+  const points=(data.points||[]).map(p=>({x:p[0]*1000,y:p[1]})).sort((a,b)=>a.x-b.x);
+  const ctx=document.getElementById("priceChart").getContext("2d");
+  const grad=ctx.createLinearGradient(0,0,0,280);
+  grad.addColorStop(0,"rgba(0,152,234,0.20)"); grad.addColorStop(1,"rgba(0,152,234,0.00)");
+  if(priceChart)priceChart.destroy();
+  priceChart=new Chart(ctx,{type:"line",
+    data:{datasets:[{label:`${SYM} / ${chartCur==="usd"?"USD":unit()}`,data:points,borderColor:"#0098ea",backgroundColor:grad,fill:true,tension:.25,borderWidth:2,pointRadius:0,pointHoverRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+      scales:{x:{type:"time",time:{unit:days<=1?"hour":(days<=7?"day":"week")},grid:{display:false},ticks:{color:"#5b6573",maxRotation:0}},
+              y:{grid:{color:"#eef1f5"},ticks:{color:"#5b6573",callback:v=>fmtCur(v)}}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${fmtCur(c.parsed.y)} at ${new Date(c.parsed.x).toLocaleString()}`}}}}});
+  document.getElementById("chartCur").textContent=chartCur==="usd"?"USD":unit();
+}
+
+async function load(){
+  document.body.classList.add("loading");
+  let info,holders,rates,events,dex,stonAsset;
+  try{
+    [info,holders,rates,events,dex,stonAsset]=await Promise.all([
+      jget(`https://tonapi.io/v2/jettons/${MASTER}`),
+      jget(`https://tonapi.io/v2/jettons/${MASTER}/holders?limit=100`),
+      jget(`https://tonapi.io/v2/rates?tokens=${MASTER}%2CTON&currencies=usd%2Cton`).catch(()=>({rates:{}})),
+      jget(`https://tonapi.io/v2/accounts/${MASTER}/events?limit=20`).catch(()=>({events:[]})),
+      jget(`https://api.dexscreener.com/latest/dex/tokens/${MASTER}`).catch(()=>null),
+      jget(`https://api.ston.fi/v1/assets/${MASTER}`).catch(()=>null),
+    ]);
+  }catch(err){
+    console.error("load failed",err);
+    document.getElementById("errBanner").style.display="flex";
+    document.getElementById("errText").textContent=String(err.message||err);
+    document.getElementById("modePill").textContent="Error";
+    document.getElementById("modePill").className="pill bad";
+    document.body.classList.remove("loading");
+    return;
+  }
+  try{
+    DEC=parseInt(info.metadata?.decimals??9);
+    SYM=info.metadata?.symbol||"TOKEN";
+    document.title=`${SYM} — TON Quant`;
+    document.getElementById("name").textContent=info.metadata?.name||SYM;
+    document.getElementById("symbol").textContent=SYM;
+    if(info.preview||info.metadata?.image)document.getElementById("logo").src=info.preview||info.metadata.image;
+    const chip=document.getElementById("addrChip");
+    chip.textContent=shortAddr(MASTER);
+    chip.onclick=()=>{navigator.clipboard.writeText(MASTER);const o=chip.textContent;chip.textContent="Copied!";setTimeout(()=>chip.textContent=o,1200);};
+    document.getElementById("tvBtn").onclick=()=>window.open(tonviewerUrl(MASTER),"_blank");
+    document.getElementById("swapBtn").onclick=()=>window.open(`https://app.ston.fi/swap?ft=TON&tt=${MASTER}`,"_blank");
+
+    const v=info.verification||"none";
+    const vp=document.getElementById("verifyPill");
+    if(v==="whitelist"){vp.textContent="Verified";vp.className="pill good";}
+    else if(v==="blacklist"){vp.textContent="Blacklisted";vp.className="pill bad";}
+    else{vp.textContent="Unverified";vp.className="pill warn";}
+
+    const stonTags=stonAsset?.asset?.tags||[];
+    const isTaxable=stonAsset?.asset?.taxable||stonTags.some(t=>/taxable/.test(t));
+    const isNoLiq=stonTags.some(t=>/no_liquidity|liquidity:no/.test(t));
+    const isLowLiq=isNoLiq||stonTags.some(t=>/low_liquidity|liquidity:low/.test(t));
+    document.getElementById("taxablePill").style.display=isTaxable?"":"none";
+    const lp=document.getElementById("liqPill");
+    lp.style.display=isLowLiq?"":"none";
+    if(isNoLiq){lp.textContent="No liquidity";lp.className="pill bad";}
+
+    let supplyRaw=0n; try{ supplyRaw=BigInt(info.total_supply||"0"); }catch(e){}
+    const supplyTokens=Number(supplyRaw)/Math.pow(10,DEC);
+    document.getElementById("kSupply").textContent=fmtNum(supplyTokens);
+    document.getElementById("kSupplyUnit").textContent=SYM;
+
+    const totalHolders=info.holders_count??holders.total??holders.addresses?.length??0;
+    document.getElementById("kHolders").textContent=totalHolders.toLocaleString();
+
+    const r=rates.rates?.[MASTER]||{};
+    const usd=r.prices?.USD??0, ton=r.prices?.TON??0;
+    document.getElementById("kPrice").textContent=fmtUsd(usd);
+    document.getElementById("kPriceTon").textContent=ton?ton.toFixed(8).replace(/0+$/,"").replace(/\.$/,""):"—";
+    setDelta(document.getElementById("kPriceDelta"),r.diff_24h?.USD);
+    setDelta(document.getElementById("kPriceTonDelta"),r.diff_24h?.TON);
+    setDelta(document.getElementById("k7d"),r.diff_7d?.USD);
+    document.getElementById("kMcap").textContent=fmtUsd(supplyTokens*usd);
+    const tonUsd=rates.rates?.TON?.prices?.USD;
+    document.getElementById("kTon").textContent=fmtUsd(tonUsd);
+    setDelta(document.getElementById("kTonDelta"),rates.rates?.TON?.diff_24h?.USD);
+
+    /* DEX pools via DexScreener */
+    const pairs=((dex&&dex.pairs)||[]).filter(p=>p.chainId==="ton").sort((a,b)=>(b.liquidity?.usd||0)-(a.liquidity?.usd||0));
+    const totLiq=pairs.reduce((s,p)=>s+(p.liquidity?.usd||0),0);
+    const totVol=pairs.reduce((s,p)=>s+(p.volume?.h24||0),0);
+    const buys=pairs.reduce((s,p)=>s+(p.txns?.h24?.buys||0),0);
+    const sells=pairs.reduce((s,p)=>s+(p.txns?.h24?.sells||0),0);
+    document.getElementById("kTvl").textContent=fmtUsd(totLiq);
+    document.getElementById("kTvlSub").textContent=pairs.length+" pool"+(pairs.length===1?"":"s");
+    document.getElementById("kVol").textContent=fmtUsd(totVol);
+    document.getElementById("kTxns").textContent=buys+sells?`${buys} buys / ${sells} sells`:"—";
+    const pb=document.getElementById("pressureBar");
+    if(buys+sells>0){pb.style.display="";pb.firstElementChild.style.width=(buys/(buys+sells)*100).toFixed(1)+"%";}else pb.style.display="none";
+    /* multi-window price change from top-liquidity pair */
+    const best=pairs.find(p=>p.baseToken?.address===MASTER)||pairs[0];
+    const chipsEl=document.getElementById("pcChips");
+    if(best&&best.priceChange){
+      const w={m5:"5m",h1:"1h",h6:"6h",h24:"24h"};
+      chipsEl.style.display="";
+      chipsEl.innerHTML=Object.entries(w).map(([k,lbl])=>{
+        const v=best.priceChange[k];
+        if(v==null)return "";
+        const c=v>0?"up":(v<0?"down":"");
+        return `<span class="chip ${c}">${lbl} ${v>0?"+":""}${v}%</span>`;
+      }).join("")+(best.txns?`<span class="chip">${(best.txns.h24?.buys||0)+(best.txns.h24?.sells||0)} txns 24h</span>`:"");
+    }else chipsEl.style.display="none";
+    /* cross-DEX spread */
+    const liqPairs=pairs.filter(p=>p.baseToken?.address===MASTER&&(p.liquidity?.usd||0)>5000&&(p.volume?.h24||0)>100&&p.priceUsd);
+    if(liqPairs.length>=2){
+      const ps=liqPairs.map(p=>parseFloat(p.priceUsd));
+      const spread=(Math.max(...ps)-Math.min(...ps))/Math.min(...ps)*100;
+      document.getElementById("dexSpread").innerHTML=spread.toFixed(2)+"% <span class='small'>across "+liqPairs.length+" pools</span>"+(spread>2?' <span class="pill warn">arb?</span>':"");
+    }else document.getElementById("dexSpread").textContent=liqPairs.length?"single pool":"—";
+    /* FDV */
+    const fdv=best?.fdv;
+    document.getElementById("dexFdv").textContent=fdv?fmtUsd(fdv):"—";
+    /* age */
+    const created=Math.min(...pairs.map(p=>p.pairCreatedAt||Infinity));
+    let ageDays=null;
+    if(isFinite(created)){
+      ageDays=Math.floor((Date.now()-created)/86400000);
+      document.getElementById("dexAge").textContent=new Date(created).toISOString().slice(0,10)+` (${ageDays}d)`;
+    }else document.getElementById("dexAge").textContent="—";
+
+    /* ---- Slippage map (CPMM: price_after/price_before = ((q+S)/q)^2) ---- */
+    const slipBody=document.getElementById("slipTbody");
+    const slipPools=pairs.filter(p=>(p.liquidity?.usd||0)>100).slice(0,4);
+    const impact=(q,S)=>(Math.pow((q+S)/q,2)-1)*100;
+    const impCell=v=>{const c=v<1?"good":v<5?"warn":"bad";return `<td style="text-align:right"><span class="pill ${c}">${v<100?v.toFixed(2)+"%":"&gt;100%"}</span></td>`;};
+    if(slipPools.length){
+      slipBody.innerHTML=slipPools.map(p=>{
+        const q=(p.liquidity?.usd||0)/2;
+        const max1=q*(Math.sqrt(1.01)-1);
+        return `<tr><td><span class="pill">${esc(p.dexId)}</span> ${esc(p.baseToken?.symbol)}/${esc(p.quoteToken?.symbol)}</td>
+          <td style="text-align:right">${fmtUsd(p.liquidity?.usd)}</td>
+          ${impCell(impact(q,100))}${impCell(impact(q,1000))}${impCell(impact(q,10000))}
+          <td style="text-align:right;font-weight:700">${fmtUsd(max1)}</td></tr>`;
+      }).join("");
+    }else slipBody.innerHTML='<tr><td colspan="6" class="empty">No pools with liquidity.</td></tr>';
+
+    /* ---- In-Profit (90d est.) via 90d chart ---- */
+    let pctBelow=null;
+    try{
+      const now90=Math.floor(Date.now()/1000);
+      const ch90=await jget(`https://tonapi.io/v2/rates/chart?token=${MASTER}&currency=usd&start_date=${now90-90*86400}&end_date=${now90}&points_count=180`);
+      const pts=(ch90.points||[]).map(p=>p[1]).filter(x=>x>0);
+      if(pts.length>20&&usd>0){
+        pctBelow=pts.filter(x=>x<usd).length/pts.length*100;
+        document.getElementById("kProfit").textContent=pctBelow.toFixed(0)+"%";
+        const ps=document.getElementById("kProfitSub");
+        if(pctBelow>=85){ps.textContent="profit-taking zone";ps.className="delta down";}
+        else if(pctBelow<=15){ps.textContent="capitulation zone";ps.className="delta down";}
+        else{ps.textContent="days below current price";ps.className="delta";}
+      }
+    }catch(e){}
+
+    /* ---- P/H ratio ---- */
+    const MEDIAN_PH=220;
+    if(totalHolders>0&&supplyTokens*usd>0){
+      const ph=supplyTokens*usd/totalHolders;
+      document.getElementById("kPH").textContent=fmtUsd(ph);
+      const sub=document.getElementById("kPHSub");
+      const x=ph/MEDIAN_PH;
+      sub.textContent=x>3?`${x.toFixed(1)}x median — rich per holder`:x<0.33?`${x.toFixed(2)}x median — cheap per holder`:`${x.toFixed(1)}x top-20 median`;
+      sub.className="delta "+(x>3?"down":x<0.33?"up":"");
+    }
+
+    /* ---- Signals (cross-metric divergences) ---- */
+    const sigs=[];
+    const ch24=parseFloat(String(r.diff_24h?.USD||"").replace("\u2212","-").replace("%",""));
+    const flat=isFinite(ch24)&&Math.abs(ch24)<2;
+    if(buys+sells>30){
+      if(buys>sells*1.5&&flat)sigs.push(["warn","Absorption (sell wall)",`${buys} buys vs ${sells} sells in 24h, yet price is flat (${ch24}%) — a large seller is absorbing demand.`]);
+      if(sells>buys*1.5&&flat)sigs.push(["good","Hidden buyer",`${sells} sells vs ${buys} buys in 24h, yet price holds (${ch24}%) — someone is quietly buying the dip.`]);
+      if(buys>sells*1.3&&isFinite(ch24)&&ch24>5)sigs.push(["good","Momentum confirmed",`Buy pressure (${buys}/${sells}) and price (+${ch24}%) agree — trend is supported by flow.`]);
+    }
+    if(totLiq>0&&totVol/totLiq>3&&flat)sigs.push(["bad","Wash trading suspected",`24h volume is ${(totVol/totLiq).toFixed(1)}x the liquidity while price barely moved — classic wash pattern (volume/TVL + flat price).`]);
+    const mc=supplyTokens*usd;
+    if(mc>0&&totVol/mc>0.5)sigs.push(["warn","Overheated turnover",`24h volume is ${(totVol/mc*100).toFixed(0)}% of market cap — extreme churn, expect volatility.`]);
+    if(mc>0&&totVol>0&&totVol/mc<0.001)sigs.push(["info","Dormant",`24h volume is ${(totVol/mc*100).toFixed(2)}% of market cap — market interest is minimal.`]);
+    if(pctBelow!=null&&pctBelow>=85)sigs.push(["warn","Profit-taking zone",`Price is above ${pctBelow.toFixed(0)}% of the last 90 days — most positions are in profit, selling pressure risk is elevated.`]);
+    if(pctBelow!=null&&pctBelow<=15)sigs.push(["info","Capitulation zone",`Price is below ${(100-pctBelow).toFixed(0)}% of the last 90 days — late-stage bear territory in Glassnode terms.`]);
+    if(liqPairs.length>=2){
+      const ps2=liqPairs.map(p=>parseFloat(p.priceUsd));
+      const spr=(Math.max(...ps2)-Math.min(...ps2))/Math.min(...ps2)*100;
+      if(spr>2)sigs.push(["info","Cross-DEX arbitrage",`${spr.toFixed(1)}% price gap between pools — arb opportunity (mind the taxable flag and gas).`]);
+    }
+    const hAddrs=holders.addresses||[];
+    if(hAddrs.length&&supplyRaw>0n){
+      const t10=hAddrs.slice(0,10).reduce((acc,h)=>acc+Number(h.balance),0)/Number(supplyRaw)*100;
+      if(t10>50)sigs.push(["bad","Whale-controlled",`Top-10 wallets hold ${t10.toFixed(0)}% of supply — price is at the mercy of a few hands.`]);
+    }
+    const sigEl=document.getElementById("signals");
+    sigEl.innerHTML=sigs.length?sigs.map(x=>`<div class="sig ${x[0]}"><span class="dot"></span><div><b>${x[1]}.</b> ${x[2]}</div></div>`).join(""):'<div class="empty">No notable cross-metric signals right now — metrics agree with price.</div>';
+    const ptb=document.getElementById("poolTbody");
+    ptb.innerHTML=pairs.length?pairs.slice(0,6).map(p=>`<tr>
+      <td><span class="pill">${esc(p.dexId)}</span></td>
+      <td><a href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer">${esc(p.baseToken?.symbol)}/${esc(p.quoteToken?.symbol)}</a></td>
+      <td style="text-align:right">${fmtUsd(p.liquidity?.usd)}</td>
+      <td style="text-align:right">${fmtUsd(p.volume?.h24)}</td>
+      <td style="text-align:right">${p.txns?.h24?.buys??0}/${p.txns?.h24?.sells??0}</td>
+    </tr>`).join(""):'<tr><td colspan="5" class="empty">No DEX pools found.</td></tr>';
+
+    /* risks */
+    const risks=[];
+    if(v==="blacklist")risks.push("Token is <strong>BLACKLISTED</strong> on TON registries.");
+    if(v==="none")risks.push("Token is <strong>not verified</strong> — double-check the contract before trading.");
+    if(isTaxable)risks.push("STON.fi flags this jetton as <strong>taxable</strong> — a transfer fee is taken on every swap/send.");
+    if(isNoLiq)risks.push("STON.fi flags <strong>no liquidity</strong> — too thin to trade meaningfully.");
+    else if(isLowLiq)risks.push("STON.fi flags <strong>low liquidity</strong> — large orders will move price.");
+    const adminIsZero=info.admin?.address?.replace(/^0:/,"").match(/^0+$/);
+    if(adminIsZero)risks.push("Admin = zero address → minting renounced (positive signal).");
+    else if(info.admin?.address)risks.push("Admin key is <strong>active</strong> — owner can potentially mint or change metadata.");
+    const addresses=holders.addresses||[];
+    if(addresses.length&&supplyRaw>0n){
+      const topPct=Number(addresses[0].balance)/Number(supplyRaw)*100;
+      if(topPct>20)risks.push(`Top holder controls <strong>${topPct.toFixed(2)}%</strong> of supply.`);
+      const top10=addresses.slice(0,10).reduce((s,h)=>s+Number(h.balance),0)/Number(supplyRaw)*100;
+      document.getElementById("kTop10").textContent=top10.toFixed(1)+"%";
+      const hhi=addresses.reduce((s,h)=>{const sh=Number(h.balance)/Number(supplyRaw);return s+sh*sh;},0);
+      const hl=hhi<0.01?["distributed","good"]:(hhi<0.1?["moderate","warn"]:["concentrated","bad"]);
+      document.getElementById("hhi").innerHTML=`HHI ${hhi.toFixed(3)} <span class="pill ${hl[1]}">${hl[0]}</span>`;
+    }
+    if(ageDays!=null&&ageDays<30)risks.push(`Token has been trading for only <strong>${ageDays} days</strong> — very young contract.`);
+    /* ---- TON Quant Score ---- */
+    let top10pct=null;
+    if(addresses.length&&supplyRaw>0n)top10pct=addresses.slice(0,10).reduce((s,h)=>s+Number(h.balance),0)/Number(supplyRaw)*100;
+    const F=[];
+    F.push(["Verification",v==="whitelist"?20:(v==="blacklist"?-60:0),20]);
+    F.push(["Admin key",adminIsZero?15:0,15]);
+    F.push(["Liquidity",totLiq>100000?20:totLiq>10000?12:totLiq>1000?5:0,20]);
+    F.push(["Top-10 concentration",top10pct==null?5:top10pct<20?15:top10pct<40?10:top10pct<60?5:0,15]);
+    F.push(["Holders",totalHolders>10000?15:totalHolders>1000?9:totalHolders>100?4:0,15]);
+    F.push(["Age",ageDays==null?3:ageDays>365?10:ageDays>90?6:ageDays>30?3:0,10]);
+    F.push(["Not taxable",isTaxable?0:5,5]);
+    const score=Math.max(0,Math.min(100,Math.round(F.reduce((s,f)=>s+f[1],0))));
+    const kS=document.getElementById("kScore");
+    kS.textContent=score+" / 100";
+    kS.style.color=score>=70?"var(--good)":score>=40?"var(--warn)":"var(--bad)";
+    document.getElementById("kScoreSub").textContent=score>=70?"healthy":score>=40?"caution":"high risk";
+    document.getElementById("scoreKpi").title=F.map(f=>`${f[0]}: ${f[1]}/${f[2]}`).join("\n");
+    const rb=document.getElementById("riskBanner");
+    if(risks.length){
+      rb.style.display="flex";
+      rb.className="banner "+(adminIsZero&&!isTaxable&&v==="whitelist"?"good":"warn");
+      document.getElementById("riskList").innerHTML=risks.map(x=>"• "+x).join("<br>");
+    }else rb.style.display="none";
+
+    /* holder donut */
+    const top=addresses.slice(0,10);
+    const others=addresses.slice(10).reduce((s,h)=>s+Number(h.balance),0);
+    const labels=top.map(h=>h.owner?.name||shortAddr(h.owner?.address));
+    const data=top.map(h=>Number(h.balance)/Math.pow(10,DEC));
+    if(others>0){labels.push(`Others (${addresses.length-10})`);data.push(others/Math.pow(10,DEC));}
+    const palette=["#0098ea","#3eaeef","#62bef2","#86cdf4","#aadcf7","#cbe7f9","#d6ddea","#a4adbf","#7c8497","#5b6573","#3a4253"];
+    if(holderChart)holderChart.destroy();
+    holderChart=new Chart(document.getElementById("holderChart").getContext("2d"),{type:"doughnut",
+      data:{labels,datasets:[{data,backgroundColor:palette.slice(0,labels.length),borderColor:"#fff",borderWidth:2}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:"60%",
+        plugins:{legend:{position:"right",labels:{font:{size:11},color:"#0b1220",boxWidth:10,padding:8}},
+          tooltip:{callbacks:{label:c=>{const t=c.dataset.data.reduce((a,b)=>a+b,0);return `${c.label}: ${fmtNum(c.parsed)} (${(c.parsed/t*100).toFixed(2)}%)`;}}}}}});
+
+    /* holders table */
+    const tbody=document.getElementById("holderTbody");
+    if(!addresses.length){tbody.innerHTML='<tr><td colspan="4" class="empty">No holders found.</td></tr>';}
+    else{
+      tbody.innerHTML=addresses.slice(0,25).map((h,i)=>{
+        const bal=Number(h.balance)/Math.pow(10,DEC);
+        const pct=Number(h.balance)/Number(supplyRaw)*100;
+        const owner=esc(h.owner?.name||shortAddr(h.owner?.address));
+        const isDex=/ston|dedust/i.test(h.owner?.name||"");
+        return `<tr><td>${i+1}</td>
+          <td><div><a href="${esc(tonviewerUrl(h.owner?.address))}" target="_blank" rel="noopener noreferrer">${owner}</a> ${isDex?'<span class="pill">DEX</span>':""}</div>
+          ${h.owner?.name?`<div class="mono small">${esc(shortAddr(h.owner?.address))}</div>`:""}</td>
+          <td style="text-align:right;font-variant-numeric:tabular-nums">${fmtNum(bal,4)}</td>
+          <td style="text-align:right;font-variant-numeric:tabular-nums">${pct.toFixed(pct<0.01?6:3)}%
+          <div class="pct-bar"><div style="width:${Math.min(100,pct*4).toFixed(2)}%"></div></div></td></tr>`;
+      }).join("");
+    }
+
+    /* events feed with whale filter */
+    lastEvents=events.events||[];
+    lastUsd=usd; lastTonUsd=tonUsd||0;
+    renderFeed();
+
+    document.getElementById("modePill").innerHTML="&#9679; Live";
+    document.getElementById("modePill").className="pill good";
+    document.getElementById("updatedAt").textContent=new Date().toLocaleString();
+    document.getElementById("errBanner").style.display="none";
+  }catch(err){
+    console.error("Render error:",err);
+  }finally{
+    document.body.classList.remove("loading");
+    applyUnit();
+  }
+}
+
+/* ---- whale-filtered feed ---- */
+let lastEvents=[],lastUsd=0,lastTonUsd=0,whaleMin=0;
+function actionUsd(a){
+  try{
+    if(a.type==="TonTransfer"&&a.TonTransfer)return Number(a.TonTransfer.amount)/1e9*lastTonUsd;
+    if(a.type==="JettonTransfer"&&a.JettonTransfer){
+      const jt=a.JettonTransfer;
+      if((jt.jetton?.address||"").length&&lastUsd)return Number(jt.amount)/Math.pow(10,parseInt(jt.jetton?.decimals??DEC))*lastUsd;
+    }
+  }catch(e){}
+  return null;
+}
+function renderFeed(){
+  const feed=document.getElementById("feed");
+  if(!lastEvents.length){feed.innerHTML='<div class="empty">No recent events.</div>';return;}
+  const items=[];
+  for(const e of lastEvents)for(const a of (e.actions||[])){
+    const uv=actionUsd(a);
+    if(whaleMin>0&&(uv==null||uv<whaleMin))continue;
+    const ts=new Date(e.timestamp*1000);
+    const body=esc(a.simple_preview?.value||a.simple_preview?.description||a.type);
+    const atype=esc(String(a.type||"").replace(/[^A-Za-z]/g,""));
+    items.push(`<div class="ev"><div class="ev-head"><span class="ev-tag ${atype}">${atype}</span>
+      <span>${uv!=null?'<span class="pill '+(uv>=10000?"bad":uv>=1000?"warn":"muted")+'">'+fmtUsd(uv)+"</span> ":""}<span class="ev-time">${ts.toISOString().replace("T"," ").slice(0,19)} UTC</span></span></div>
+      <div class="ev-body">${body}</div></div>`);
+  }
+  feed.innerHTML=items.length?items.join(""):'<div class="empty">No actions above this size in the last 20 events.</div>';
+}
+document.querySelectorAll("#whaleTabs button").forEach(b=>{
+  b.addEventListener("click",()=>{
+    document.querySelectorAll("#whaleTabs button").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    whaleMin=parseInt(b.dataset.min);
+    renderFeed();
+  });
+});
+document.querySelectorAll("#curTabs button").forEach(b=>{
+  b.addEventListener("click",()=>{
+    document.querySelectorAll("#curTabs button").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    chartCur=b.dataset.cur;
+    loadPriceChart(parseInt(document.querySelector("#tfTabs .active").dataset.tf));
+  });
+});
+document.querySelectorAll("#tfTabs button").forEach(b=>{
+  b.addEventListener("click",()=>{
+    document.querySelectorAll("#tfTabs button").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    loadPriceChart(parseInt(b.dataset.tf));
+  });
+});
+document.getElementById("refreshBtn").addEventListener("click",async()=>{
+  await Promise.all([load(),loadPriceChart(parseInt(document.querySelector("#tfTabs .active").dataset.tf))]);
+});
+setInterval(()=>{ if(!document.hidden){ load(); loadPriceChart(parseInt(document.querySelector("#tfTabs .active").dataset.tf)); } },60000);
+
+applyUnit();
+load();
+loadPriceChart(7);
+</script>
+</body>
+</html>
