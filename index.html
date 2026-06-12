@@ -3,565 +3,216 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>MTONGA — TON Analytics Dashboard | TON Quant</title>
-<meta name="description" content="Live analytics for MTONGA (Make TON Great Again) on TON: price, market cap, holders, STON.fi pool reserves, TVL and on-chain activity. Data from TONAPI + STON.fi." />
+<title>TON Quant — TON Ecosystem Analytics</title>
+<meta name="description" content="Live analytics for the TON ecosystem: top-20 jettons by market cap, prices, holders, liquidity. Open a full dashboard for any token." />
 <meta name="theme-color" content="#0098ea" />
-<meta property="og:title" content="MTONGA — TON Analytics Dashboard" />
-<meta property="og:description" content="Live price, holders, liquidity and on-chain activity for MTONGA on TON." />
+<meta property="og:title" content="TON Quant — TON Ecosystem Analytics" />
+<meta property="og:description" content="Top-20 TON jettons live: prices, market caps, holders. Full dashboard for any jetton by address." />
 <meta property="og:type" content="website" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%230098ea'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3EQ%3C/text%3E%3C/svg%3E" />
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
 <style>
-  :root {
-    color-scheme: light;
-    --bg: #f4f7fb;
-    --card: #ffffff;
-    --ink: #0b1220;
-    --muted: #5b6573;
-    --line: #e4e9f0;
-    --accent: #0098ea;
-    --accent-soft: #e4f4fd;
-    --good: #18a957;
-    --good-soft: #e3f6e9;
-    --warn: #d59312;
-    --warn-soft: #fef3df;
-    --bad: #d63b3b;
-    --bad-soft: #fde8e8;
-    --shadow: 0 1px 2px rgba(11,18,32,.04), 0 8px 24px rgba(11,18,32,.05);
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Arial, sans-serif;
-    -webkit-font-smoothing: antialiased; }
-  body { padding: 28px clamp(16px, 4vw, 48px); }
-
-  .header { display: flex; align-items: center; gap: 18px; margin-bottom: 28px; flex-wrap: wrap; }
-  .header img { width: 64px; height: 64px; border-radius: 16px; background: var(--accent-soft); object-fit: cover; }
-  .title-block { flex: 1; min-width: 240px; }
-  .title-block h1 { margin: 0; font-size: 26px; letter-spacing: -0.01em; }
-  .title-block .sub { color: var(--muted); font-size: 14px; margin-top: 4px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-  .addr-chip { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; background: var(--card);
-    padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); cursor: pointer; }
-  .addr-chip:hover { background: var(--accent-soft); border-color: var(--accent); }
-  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
-  button.btn { background: var(--accent); color: white; border: 0; padding: 9px 16px; border-radius: 10px;
-    font-weight: 600; cursor: pointer; font-size: 13px; }
-  button.btn:hover { filter: brightness(1.05); }
-  button.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
-  button.btn.ghost:hover { background: var(--card); }
-
-  .banner { padding: 14px 18px; border-radius: 12px; margin-bottom: 20px;
-    display: flex; gap: 12px; align-items: flex-start; font-size: 14px; }
-  .banner.warn { background: var(--warn-soft); border: 1px solid #f1d997; color: #6c4b07; }
-  .banner.good { background: var(--good-soft); border: 1px solid #b5e2c2; color: #115d2b; }
-  .banner .icon { font-size: 18px; line-height: 1; }
-
-  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 18px; }
-  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; box-shadow: var(--shadow); }
-  .kpi .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
-  .kpi .value { font-size: 22px; font-weight: 700; margin-top: 6px; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
-  .kpi .delta { font-size: 12px; margin-top: 4px; color: var(--muted); }
-  .kpi .delta.up { color: var(--good); }
-  .kpi .delta.down { color: var(--bad); }
-
-  .row { display: grid; gap: 18px; margin-bottom: 18px; }
-  .row.r-2 { grid-template-columns: 1.3fr 1fr; }
-  .row.r-2b { grid-template-columns: 1fr 1fr; }
-  @media (max-width: 920px) { .row.r-2, .row.r-2b { grid-template-columns: 1fr; } }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; box-shadow: var(--shadow); }
-  .card h3 { margin: 0 0 6px 0; font-size: 15px; letter-spacing: -0.01em; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .card .h-sub { color: var(--muted); font-size: 12px; margin-bottom: 14px; }
-
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { text-align: left; color: var(--muted); font-weight: 500; padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 11px;
-    text-transform: uppercase; letter-spacing: .04em; }
-  td { padding: 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
-  td.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
-  .small { font-size: 12px; color: var(--muted); }
-  td .pct-bar { height: 4px; background: var(--accent-soft); border-radius: 2px; overflow: hidden; margin-top: 4px; }
-  td .pct-bar > div { height: 100%; background: var(--accent); }
-  td a { color: var(--accent); text-decoration: none; }
-  td a:hover { text-decoration: underline; }
-
-  .pill { display: inline-block; padding: 2px 8px; font-size: 11px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 600; }
-  .pill.good { background: var(--good-soft); color: var(--good); }
-  .pill.warn { background: var(--warn-soft); color: #8a5d10; }
-  .pill.bad  { background: var(--bad-soft); color: #7a1a1a; }
-  .pill.muted { background: #eef0f3; color: var(--muted); }
-
-  .chart-wrap { position: relative; height: 280px; }
-  .chart-wrap.short { height: 220px; }
-  .tf-tabs { display: inline-flex; gap: 4px; }
-  .tf-tabs button { background: transparent; color: var(--muted); border: 1px solid var(--line); padding: 4px 10px; border-radius: 8px; font-size: 12px; cursor: pointer; }
-  .tf-tabs button.active { background: var(--accent); color: white; border-color: var(--accent); }
-
-  .kv { display: grid; grid-template-columns: max-content 1fr; gap: 8px 18px; font-size: 13px; }
-  .kv dt { color: var(--muted); }
-  .kv dd { margin: 0; font-variant-numeric: tabular-nums; }
-
-  .feed { display: flex; flex-direction: column; gap: 10px; max-height: 480px; overflow-y: auto; }
-  .ev { padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; font-size: 13px; }
-  .ev .ev-head { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-  .ev .ev-time { color: var(--muted); font-size: 11px; }
-  .ev .ev-tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 600; }
-  .ev .ev-tag.JettonTransfer { background: #e6f7fd; color: #0876aa; }
-  .ev .ev-tag.JettonMint { background: var(--good-soft); color: var(--good); }
-  .ev .ev-tag.JettonBurn { background: var(--bad-soft); color: var(--bad); }
-  .ev .ev-tag.TonTransfer { background: #f4eafe; color: #6b3dd0; }
-  .ev .ev-tag.SmartContractExec { background: #fef3df; color: #8a5d10; }
-  .ev .ev-tag.ContractDeploy { background: #f4eafe; color: #6b3dd0; }
-  .ev .ev-body { margin-top: 6px; color: var(--muted); }
-
-  .empty { color: var(--muted); font-size: 13px; text-align: center; padding: 20px 0; }
-  .loading { opacity: 0.5; pointer-events: none; }
-  .footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 28px; padding: 16px 0; border-top: 1px solid var(--line); }
-  .live-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--good); margin-right: 6px; animation: pulse 2s ease-in-out infinite; }
-  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  :root { color-scheme: light;
+    --bg:#f4f7fb; --card:#fff; --ink:#0b1220; --muted:#5b6573; --line:#e4e9f0;
+    --accent:#0098ea; --accent-soft:#e4f4fd; --good:#18a957; --good-soft:#e3f6e9;
+    --warn:#d59312; --bad:#d63b3b;
+    --shadow:0 1px 2px rgba(11,18,32,.04), 0 8px 24px rgba(11,18,32,.05); }
+  *{box-sizing:border-box} html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  body{padding:28px clamp(16px,4vw,48px)}
+  .header{display:flex;align-items:center;gap:16px;margin-bottom:8px;flex-wrap:wrap}
+  .logo{width:52px;height:52px;border-radius:14px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800}
+  .title h1{margin:0;font-size:26px;letter-spacing:-.01em}
+  .title .sub{color:var(--muted);font-size:13px;margin-top:2px}
+  .spacer{flex:1}
+  .pill{display:inline-block;padding:2px 8px;font-size:11px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:600}
+  .pill.good{background:var(--good-soft);color:var(--good)}
+  .gram-box{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 14px;box-shadow:var(--shadow)}
+  .gram-box .lbl{font-size:12px;color:var(--muted)}
+  .gram-box .opt{font-size:13px;font-weight:700;color:var(--muted);cursor:default}
+  .gram-box .opt.on{color:var(--ink)}
+  .switch{position:relative;width:44px;height:24px;border-radius:999px;background:#d6ddea;cursor:pointer;transition:background .2s;border:none;padding:0}
+  .switch.on{background:var(--accent)}
+  .switch::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+  .switch.on::after{left:23px}
+  .gram-note{font-size:11px;color:var(--muted);max-width:240px}
+  .searchbar{display:flex;gap:10px;margin:18px 0 22px;flex-wrap:wrap}
+  .searchbar input{flex:1;min-width:260px;padding:12px 16px;border:1px solid var(--line);border-radius:12px;font-size:14px;background:var(--card);box-shadow:var(--shadow);outline:none;font-family:inherit}
+  .searchbar input:focus{border-color:var(--accent)}
+  .searchbar button{padding:12px 20px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer}
+  .searchbar button:hover{filter:brightness(1.06)}
+  .hint{font-size:12px;color:var(--muted);margin:-14px 0 18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{text-align:left;color:var(--muted);font-weight:500;padding:12px 14px;border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+  td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  tbody tr{cursor:pointer;transition:background .1s}
+  tbody tr:hover{background:var(--accent-soft)}
+  .tok{display:flex;align-items:center;gap:10px}
+  .tok img{width:32px;height:32px;border-radius:50%;background:var(--accent-soft);object-fit:cover}
+  .tok .nm{font-weight:700}
+  .tok .sy{color:var(--muted);font-size:12px}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+  .up{color:var(--good)} .down{color:var(--bad)}
+  .rank{color:var(--muted);font-size:12px;width:28px}
+  .footer{text-align:center;color:var(--muted);font-size:12px;margin-top:28px;padding:16px 0;border-top:1px solid var(--line)}
+  .footer a{color:var(--accent);text-decoration:none}
+  .live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--good);margin-right:6px;animation:pulse 2s ease infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  @media(max-width:860px){ .hide-m{display:none} body{padding:16px} }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <img id="logo" alt="MTONGA logo" src="" />
-  <div class="title-block">
-    <h1 id="name">MTONGA — Make TON Great Again</h1>
-    <div class="sub">
-      <span id="symbol">MTONGA</span>
-      <span class="addr-chip" id="addrChip" title="Click to copy">EQDuGgqZ…f8GhzMf</span>
-      <span id="verifyPill" class="pill good">Verified</span>
-      <span id="taxablePill" class="pill warn" style="display:none">Taxable</span>
-      <span id="liqPill" class="pill warn" style="display:none">Low liquidity</span>
-      <span id="modePill" class="pill muted">Snapshot</span>
-      <span class="small">Updated: <span id="updatedAt">—</span></span>
-    </div>
+  <div class="logo">Q</div>
+  <div class="title">
+    <h1>TON Quant</h1>
+    <div class="sub">Analytics for the TON ecosystem &middot; top-20 jettons by market cap &middot; <span class="pill good" id="livePill">&#9679; Live</span></div>
   </div>
-  <div class="actions">
-    <button class="btn ghost" onclick="window.open('https://tonviewer.com/EQDuGgqZU7_AEgiOwEe-abozIefuoairTWLOyd7c_f8GhzMf','_blank')">Tonviewer ↗</button>
-    <button class="btn ghost" onclick="window.open('https://app.ston.fi/swap?ft=TON&tt=EQDuGgqZU7_AEgiOwEe-abozIefuoairTWLOyd7c_f8GhzMf','_blank')">Swap on STON.fi ↗</button>
-    <button class="btn ghost" onclick="window.open('https://coinmarketcap.com/currencies/make-ton-great-again/','_blank')">CMC ↗</button>
-    <button class="btn" id="refreshBtn">↻ Refresh</button>
+  <div class="spacer"></div>
+  <div class="gram-box">
+    <span class="lbl" id="gramCountdown"></span>
+    <span class="opt" id="optTon">TON</span>
+    <button class="switch" id="gramSwitch" aria-label="Toggle TON/GRAM"></button>
+    <span class="opt" id="optGram">GRAM</span>
   </div>
 </div>
+<div class="gram-note" style="margin:0 0 14px 68px">Toncoin is being renamed to <strong>Gram</strong> (ticker GRAM) on Jun 15, 2026 &middot; the blockchain stays &laquo;TON&raquo;. The switch relabels the native coin across TON Quant.</div>
 
-<div id="riskBanner" class="banner warn" style="display:none">
-  <span class="icon">⚠</span>
-  <div>
-    <strong>Heads up on this token.</strong>
-    <div id="riskList" style="margin-top: 4px;"></div>
-  </div>
+<div class="searchbar">
+  <input id="searchInput" placeholder="Filter top-20, or paste any jetton master address (EQ&hellip; / UQ&hellip;) to open its dashboard" autocomplete="off" spellcheck="false" />
+  <button id="goBtn">Open dashboard</button>
 </div>
+<div class="hint">Click a row to open the full dashboard: price history, holders, DEX liquidity, on-chain activity.</div>
 
-<div class="kpi-grid">
-  <div class="kpi"><div class="label">Price (USD)</div><div class="value" id="kPrice">—</div><div class="delta" id="kPriceDelta">24h</div></div>
-  <div class="kpi"><div class="label">Price (TON)</div><div class="value" id="kPriceTon">—</div><div class="delta" id="kPriceTonDelta">24h</div></div>
-  <div class="kpi"><div class="label">Market Cap</div><div class="value" id="kMcap">—</div><div class="delta">supply × price</div></div>
-  <div class="kpi"><div class="label">Total Supply</div><div class="value" id="kSupply">—</div><div class="delta" id="kSupplyUnit">MTONGA</div></div>
-  <div class="kpi"><div class="label">Holders</div><div class="value" id="kHolders">—</div><div class="delta">unique wallets</div></div>
-  <div class="kpi"><div class="label">7d Change</div><div class="value" id="k7d">—</div><div class="delta">USD</div></div>
-  <div class="kpi"><div class="label">30d Change</div><div class="value" id="k30d">—</div><div class="delta">USD</div></div>
-  <div class="kpi"><div class="label">TON Price</div><div class="value" id="kTon">—</div><div class="delta" id="kTonDelta">24h</div></div>
-  <div class="kpi"><div class="label">Liquidity (TVL)</div><div class="value" id="kTvl">—</div><div class="delta">STON.fi pool</div></div>
-  <div class="kpi"><div class="label">Top-10 Hold</div><div class="value" id="kTop10">—</div><div class="delta">share of supply</div></div>
-</div>
-
-<div class="row">
-  <div class="card">
-    <h3>Price history (USD)
-      <span class="tf-tabs" id="tfTabs">
-        <button data-tf="1">24h</button>
-        <button data-tf="7" class="active">7d</button>
-        <button data-tf="30">30d</button>
-        <button data-tf="90">90d</button>
-      </span>
-    </h3>
-    <div class="h-sub">Source: TONAPI rates aggregator. Hover for exact values.</div>
-    <div class="chart-wrap"><canvas id="priceChart"></canvas></div>
-  </div>
-</div>
-
-<div class="row r-2">
-  <div class="card">
-    <h3>Holder concentration</h3>
-    <div class="h-sub">Share of total supply held by each address. With 7K+ holders, concentration is healthier than typical memecoins.</div>
-    <div class="chart-wrap short"><canvas id="holderChart"></canvas></div>
-  </div>
-  <div class="card">
-    <h3>STON.fi pool</h3>
-    <div class="h-sub">MTONGA / TON v2 constant-product. Reserves and APY live from STON.fi.</div>
-    <dl class="kv">
-      <dt>Pool address</dt><dd class="mono" id="poolAddr">—</dd>
-      <dt>Reserve (MTONGA)</dt><dd id="poolR0">—</dd>
-      <dt>Reserve (TON)</dt><dd id="poolR1">—</dd>
-      <dt>TVL (USD)</dt><dd id="poolTvl">—</dd>
-      <dt>Volume 24h</dt><dd id="poolVol">—</dd>
-      <dt>APY 1d / 7d / 30d</dt><dd id="poolApy">—</dd>
-      <dt>LP fee / Protocol fee</dt><dd id="poolFees">—</dd>
-      <dt>Status</dt><dd id="poolStatus">—</dd>
-    </dl>
-  </div>
-</div>
-
-<div class="row">
-  <div class="card">
-    <h3>Top holders</h3>
-    <div class="h-sub">Top 25 wallets by jetton balance. Click an address to open it on Tonviewer.</div>
-    <table id="holderTable">
-      <thead>
-        <tr><th>#</th><th>Owner</th><th style="text-align:right">Balance</th><th style="text-align:right">Share</th></tr>
-      </thead>
-      <tbody id="holderTbody"><tr><td colspan="4" class="empty">Loading…</td></tr></tbody>
-    </table>
-  </div>
-</div>
-
-<div class="row">
-  <div class="card">
-    <h3>Recent on-chain activity</h3>
-    <div class="h-sub">Last 20 events touching the jetton master contract — flat-listed actions, newest first.</div>
-    <div id="feed" class="feed"><div class="empty">Loading…</div></div>
-  </div>
+<div class="card">
+<table>
+  <thead><tr>
+    <th class="rank">#</th><th>Token</th><th class="num">Price</th><th class="num">24h</th>
+    <th class="num hide-m">7d chart</th><th class="num">Market cap</th><th class="num hide-m">Holders</th><th class="num hide-m">Price (<span data-unit>TON</span>)</th>
+  </tr></thead>
+  <tbody id="tbody"></tbody>
+</table>
 </div>
 
 <div class="footer">
-  <span class="live-dot"></span>Live data from <a href="https://tonapi.io" style="color:var(--accent)">tonapi.io</a> + <a href="https://api.ston.fi" style="color:var(--accent)">api.ston.fi</a>. Auto-refreshes every 60s.
-  <div style="margin-top:6px"><strong>TON Quant</strong> — analytics for the TON ecosystem. Not financial advice. DYOR.</div>
+  <span class="live-dot"></span>Live data from <a href="https://tonapi.io">tonapi.io</a>. Prices auto-refresh every 60s.
+  <div style="margin-top:6px"><strong>TON Quant</strong> &mdash; analytics for the TON ecosystem. Not financial advice. DYOR.</div>
 </div>
 
 <script>
-const SNAPSHOT = {"info":{"mintable":false,"total_supply":"99999998999999881","admin":{"address":"0:0000000000000000000000000000000000000000000000000000000000000000","name":"Zero Address","is_scam":false,"is_wallet":true},"metadata":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"Make TON Great Again","symbol":"MTONGA","decimals":"9","image":"https://cdn.dexscreener.com/cms/images/1WQ1hE3OJZ-Yc9sC?width=800&height=800&fit=crop&quality=100&format=png","description":"based on the post by Durov \"https://t.me/durov/482\"","social":["https://t.me/mtongaportal","https://x.com/mtongaton","https://www.mtonga.com/"]},"preview":"https://cache.tonapi.io/imgproxy/gk1JWHH77KFsD_nWFSsDyyN4n1Ke7vP9DY5ooeRv89o/rs:fill:200:200:1/g:no/aHR0cHM6Ly9jZG4uZGV4c2NyZWVuZXIuY29tL2Ntcy9pbWFnZXMvMVdRMWhFM09KWi1ZYzlzQz93aWR0aD04MDAmaGVpZ2h0PTgwMCZmaXQ9Y3JvcCZxdWFsaXR5PTEwMCZmb3JtYXQ9cG5n.webp","verification":"whitelist","holders_count":7234,"code_hash":"3pflLO157BhhcrEs/HYyhDNx7fp8MzL0GO/JdKHq6+8=","data_hash":"7SrX7KFBu7F771CDffxmkHqxxFllrDC2ujzI5lkxF/c=","name":"mt0nga.ton","interfaces":["jetton_master"]},"holders":{"addresses":[{"address":"0:82021e9b4af84754aa3393ed252362fded2c0e8ccdf5be1c1ad60f7b17b51772","owner":{"address":"0:16f7761356890f6fe5c2e060f1869e8bbb2598d5e695cca123f10c4c963626f3","is_scam":false,"is_wallet":false},"balance":"10848113870193682"},{"address":"0:99a95da855d9119a386269b36528a6fa773779588f3b8bf4e1e64b24873984ab","owner":{"address":"0:91446e1c9fcdae642d4b6e7dd7ae3648ed33cf51b333c659ff4992bc89d07069","name":"lamron.ton","is_scam":false,"is_wallet":true},"balance":"2596022584077571"},{"address":"0:97d1d269f9e57797ae2a2c5a88f723001ee27d3d7261d0dc06b9de93ad911b27","owner":{"address":"0:a6aa1b57554a42386c749ef98490a4661ff2ed9d855d42184e7d6efc3da78540","is_scam":false,"is_wallet":true},"balance":"2227463942674987"},{"address":"0:f48b2fb1f55112c814e354d2489ee52c80b5cf9e54fef0a479e29b0a3c8961b0","owner":{"address":"0:50fe3f195328c64bf2f0f0fc9b3f33a106316a42a175c147c05af55da6a4486c","name":"josuke.ton","is_scam":false,"is_wallet":true},"balance":"1403475423066734"},{"address":"0:fc7ceac9a85e2fbd7bd602f82874b36f5eca697072488f06f750367bc02a3a92","owner":{"address":"0:2009400656991ac21b7160b31891f970844ba592be4d0b34d09e98f26fe22844","name":"t0ncoin.ton","is_scam":false,"is_wallet":true},"balance":"1282591176315323"},{"address":"0:b635e22955904e22c1edd941d509ce701969cb821acb7e9e5c3b9fa61bf93a19","owner":{"address":"0:036aa1bb23e915113d446f4c6577d999bcd183144365408ad5ed57323eb13251","name":"fent.ton","is_scam":false,"is_wallet":true},"balance":"1232809088486470"},{"address":"0:b30f45acaaad531ff8f31974eb03c20d4d659745da6d89fbc78c5d18559ebed3","owner":{"address":"0:cb9e276109894a50455b5d2c66e94dc39e8c1af0aa3d190d0207ce511676f58b","is_scam":false,"is_wallet":true},"balance":"1209787441059770"},{"address":"0:b7bb46f16371eba28fb9612cae0e72b7fb0ee4b2062cc8146e77395fcdd9d860","owner":{"address":"0:524c1082b2814ea6d742aa37ba34277743f31cd774998b51e028e7b5c5239fca","is_scam":false,"is_wallet":true},"balance":"1057005131692420"},{"address":"0:62c3ddba1812806d5d07be4db0e065a1c8f87f41052f7d018629d8121f35d9f4","owner":{"address":"0:c8cc36e72d2ba579b114b2b58baf3bd97e7f0e59b9eebcd72b426582145bc0c1","is_scam":false,"is_wallet":true},"balance":"1003316752870232"},{"address":"0:b96e076bdd709658f9a7deddd57d3d4cac11d632fd255eb067d1282a0cfd4c84","owner":{"address":"0:50c72b7f881cd7b52532fcfecac8fbe48964ef5df609c3391cd1f3731b191256","is_scam":false,"is_wallet":true},"balance":"962691284061815"},{"address":"0:d3f09007b6843743eb51570bfd4ae1f9ed6e27ec3c49936cdffd1530b849ddd1","owner":{"address":"0:b88c895bd6f6a7b8ef46b4723d7e2e381385943377ba463f3afb5abd3948083b","is_scam":false,"is_wallet":true},"balance":"955107562049951"},{"address":"0:8b203c9d3d3cfad96225b72c8ed3d7c708a160324301602fab24f911b31902db","owner":{"address":"0:818213754974a450a06b9e90054d0e0cfda0fe0eb196e48dd7bb0967a220d4e2","name":"dmtfoundation.ton","is_scam":false,"is_wallet":true},"balance":"947447451578036"},{"address":"0:d5e9b0cd5886059ca500b4d8a4712e949ddd6940c83313720a9090a240210e03","owner":{"address":"0:84ab56c4fcfab2d53536b747c8e7be1bc7477e06590fea080989dd35b7e6ded6","is_scam":false,"is_wallet":true},"balance":"942195771911635"},{"address":"0:0f5488efc3f79984964922218769f2c26d17794f45d7efb1641301c4e0ab54ae","owner":{"address":"0:0141248681fed2bd388fdec9e8e89dcc06f54a4d6df061e7e678371406d28656","is_scam":false,"is_wallet":true},"balance":"935437771336686"},{"address":"0:d48dd66648847e2c4fecfed9d1cba2737d5f699b6a97ca73e8c6a578ce164275","owner":{"address":"0:ff5dd12d163adee5b90aae7b26f4086e53f5cd220c69e870d82d68fe4fc771af","is_scam":false,"is_wallet":true},"balance":"850865324191738"},{"address":"0:8211dddf5e8250f7a03c129e1329bf4680191a8db6e42ed6fd88f536d0ad212f","owner":{"address":"0:d9bcc486e60d56723859c3d909f7d409cee46013dce1004c4e1a7fa31261bd4a","is_scam":false,"is_wallet":true},"balance":"850100002746021"},{"address":"0:47468af33f64ae5f8d1cdab70eb437f6abbb0a244fc801c53508388795958734","owner":{"address":"0:6c7c459c5fc4c146be5b7099332977df08a3098ceb6a14f1c88ef53c05e91faf","is_scam":false,"is_wallet":true},"balance":"841729797148645"},{"address":"0:5ec94ecc55ea96a6bced5c4b60a25a3ba03934fb18dcfd508b45b5586f59e169","owner":{"address":"0:600b8507e012f219837571d6b63b434abb6b1073d45fdeb6c131a6001bf19680","is_scam":false,"is_wallet":true},"balance":"738880311909837"},{"address":"0:6043578a79c085d06374a9f25b85e557eec08a216c76b0d80954254063bed1c3","owner":{"address":"0:3174253420a04930e6e0a175da32bbb5e4672d1d231a0ac9127952ea84d37261","is_scam":false,"is_wallet":true},"balance":"737471850717035"},{"address":"0:48be4d516e6032f6d5fef951f81792e27e2591eab680d6d0849d9f52e2e0fac2","owner":{"address":"0:778919c39cc4440eae941f402c881ed5a5ee955ffb80e840c3c9659fc14bba32","is_scam":false,"is_wallet":true},"balance":"729973989545150"},{"address":"0:f80f05ba2adfc8750e4a60dfa1161f3384536fe58e43156f4671fc9e34ab463b","owner":{"address":"0:b1bbc8b396a5ecb1e25316eed869b7d26a0bb6950859a0c623d1fc748439f537","is_scam":false,"is_wallet":true},"balance":"671873124454198"},{"address":"0:5f6a62b8488deee8258b0185bdddcbe1876a4216c037a1356b8c02d72dccca8f","owner":{"address":"0:1a70f7e70ffc62b979130f8970f5f27ed301b35b169637dbb7042cb44bbc03bb","is_scam":false,"is_wallet":true},"balance":"610805362433806"},{"address":"0:54828ce27c3445d5a4867a56ec48d877f8b57dd7cbc4d24f5413a7f2736c731b","owner":{"address":"0:a62e31404cc2481a4787eac562cc1dec7a3a97a2f9d9de8625ca3be0c773f786","is_scam":false,"is_wallet":true},"balance":"601430000000001"},{"address":"0:6055e52426f289f9e2a8ea9020aacaab20c9f0130bf2241b0bed3833f01839fd","owner":{"address":"0:57b005215ebf859b2ce8edec309962c3e6b68329d64f669d691911a508b223a0","is_scam":false,"is_wallet":true},"balance":"598957179352190"},{"address":"0:3d9490adae7300e9fab80efc64641aae4dc0587f5cfa583b210fb106c749b3c2","owner":{"address":"0:ced4a6350bf1c5d9b308e444506814612fef8c7c50280f0e5838d79abe0da492","is_scam":false,"is_wallet":true},"balance":"587513652331006"},{"address":"0:ad68684e67e2971c211e3f02e233f3135ac7c4f77fbdb2b8dc496665b5c992e4","owner":{"address":"0:27744a78c8ca22c46ea1d1755afc61ea38e067c035bad8e3ddefc00654939b28","is_scam":false,"is_wallet":true},"balance":"577266360091938"},{"address":"0:9fb87f433f3d1656ff455a6b3fce6337a0e368eb21500dd5d925521efea1610d","owner":{"address":"0:d1e058b096511c77c1f6419e23e90ec05972c9260cca194d8863f56b6741f40a","is_scam":false,"is_wallet":true},"balance":"559172788165058"},{"address":"0:d337e78ed682cc590f7216962467b85352afdbe2abe160dcc0cd516cd1842551","owner":{"address":"0:6926a7bcf6bce7e06372a16668d84c9c3121c55957864a46b04a5442e4933a16","is_scam":false,"is_wallet":true},"balance":"555519955438019"},{"address":"0:3a78062b21ee7cbaed80ef8c41efceecfb501bb5b42d7c03113595a004ee44e1","owner":{"address":"0:0c3645fd07ba1c944cbc51e9f85b46e0dd51c0139f5202cac6eaedc74a11f1bc","is_scam":false,"is_wallet":true},"balance":"553810852650242"},{"address":"0:c54fb3643105edf38b3985a995894ea6b125fbbfe3bcb78caea93006692f8e78","owner":{"address":"0:c41894762b01cda5803e2274ae4e2d98df8963ef455bf6f9d3b4a6717cb12793","name":"repeat.ton","is_scam":false,"is_wallet":true},"balance":"547924914653231"},{"address":"0:393ad6c57c6971f2657665643891a02bba8cfe74ffad3c80a5a2b862b95351b8","owner":{"address":"0:4d2ad4f2a9c607486095d5d801ac55fba4d1dabb59d5b6a53dc777c05ad1aea0","is_scam":false,"is_wallet":true},"balance":"531081805938518"},{"address":"0:89af5881503e2703bbdc03e9d521d84f9259845cb00eff0ea62fa52a0c65a47d","owner":{"address":"0:a8f641e2c97deabe8bef338d20387f07fa4ef71e2b0c7d27f9c6ae4c15378fd7","name":"plug.ton","is_scam":false,"is_wallet":true},"balance":"529630270000000"},{"address":"0:dad04b7c0f8063352a317dfb8f71c06e88c4ff411bcbccf65edef79a86bf99ce","owner":{"address":"0:a39473f567e9ac4dd8148ab80a2414c1093650f07073b3d7c88d827bc4679776","is_scam":false,"is_wallet":true},"balance":"513718245918293"},{"address":"0:ba54f7a09deba823d0d95176484d2c2d7064d68830d7bb07ebf448d443a85163","owner":{"address":"0:50540e471b3525603b55f429c9f80e481987306416231238979df2c6f48c3117","is_scam":false,"is_wallet":true},"balance":"500001000000000"},{"address":"0:f29174c7f537b293783dd7e5590af429515cac0a628c62c5e4904d06945ca4ef","owner":{"address":"0:4a8176012c250fdd75b4df1acd25f6ddce0a3aa5db654376e53815ee2db5d6ed","is_scam":false,"is_wallet":true},"balance":"490783415856865"},{"address":"0:45a1dbb426e1b0c4e30a11eb61691e40573cfbd90ad0888d4f453e13737ff0f8","owner":{"address":"0:c533707597c5005032a97e65c5288b7f607032662b13261f7b888fc5c6be8e4e","is_scam":false,"is_wallet":true},"balance":"489522376203465"},{"address":"0:12573581bf376900cae117b8aadc6922bef541f1a673da98be69f69417c3035b","owner":{"address":"0:cab833f824ce3dec99afa07a4eee1b633ea2915685064459a89b7466b465e1d5","is_scam":false,"is_wallet":true},"balance":"485877033109654"},{"address":"0:ff8907ea7fd1db1a6d9af3c8a533a6158f1db75716c7c2fec7fa864564514066","owner":{"address":"0:c72c4cc5e4c2ab8412c147334cd1b530df3b03700d55eb46732eccfd8c01a260","is_scam":false,"is_wallet":true},"balance":"483469268055817"},{"address":"0:026c37a085d46519e0f158d1d4adc27fca28739b815eb818a9f4becfd817ee6d","owner":{"address":"0:d8080804bb03362700ec3370fdf710a685dbac5ea05977e961c731024582ece8","is_scam":false,"is_wallet":true},"balance":"468530040172619"},{"address":"0:cd37bd812d609f8ae198da2153c554c14cd3356297bde44631691ef2e9777f36","owner":{"address":"0:b6891492c59c99655b80019b0fbc4053a61028fa9a562e6d254216c76b65197e","name":"metavselennaya.ton","is_scam":false,"is_wallet":true},"balance":"463334046628263"},{"address":"0:af5a23a31a2f1fd042507727aa7310a208726b22c3a137a98fd2438a408d61f9","owner":{"address":"0:a6c3cafd7ded0f82b6559eaa0098a676390d1a513be146402d4a098f08987c76","is_scam":false,"is_wallet":true},"balance":"453887884524204"},{"address":"0:0a7f275fae5d51b4e41e6152f61839f2cce1f53b76ac703f851bc9aca01daf5f","owner":{"address":"0:018c21cb5cb34ae87879f8afa7188b99540dc8a2ab9d197892120d9f91c6b36c","is_scam":false,"is_wallet":true},"balance":"450000518611515"},{"address":"0:8d2ec942c34810c04e4581c66b3ac05ef57886798099efbd40b25c91ca3372fe","owner":{"address":"0:1fd20d1b80b8b29ad476144b67b0d1bff2a1031fd58d278bb00a14aa05d4e0ad","is_scam":false,"is_wallet":true},"balance":"450000000000000"},{"address":"0:53c9cf328d1862c009b0d925ec33cdd1508082347cec3da2966caedaef9ad144","owner":{"address":"0:1b137d402d3200ce5a925cefeaa580c432df856d2be248c33237de714cb6599f","is_scam":false,"is_wallet":true},"balance":"449184410332160"},{"address":"0:a5be909667038efbd2fde217c24746dac63de005511f6f243b4b648d3e39d9bc","owner":{"address":"0:1c71741d69a9ab3b0fca520b62bc9c64e9ec1edfe021a0330278cd150edea92e","name":"durik0vich.ton","is_scam":false,"is_wallet":true},"balance":"442806258864780"},{"address":"0:98dff90490fc34908724e033901f6d9993b140a510d435a3d3fa26aeba3d590f","owner":{"address":"0:693aaba20a92db701629b3ad26c55dedc1680372a0544ccb168caed180f0e34c","is_scam":false,"is_wallet":true},"balance":"429077960878902"},{"address":"0:6bb4bffa062178cedaba2331b53b4cb8daa40f055b013abd0801627ae572d147","owner":{"address":"0:c54a7932ecbdcd0989c50bdb6f0ef715d79d1dbbd603e4fda81c8b7a4bdcae3a","is_scam":false,"is_wallet":true},"balance":"427118943384599"},{"address":"0:2d1fe194e17a396e440db4565bd702d3647758b9fb9c3d705b8a2bedf93292b7","owner":{"address":"0:5fa692b0a23fd2b7e6e57effe478bc778f19d1c36df9de05bef658c759ce6e47","is_scam":false,"is_wallet":true},"balance":"420290341893762"},{"address":"0:86fbe36db9d7a9415f8a836e6e7b710c375006adc0fd71775f0fe4476fbf6557","owner":{"address":"0:afc463931bc168b98ce4b27bb9e07ed41351ae34ed1b7f1bf3c5975530e3c1e4","is_scam":false,"is_wallet":true},"balance":"417212929417645"},{"address":"0:6ed23e1db9d9870ec884709eb78f4f1f7013408d624e3a0754436754f50ae567","owner":{"address":"0:3272002772e7722e03601728168e0392f47343303c5cfa5a3b5f48ed512dc4ff","name":"farik-v-pope-sharik.ton","is_scam":false,"is_wallet":true},"balance":"413411434690124"},{"address":"0:a27d4236138335d68c7624356086347aed46c7d7e1916ff95520380f572caf4c","owner":{"address":"0:d8e1711f3cb370fadba6479fb1f4819fd987e2496f758cfd96a8c4c863f8c38b","is_scam":false,"is_wallet":true},"balance":"405548133465556"},{"address":"0:113e20dee9729e41fa76d97fd85f6e894336196e2503470be74b9675eee0832f","owner":{"address":"0:fe3840a2f6a516a8b679a0b4c90c207a483434efe88e9a21f0459d99b9dd1024","is_scam":false,"is_wallet":true},"balance":"405341227648835"},{"address":"0:119d312b95403b704c2391f93b54c1e05e849667f2b3c76b7b97d9df14cf5b54","owner":{"address":"0:42efa1c4faa5f9c7066b3f78603fd30e2cdcf299cc04d6f499ef9acd742ff82c","is_scam":false,"is_wallet":true},"balance":"400427836886498"},{"address":"0:bd399f1be8fb193f27934176c2a7b1befb07bf118b70d341e0bda3dd259aaf1d","owner":{"address":"0:15d90799acb31cdbeb11afc83bb270af8b0fa150c400c3d06de4a1d188755908","is_scam":false,"is_wallet":true},"balance":"394933890156221"},{"address":"0:438fbbdc9751861133220bad79cbd19b28fec5b2dbbd15fadaf11cc67587ce0a","owner":{"address":"0:d512289ae69a9cb6423c106735a77179450b1a54dec94f7abdf32fb153cd1094","is_scam":false,"is_wallet":true},"balance":"390000000000000"},{"address":"0:62245a68b85e957e3d1b681f9e1a4502f49c8c6362c54ca5d566792a065b4f47","owner":{"address":"0:c1d5099689e0a5480cfcf224e7b153662bad070a065b16c49f0cfae4db451906","is_scam":false,"is_wallet":true},"balance":"388420489743570"},{"address":"0:cefb46f385ba2c50b8ae6a764af35f1f79729c48b2b67b3edfc02aedc32b11ed","owner":{"address":"0:389da0446fddc89528f9edc11044e9a380490d27b2ca453fa8c6fe56fb19d063","is_scam":false,"is_wallet":true},"balance":"381840580156110"},{"address":"0:97d19aba000fb98c411dcf6889af6c055d6629daee5c4a8ed275a32f68505491","owner":{"address":"0:c29adccc0027ba51ba669c98dfcd16a20683abd98e24dd80909129c7ee7095f1","is_scam":false,"is_wallet":true},"balance":"380000992750792"},{"address":"0:595567089493bed1c1ae01203081eaa4ec5978432cc2667fda73aac70d8a5069","owner":{"address":"0:4b7fcf13359aab8805643cb8dd97436266fb06da1332e4c30e3f6c5c9757497c","name":"soulzpurity.ton","is_scam":false,"is_wallet":true},"balance":"379414389604461"},{"address":"0:1890f2ee808723168459075f0841b9947137076f576d37b00b990841ec4ee4b8","owner":{"address":"0:038013602db2e759653311443c5f0ab0c15130758743adfd65e4039710ab8d20","is_scam":false,"is_wallet":true},"balance":"375713530301463"},{"address":"0:a7d2af2d1d0b764246ed7800e5f4797e7d63c0f3a4e06c950120062e298fbb60","owner":{"address":"0:d1360ddc21f253d91db9a10e341a56ddd203fd5799a52202cf1e00835dd5bc06","is_scam":false,"is_wallet":true},"balance":"373988638279615"},{"address":"0:da37b62c0f839aeb68ee3200fb86bfc0bd990dd27156930f22eb19f815373d25","owner":{"address":"0:6e103ff11d06805b7360328de16714b5ae1b5edc4331e2ed5c47aa6078b3f1da","is_scam":false,"is_wallet":true},"balance":"370318616935144"},{"address":"0:a2e1615540c6eadce9e84714c3747d4485f36fa77c261d46963dd18e4021d50d","owner":{"address":"0:a618c95483c20c5c62f7ba3313f8135c305c11c729960821e8a4b3c5a7e87501","name":"pigs.ton","is_scam":false,"is_wallet":true},"balance":"364392253702295"},{"address":"0:d93c1e1af1aee6ef88d107294b681d011e38c62dc25879b4d772ec7617c504bc","owner":{"address":"0:e35ec4aa6cda421bcf5bae353bcc99cb20c33e5f3ee56e2bfbead519a29967fb","is_scam":false,"is_wallet":true},"balance":"362680315442725"},{"address":"0:9e31aeb036ae9f97d011bb7b190ce830ae0f0685de2d3c669c7723f1cbb2fd25","owner":{"address":"0:5918be772870361e094e206dbc7f083597d69a347d79766b332d1ee66efababb","is_scam":false,"is_wallet":true},"balance":"361645126388515"},{"address":"0:8030ec2f7b74378e21115a87e0fe89be3ad34b613c5fd4a10fcff6a00ce6eeee","owner":{"address":"0:c564d515fcfa0fee92d317197aac022111d50d3dcd14b5c98826c00bdb17a250","name":"grammagnit.ton","is_scam":false,"is_wallet":true},"balance":"356415377471675"},{"address":"0:d046225473724444b7e7457f21a0d944a471f529e38425d72e34fb62e130aafd","owner":{"address":"0:500a5e267e0b6ebc39eba274bb4a92479c68b6ae53bd795d4752bc6222fd6b1e","is_scam":false,"is_wallet":true},"balance":"353578758254499"},{"address":"0:79b1ea2300794666b8eecfd94396e477e7a7414fd3b53387ff677706e2820e62","owner":{"address":"0:15818dd138cdb80659821e4b4d398643b3abc3e9f3d015ce1861d689ed015414","name":"scarletwitch.ton","is_scam":false,"is_wallet":true},"balance":"349051723980688"},{"address":"0:f225610a86c74f6c689dbe88375979b7373d6657c1a498aeeb291559e0fb098e","owner":{"address":"0:a2c52da1fc4916cba1172fe5ca4333069be378d0dc45f328904bac374bf15d45","is_scam":false,"is_wallet":true},"balance":"347772562968648"},{"address":"0:bd193ff56d4fbb01b006fec1a5b02d5c97c7b4c1e10811e11d079b203bdbb164","owner":{"address":"0:109f05938544e97a84860a42fbbed6995e0f2239fc4df68259b603483960b858","is_scam":false,"is_wallet":true},"balance":"347769069681578"},{"address":"0:817a000e6c195c294d9e2b478203c210c2058087c327c8e1e7d046463105879b","owner":{"address":"0:2eba37a2aed1c2262e21d69bfd1cd4894490a668d02e888ad8928cfd2604e2b1","is_scam":false,"is_wallet":true},"balance":"341768399327510"},{"address":"0:efd90792eee7cf8df1fb8de4578ed5ebea7a0b4c21cb7defdf68277997ceb8a1","owner":{"address":"0:73605a3ffc4619046a38b875d4cc48a8bf2a750779d5d955fe6084654c8b188a","is_scam":false,"is_wallet":true},"balance":"341452779129305"},{"address":"0:83a407ebad0f4760db53bd51d3ee639338638c5fba44616873d2cbca6acc7896","owner":{"address":"0:d91fcda1ee97a2195ac0c97366de9e421f18bae1b78faae9cbab70178844710a","is_scam":false,"is_wallet":true},"balance":"340426069764295"},{"address":"0:d0946cb8ee51b6e4812d3479433ad16cb048a544c3e73edb04fdc06fadc8a863","owner":{"address":"0:3dbe2423e53de765665ef045149771284d9fa544515986401a4c1fc7e7c9712f","is_scam":false,"is_wallet":true},"balance":"334666094427852"},{"address":"0:7837ca2493aecdfd8f6995ae1a354a5d3a43c0925c25bf99396ce93e15cbc83d","owner":{"address":"0:96dafc8891f3fcfa879b4d3baad2570dda47d737c2e346af83423d4737943338","is_scam":false,"is_wallet":true},"balance":"333394737086738"},{"address":"0:20443da3cff12c79618726f303cd234e3afd36e814d80beb549d672c7049fcc7","owner":{"address":"0:fa1b0856a914ce315e7709d30f4d4ad9b881cb7708aa7b759124398f9f212404","name":"lmao.ton","is_scam":false,"is_wallet":true},"balance":"313446345641096"},{"address":"0:2a57c1f2b1924940b8f0bfa9a4d59ee016c5c4b7593425f54c1f30b2e4d4b174","owner":{"address":"0:97b264961d75d5e5cfc11fa247216abe545f42e0710b3da68f32db0b56bcb207","is_scam":false,"is_wallet":true},"balance":"309749077918890"},{"address":"0:937b1f86e2aae6df7b62a3c1c903af574b44d5431568b0d02cea674540b2c17a","owner":{"address":"0:71b863107573ce9dc948647bc25828a8463beec61fb3d7d6dd48d3683659a80a","name":"4815162342.ton","is_scam":false,"is_wallet":true},"balance":"307231465801461"},{"address":"0:a91eac718896030568bd6bd6c0529b86783b27f34d5e5212f27bd3cf4b7d0081","owner":{"address":"0:d35d7ee4d69039be7078abe07a3cec85087d6062ab4c61ee130f0c239594b19a","name":"burny.ton","is_scam":false,"is_wallet":true},"balance":"303654226492838"},{"address":"0:59f8bfce08580fc05042dfad00b6523188bb89ca7550b70c0313e8e563c70329","owner":{"address":"0:92b50650dab42dc7825504dc014d5803b41280ac3c0b11ec3aa97975b053bfd4","is_scam":false,"is_wallet":true},"balance":"300000000000001"},{"address":"0:1f2e361c77405e3a6418d9bb5a26b3676da73cc413c42b27ced57aaf36384d00","owner":{"address":"0:33e72c2ca8556312ec82957b5640767aece4ae5acf1199e3418c568584a20db1","is_scam":false,"is_wallet":true},"balance":"280463778117167"},{"address":"0:0d5a7bef6ce5d12a1ce4671688e140f62e02b162e210d953725301dc3d4fb361","owner":{"address":"0:ed61c3af8d7cb1f8360573ad906b138869789270469c0046780ee5241815effc","is_scam":false,"is_wallet":true},"balance":"275003414251293"},{"address":"0:8951d3cfc437864533663927ee159356dbf3bc7c842d775a8ac6c632a93c90ed","owner":{"address":"0:94afbb319316e801dad9cae2d9d7c108f81642f0127b55c0ff7a58f0990012a5","is_scam":false,"is_wallet":true},"balance":"274024432244251"},{"address":"0:a6ee2296abd8cc9124fc36a2ddce984989d772851046f38904b5239c181de81f","owner":{"address":"0:acdff332e46d3030a8c7fc251dcb6485c24148c3a9d0b4e05f07953002c79722","name":"wanderlust.ton","is_scam":false,"is_wallet":true},"balance":"273818990822500"},{"address":"0:3064810ff243a919286d706af46ba8bb319ed19b32f16a23a108af099650ab81","owner":{"address":"0:9f2315958d5573d45f07b208fd5335f05345601e223892f5a14ed82db0b7ce58","is_scam":false,"is_wallet":true},"balance":"272280699876458"},{"address":"0:4cc7715f7d901c14e83f4724f888340c1f9ffa1caad0621f8a718a49a1ce573e","owner":{"address":"0:a23aca48b18d7d1ea193d4115b67d8204b1be4d1edb32a011f88faae12129c8d","is_scam":false,"is_wallet":true},"balance":"270808129560660"},{"address":"0:857dcb401551bae82cf5bcba0380c54e5737bab741158e966e9563b331c89af0","owner":{"address":"0:0643e4da8749540c967ad93f14a5e7d332227f162ee6596a7de32f35f4de836a","name":"tonaddress666.ton","is_scam":false,"is_wallet":true},"balance":"270000602364030"},{"address":"0:ee821727845ff81bbdea39775bf2851fe4cdaaaaacdae9b2f2c3cf6fd466bef0","owner":{"address":"0:478091cf8adde662dfc90ae47fe74fc3bdd0fef2140a447809e9b8941e356fc5","is_scam":false,"is_wallet":true},"balance":"266002876174078"},{"address":"0:3b979796741ef5fbc38054866a0418276a14f360f3640fe1178391a95c9636b5","owner":{"address":"0:2be13be7103dcca48c43ef71cc1c78a41201c9fe4eb23384d1bf1740e1e86864","is_scam":false,"is_wallet":true},"balance":"265407729544562"},{"address":"0:69089711e9e7174d33ba5fc0894008c8f2160ed5614406a327e0a7c6924556c9","owner":{"address":"0:318c305fc4893f38de25fd5994274d69bfc28f7fac52f31e22a11942405bc63b","is_scam":false,"is_wallet":true},"balance":"265098161492155"},{"address":"0:54d44c21ed75e393e3ecbace20885124d9ff9f0bf8f1e5402d247d2d6a13a7d0","owner":{"address":"0:907b3d30eaefe42fa1471b150ae6e05f73e38d520462df2dc07b7197edce8c3e","name":"xmoon.ton","is_scam":false,"is_wallet":true},"balance":"263828229742514"},{"address":"0:82763f5b306a2012cc80ae5817452f298713c67869718730bba67a9e80e4eb5e","owner":{"address":"0:075d8eb2a226ef286602a86f145a98af82f7d1e6c7be4024d2bdbf5c0ae03c87","is_scam":false,"is_wallet":true},"balance":"256967582903963"},{"address":"0:1ffe015bfce3eda2a963c8d28b923fdb9706d7ded83ff9cff804e2d64b859376","owner":{"address":"0:e5f67b2475ef7a0c168fdcbaf7b9c23a8a3986ee0852722f311120208f8bb5d2","is_scam":false,"is_wallet":true},"balance":"256725062334798"},{"address":"0:79631e97c852d36de25bb41eb41d06aa56f342b7e1c7d260eac7dea37e051c7b","owner":{"address":"0:80c30e0cc7f9e8473a834216f38d1b3ff58798a3be06fe407c055e59fb83818a","is_scam":false,"is_wallet":true},"balance":"253885062638890"},{"address":"0:fea2b7151a4c28f7026d998e462691115e25a888d48a8c61c4fa446be669c4b7","owner":{"address":"0:3b2c806973968315ba5aaaa58ff04a73e1f6e50947b599f709440c96d8272ac2","is_scam":false,"is_wallet":true},"balance":"251443040744961"},{"address":"0:0419633969c0261833fd81ef76597098d41c40f599caa346c3d892f47563a537","owner":{"address":"0:c7449f08ed17031127e77b4076250eafdfd70a12b3dbdf675c2c826b1fbfab97","is_scam":false,"is_wallet":true},"balance":"247356227784353"},{"address":"0:6b1d8e1f2c3d039cc259fb0261de41a5873727021c69f7b5b6b763c6f3da69e1","owner":{"address":"0:558db39ba78e484de87225d431143700c3a6f815f9dd72a82161a0ce5a476512","is_scam":false,"is_wallet":true},"balance":"245775064068476"},{"address":"0:e591406c7ce631edc3f697ff29075ede00f5b1d50edf57663779b19fa8a940c6","owner":{"address":"0:5076b3185c220795c8402c965f84b64501d07c4d35c40c3e8238375da67b306d","is_scam":false,"is_wallet":true},"balance":"240000000000000"},{"address":"0:b6cd0293b26eb68c8a8ac7944388493e1fb16493e1a1f836af77f7a7e6bf2572","owner":{"address":"0:5135aa01ce3f69d5970cb922655698c9990d618759de74e8b62710027142b76c","is_scam":false,"is_wallet":true},"balance":"239735656772137"},{"address":"0:f02f4a1eda7fdde8dab5ef74a5f17ecd49064193bfd16a8ee28192d50e784039","owner":{"address":"0:715b81864cb38a0a877709d89f6ef59cba6b231aa714956a333bed9676ea1010","is_scam":false,"is_wallet":true},"balance":"237687784599302"}],"total":7234},"rates":{"rates":{"EQDuGgqZU7_AEgiOwEe-abozIefuoairTWLOyd7c_f8GhzMf":{"prices":{"USD":0.00456812565668493,"TON":0.002691759234032705},"diff_24h":{"USD":"+3.16%","TON":"−2.58%"},"diff_7d":{"USD":"+4.76%","TON":"−7.67%"},"diff_30d":{"USD":"−198.50%","TON":"−140.02%"}},"TON":{"prices":{"USD":1.697078103765289,"TON":1},"diff_24h":{"USD":"+5.59%","TON":"0.00%"},"diff_7d":{"USD":"+11.54%","TON":"0.00%"},"diff_30d":{"USD":"−24.37%","TON":"0.00%"}}}},"events":{"events":[{"event_id":"4bb9f528b96cdbd46f47554cb22b0ba1f4f8af440bc8ea3bc9a69f6f3a32b798","account":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"timestamp":1781013245,"actions":[{"type":"NftItemTransfer","status":"ok","NftItemTransfer":{"sender":{"address":"0:e8e8819fe99b7878861683b617865102e8663d634161e731ee264214adca9992","name":"gramanonymous.ton","is_scam":false,"is_wallet":true},"recipient":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"nft":"0:52d958148ed5cad883b7587fb03e33d674a44ed45d4ba2ae9122571e41b20360","comment":"888"},"simple_preview":{"name":"NFT Transfer","description":"Transferring 1 NFT","value":"1 NFT","accounts":[{"address":"0:e8e8819fe99b7878861683b617865102e8663d634161e731ee264214adca9992","name":"gramanonymous.ton","is_scam":false,"is_wallet":true},{"address":"0:52d958148ed5cad883b7587fb03e33d674a44ed45d4ba2ae9122571e41b20360","is_scam":false,"is_wallet":false}]},"base_transactions":["e115ee3466dadfaea8169ed86a31fef277e6feeed2ef362f57bf5b65a4843f37","807fae20678ba3d9499618082ecf1ef8b5bc75a8e0d079bbd51b9815d4bb4790","243fbc0308b491e39b6c023f58111fa1c8686e42fd39a802f86bc4d6d620800f"]}],"is_scam":false,"lt":82582041000003,"in_progress":false,"extra":-109544,"progress":1,"ext_msg_hash":"d4bd219ca9bffa1255b8af52821bfbcd29e5454ee199c830a3dcd8dc12610aa4"},{"event_id":"d762bcef419e828f31fbe5011f83704728f023a8f767a987cd0b51ef0dfe7f36","account":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"timestamp":1780340100,"actions":[{"type":"TonTransfer","status":"ok","TonTransfer":{"sender":{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true},"recipient":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"amount":1,"comment":"Денис из китовой че с ебалом?) 🤣🫵\nЗасадил людей, фад банил, а мемка отсосала"},"simple_preview":{"name":"Ton Transfer","description":"Transferring 0.000000001 TON","value":"0.000000001 TON","accounts":[{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true}]},"base_transactions":["ee83a04e13898ab99857ac7700359e4d0c2081933a4d7f451f175af78bd8a787"]}],"is_scam":true,"lt":80903026000001,"in_progress":false,"extra":-1,"progress":1,"ext_msg_hash":"2ec3fc02b3cf073fb48496820ab7c8a72a2d52a2ee3988bd43a96be4f8736a8f"},{"event_id":"638fc8e026aea70299b989775090546456f75be7a4d8266f8738dda68ac03827","account":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"timestamp":1780340095,"actions":[{"type":"TonTransfer","status":"ok","TonTransfer":{"sender":{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true},"recipient":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"amount":1,"comment":"Денис из китовой че с ебалом?) 🤣🫵\nЗасадил людей, фад банил, а мемка отсосала"},"simple_preview":{"name":"Ton Transfer","description":"Transferring 0.000000001 TON","value":"0.000000001 TON","accounts":[{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true}]},"base_transactions":["398ca77dab9338bb21a2783b908fddedafa9fc4ba968903cbf4ae3664f0ebd4e"]}],"is_scam":true,"lt":80903012000001,"in_progress":false,"extra":-2,"progress":1,"ext_msg_hash":"e54303854eb940575252b88272139c4a1a78d56d78f6279f7f95e6a5db4b097e"},{"event_id":"8d22c350849a5afb91c281157d0cdc57809b8913561053787e872b6522da5180","account":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"timestamp":1780340088,"actions":[{"type":"TonTransfer","status":"ok","TonTransfer":{"sender":{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true},"recipient":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"amount":1,"comment":"Денис из китовой че с ебалом?) 🤣🫵\nЗасадил людей, фад банил, а мемка отсосала"},"simple_preview":{"name":"Ton Transfer","description":"Transferring 0.000000001 TON","value":"0.000000001 TON","accounts":[{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true}]},"base_transactions":["f1756a94d336df92a90698cd6d5a26d7ee2920556bbba0358958441358cd3d85"]}],"is_scam":true,"lt":80902995000007,"in_progress":false,"extra":-1,"progress":1,"ext_msg_hash":"1909bb6ce01afda21460f52bf64ab164001d73350a32fd06751cdd537141772d"},{"event_id":"fb769c7f0ad011fd82b4d8fd253f8e0a02307922bfbc76e0e333f93c280c9207","account":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"timestamp":1780340082,"actions":[{"type":"TonTransfer","status":"ok","TonTransfer":{"sender":{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true},"recipient":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"amount":1,"comment":"Денис из китовой че с ебалом?) 🤣🫵\nЗасадил людей, фад банил, а мемка отсосала"},"simple_preview":{"name":"Ton Transfer","description":"Transferring 0.000000001 TON","value":"0.000000001 TON","accounts":[{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true}]},"base_transactions":["0deb2a3fb3fa4a86b938a8fa5b36f33cb83e494dadaa0eb0a9f9751c9588f79e"]}],"is_scam":true,"lt":80902980000006,"in_progress":false,"extra":-1,"progress":1,"ext_msg_hash":"ac6c3cf4e4689fb41289fdcebbd43b44e099b8d718542435b114eddb06863061"},{"event_id":"c87d6f06f87fdd24fdc9debe04cbcad191d5e90cfc953f9919e87be638dc3b79","account":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"timestamp":1780340076,"actions":[{"type":"TonTransfer","status":"ok","TonTransfer":{"sender":{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true},"recipient":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"amount":1,"comment":"Денис из китовой че с ебалом?) 🤣🫵\nЗасадил людей, фад банил, а мемка отсосала"},"simple_preview":{"name":"Ton Transfer","description":"Transferring 0.000000001 TON","value":"0.000000001 TON","accounts":[{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true}]},"base_transactions":["12164a4c2221a6e169381e273a617f93c469e8a867f739b1f6264cd848b2117c"]}],"is_scam":true,"lt":80902965000011,"in_progress":false,"extra":-2,"progress":1,"ext_msg_hash":"2525ccd9dcc67ace9009d53c76bb13fd104a805bfcada1fd757ad08759c7d1f2"},{"event_id":"e742409783c47be53b5e0e5aa02b9a346fd6e87e2411869e498ba0e73880eb58","account":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"timestamp":1780340069,"actions":[{"type":"TonTransfer","status":"ok","TonTransfer":{"sender":{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true},"recipient":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"amount":1,"comment":"Денис из китовой че с ебалом?) 🤣🫵\nЗасадил людей, фад банил, а мемка отсосала"},"simple_preview":{"name":"Ton Transfer","description":"Transferring 0.000000001 TON","value":"0.000000001 TON","accounts":[{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true}]},"base_transactions":["a4f2129d90a558636e7993f02c69ad2b8b3825fc80c0cdc47b29f1fa411a749d"]}],"is_scam":true,"lt":80902949000041,"in_progress":false,"extra":-1,"progress":1,"ext_msg_hash":"0a59a1be8e04462d3f001aac9319b78ca4355b142d29182e58a3c7a370e7bf2b"},{"event_id":"64ca1525cabdf3c861038a0def0236988da74c859d188a2a68ce903378f7e1c1","account":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"timestamp":1780340063,"actions":[{"type":"TonTransfer","status":"ok","TonTransfer":{"sender":{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true},"recipient":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"amount":1,"comment":"Денис из китовой че с ебалом?) 🤣🫵\nЗасадил людей, фад банил, а мемка отсосала"},"simple_preview":{"name":"Ton Transfer","description":"Transferring 0.000000001 TON","value":"0.000000001 TON","accounts":[{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true}]},"base_transactions":["90281ceedac2252f8bc5cb9ff7475b20e7f2c4c0bb59b70a57a878e508166c20"]}],"is_scam":true,"lt":80902934000005,"in_progress":false,"extra":-1,"progress":1,"ext_msg_hash":"546ef29c603c8a6ae94546d1e0d5fa82caf0bd709e516a00189603609d155815"},{"event_id":"11996055b7d6ee2017443bd375be6d18e96cbf58c924b158614470c984452bb3","account":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"timestamp":1780340059,"actions":[{"type":"TonTransfer","status":"ok","TonTransfer":{"sender":{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true},"recipient":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"amount":1,"comment":"Денис из китовой че с ебалом?) 🤣🫵\nЗасадил людей, фад банил, а мемка отсосала"},"simple_preview":{"name":"Ton Transfer","description":"Transferring 0.000000001 TON","value":"0.000000001 TON","accounts":[{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true}]},"base_transactions":["41e04359a5113f1228bf214295882bd1aa243b159ff1c235278895e0996f010c"]}],"is_scam":true,"lt":80902924000001,"in_progress":false,"extra":-2,"progress":1,"ext_msg_hash":"b4d3af8780820861efbe67529562a935b1fc76ff33bdc858336f34cc05f7dd1f"},{"event_id":"232374645e031fb0fa1bd81f1543f9feb9b592ebe36b5b7ec6e34fc128b9033a","account":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"timestamp":1780340051,"actions":[{"type":"TonTransfer","status":"ok","TonTransfer":{"sender":{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true},"recipient":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"amount":1,"comment":"Денис из китовой че с ебалом?) 🤣🫵\nЗасадил людей, фад банил, а мемка отсосала"},"simple_preview":{"name":"Ton Transfer","description":"Transferring 0.000000001 TON","value":"0.000000001 TON","accounts":[{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true}]},"base_transactions":["df08471a9eb1d6831f005c19a7abc11902f86c33bd944723e3bdcedb79a346f6"]}],"is_scam":true,"lt":80902904000001,"in_progress":false,"extra":-1,"progress":1,"ext_msg_hash":"e0e09343de77c643e844ed8c28fcc57881b11fd863f76cc31d96d56ddb458bf5"},{"event_id":"88d0c1b9bdf8c8044c2530e695b3948ad48298143b3424cbbfb0ae558e97b49f","account":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"timestamp":1780340045,"actions":[{"type":"TonTransfer","status":"ok","TonTransfer":{"sender":{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true},"recipient":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"amount":1,"comment":"Денис из китовой че с ебалом?) 🤣🫵\nЗасадил людей, фад банил, а мемка отсосала"},"simple_preview":{"name":"Ton Transfer","description":"Transferring 0.000000001 TON","value":"0.000000001 TON","accounts":[{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true}]},"base_transactions":["45438e5ec992ee018a6e96830a985847d115f2462803d000476842987cff8c4f"]}],"is_scam":true,"lt":80902889000001,"in_progress":false,"extra":-1,"progress":1,"ext_msg_hash":"f8fd8076ffe057d098f2f4d5a9bddc9b4d6ee76e1ca8c7a29cd87e7ad42acdd8"},{"event_id":"90bb370a3906449498bc814978a431edaba728dc1b60d8a51c920e99e65c731b","account":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"timestamp":1780340039,"actions":[{"type":"TonTransfer","status":"ok","TonTransfer":{"sender":{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true},"recipient":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"amount":1,"comment":"Денис из китовой че с ебалом?) 🤣🫵\nЗасадил людей, фад банил, а мемка отсосала"},"simple_preview":{"name":"Ton Transfer","description":"Transferring 0.000000001 TON","value":"0.000000001 TON","accounts":[{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true}]},"base_transactions":["6162e0a75736de2b5ac24cc884599fbfd21693cd9befe4120eaa90d05001a85c"]}],"is_scam":true,"lt":80902874000001,"in_progress":false,"extra":-1,"progress":1,"ext_msg_hash":"ce126707e7a11fb13ba444202ebadb137227a7a316a70c29e1c9a36d04a18ee6"},{"event_id":"e63f99ae9fcf96edc05185534a9c97b908087d15a4b901cce7ad0d0fa13a53ab","account":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"timestamp":1780340033,"actions":[{"type":"TonTransfer","status":"ok","TonTransfer":{"sender":{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true},"recipient":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"amount":1,"comment":"Денис из китовой че с ебалом?) 🤣🫵\nЗасадил людей, фад банил, а мемка отсосала"},"simple_preview":{"name":"Ton Transfer","description":"Transferring 0.000000001 TON","value":"0.000000001 TON","accounts":[{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true}]},"base_transactions":["423893caf273a8b14821327b7d2d2f52abcfaa056a542550a23451af3ea4aa16"]}],"is_scam":true,"lt":80902858000001,"in_progress":false,"extra":-1,"progress":1,"ext_msg_hash":"8cf69d701019fcca4b7d4d4a3c2cce9cffcb5bdc273ae62223e02c4203b4df94"},{"event_id":"d0a848f39932bbb05231129dc2cc9abfabd947fe8119ae882282ae2419ef2779","account":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"timestamp":1780340027,"actions":[{"type":"TonTransfer","status":"ok","TonTransfer":{"sender":{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true},"recipient":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"amount":1,"comment":"Денис из китовой че с ебалом?) 🤣🫵\nЗасадил людей, фад банил, а мемка отсосала"},"simple_preview":{"name":"Ton Transfer","description":"Transferring 0.000000001 TON","value":"0.000000001 TON","accounts":[{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true}]},"base_transactions":["3b66646566c5ff71617532da6da7d576fd85258713393e17caa05235867894a5"]}],"is_scam":true,"lt":80902843000001,"in_progress":false,"extra":-1,"progress":1,"ext_msg_hash":"fda6ff332e4925a70862a0b85e34d714420e0c911bcc8a59bf0dab8a3486f8a9"},{"event_id":"6d6476c7c93b41ab7a044f7f6eb5883d2ea62d2e8f99218e6dc4efde10489d79","account":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"timestamp":1780340021,"actions":[{"type":"TonTransfer","status":"ok","TonTransfer":{"sender":{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true},"recipient":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"amount":1,"comment":"Денис из китовой че с ебалом?) 🤣🫵\nЗасадил людей, фад банил, а мемка отсосала"},"simple_preview":{"name":"Ton Transfer","description":"Transferring 0.000000001 TON","value":"0.000000001 TON","accounts":[{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true}]},"base_transactions":["4cfdab164bb912a03c44d8629ad5a82b8d58b864d1901ad65be20a989e16996c"]}],"is_scam":true,"lt":80902830000001,"in_progress":false,"extra":-1,"progress":1,"ext_msg_hash":"7db4cf049082c2149cc74f562e51c4cf898f64c9d99a12e8e639d0d28c24d70a"},{"event_id":"e0bb1491cbb22b5d658572c307eacf8063d12c66ab318c150c2324300709f0a5","account":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"timestamp":1780340015,"actions":[{"type":"TonTransfer","status":"ok","TonTransfer":{"sender":{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true},"recipient":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"amount":1,"comment":"Денис из китовой че с ебалом?) 🤣🫵\nЗасадил людей, фад банил, а мемка отсосала"},"simple_preview":{"name":"Ton Transfer","description":"Transferring 0.000000001 TON","value":"0.000000001 TON","accounts":[{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true}]},"base_transactions":["f2bbe4444e386991c44189d16b9243a6fcbdd304aa6633f938a29c9e8988f86d"]}],"is_scam":true,"lt":80902814000004,"in_progress":false,"extra":-2,"progress":1,"ext_msg_hash":"49f5f78dc99125e6118c8c4fec43a18acff273d2576f601d50ede96bde6cb741"},{"event_id":"e575080368e831fc6aaa7c9225a30c135cf0a85ef91bffc546517a1c355af169","account":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"timestamp":1780340008,"actions":[{"type":"TonTransfer","status":"ok","TonTransfer":{"sender":{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true},"recipient":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"amount":1,"comment":"Денис из китовой че с ебалом?) 🤣🫵\nЗасадил людей, фад банил, а мемка отсосала"},"simple_preview":{"name":"Ton Transfer","description":"Transferring 0.000000001 TON","value":"0.000000001 TON","accounts":[{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true}]},"base_transactions":["3c3a1a6e7a1c01726c5305a8968080b0a85521fd6f9426deca22f737df39cd16"]}],"is_scam":true,"lt":80902798000001,"in_progress":false,"extra":-1,"progress":1,"ext_msg_hash":"5c2c0d9625ac06d86c1fae7588404fc669ddba16c57c5de06d69db79a1b32f74"},{"event_id":"a5373938124ba4ec99c3cf7f3a8bd0086b03fb4548871b49c7b7960ace043122","account":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"timestamp":1780340003,"actions":[{"type":"TonTransfer","status":"ok","TonTransfer":{"sender":{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true},"recipient":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"amount":1,"comment":"Денис из китовой че с ебалом?) 🤣🫵\nЗасадил людей, фад банил, а мемка отсосала"},"simple_preview":{"name":"Ton Transfer","description":"Transferring 0.000000001 TON","value":"0.000000001 TON","accounts":[{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true}]},"base_transactions":["4e7945ed273c6cabea53e52e3c4977f8146af24d3ddee3757b063b69b19e6f16"]}],"is_scam":true,"lt":80902784000001,"in_progress":false,"extra":-1,"progress":1,"ext_msg_hash":"73a58ef81759e9f16bbdb18c6b57898bb4b27c6c9498605301dbac47e14ac8e2"},{"event_id":"a272a8613b4df0db2c57c191675f4d0ce3e90a3c10078e672e0d2da26838b69d","account":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"timestamp":1780339997,"actions":[{"type":"TonTransfer","status":"ok","TonTransfer":{"sender":{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true},"recipient":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"amount":1,"comment":"Денис из китовой че с ебалом?) 🤣🫵\nЗасадил людей, фад банил, а мемка отсосала"},"simple_preview":{"name":"Ton Transfer","description":"Transferring 0.000000001 TON","value":"0.000000001 TON","accounts":[{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true}]},"base_transactions":["99d125d61e1c5d64cde6f4df61904f561e848358e7def77c2b42e32af71cfb22"]}],"is_scam":true,"lt":80902770000001,"in_progress":false,"extra":-2,"progress":1,"ext_msg_hash":"f0ac3ba359d8b1b7f1fd84f6c92971ff7bfa88e733f38f942624024e7c20a11a"},{"event_id":"74c5f8a833772a854dfc0ee4ead99fcdc77249de6b8d63ff970f39f5d6ccaad0","account":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"timestamp":1780339990,"actions":[{"type":"TonTransfer","status":"ok","TonTransfer":{"sender":{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true},"recipient":{"address":"0:ee1a0a9953bfc012088ec047be69ba3321e7eea1a8ab4d62cec9dedcfdff0687","name":"mt0nga.ton","is_scam":false,"is_wallet":false},"amount":1,"comment":"Денис из китовой че с ебалом?) 🤣🫵\nЗасадил людей, фад банил, а мемка отсосала"},"simple_preview":{"name":"Ton Transfer","description":"Transferring 0.000000001 TON","value":"0.000000001 TON","accounts":[{"address":"0:e068b93d03b79f40db01efc89b3d2fbe03b0ac4a1eaa07f27f9b5942fe3bf0e2","is_scam":false,"is_wallet":true}]},"base_transactions":["e8d9ff86bcc22bca38422c08f185ebe952db76d159389dd733c13eb241cdeebc"]}],"is_scam":true,"lt":80902752000003,"in_progress":false,"extra":-1,"progress":1,"ext_msg_hash":"94008f483695cc720ca99eb92ef6c26c9088ed8a8b46a6c9ab9a34307f3af14d"}],"next_from":80902752000003},"pool":{"pool":{"address":"EQACDeRu55Ixu7lOHZJDlAhpdjCAX_PjDk4Mac4QQ6SnwqoX","router_address":"EQADEFMTMnC-gu5v2U0ZY8AYaGhAOk9TcECg1TOquAW3r-IE","reserve0":"52802924681761","reserve1":"138030716271","token0_address":"EQDuGgqZU7_AEgiOwEe-abozIefuoairTWLOyd7c_f8GhzMf","token1_address":"EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c","lp_total_supply":"336544491","lp_total_supply_usd":"470.0100380669780092304596993401105727962396281237628189654686801813085630720901261983426312083626714257606540704377860747550840709862995936418883502483367919921875000","lp_fee":"20","protocol_fee":"10","protocol_fee_address":"EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c","collected_token0_protocol_fee":"7967961622626","collected_token1_protocol_fee":"37531923988","lp_price_usd":"1396.5762347510184299242019069036271129936268311216029353024491498252115589438964436899447901179956364989514984229463618667734604842671443213191338504136643021","apy_1d":"0.1764187190802713","apy_7d":"0.1056484005419045","apy_30d":"0.42511858996487034","volume_24h_usd":"113.7376579168999970288431391463035424749250523746013641357421875","deprecated":false,"popularity_index":5.2673421759826375,"tags":["pool:liquidity:no","pool:dex_major_version:2"]}},"stonAsset":{"asset":{"contract_address":"EQDuGgqZU7_AEgiOwEe-abozIefuoairTWLOyd7c_f8GhzMf","symbol":"MTONGA","display_name":"Make TON Great Again","priority":0,"image_url":"https://asset.ston.fi/img/EQDuGgqZU7_AEgiOwEe-abozIefuoairTWLOyd7c_f8GhzMf/11a32cd86ec54d89249f2dca4c8d3900cf779431254be39023bc687c15716ab3","decimals":9,"kind":"Jetton","deprecated":false,"community":true,"blacklisted":false,"default_symbol":false,"taxable":true,"popularity_index":1.1831840358546453,"tags":["asset:taxable","no_liquidity","taxable","asset:liquidity:no"]}},"chart_1":{"points":[[1781222040,0.00456812565668493],[1781221440,0.0045950363617550845],[1781220840,0.0045899598796334175],[1781220240,0.0045756787163506885],[1781219640,0.004578356666028125],[1781219040,0.004565100815124817],[1781218440,0.004583659238376999],[1781217840,0.004570676426334602],[1781217240,0.004576458719668146],[1781216640,0.004613028747641813],[1781216040,0.004602618301722303],[1781215440,0.004594476799144223],[1781214840,0.004605375286150864],[1781214240,0.0045975005682293195],[1781213640,0.004602148017456131],[1781213040,0.004613249002818782],[1781212440,0.004606276314486736],[1781211840,0.004567973985193927],[1781211240,0.004569247871211312],[1781210640,0.004546630194202542],[1781210040,0.004460634513876092],[1781209440,0.004453795845217376],[1781208840,0.004434198092921381],[1781208240,0.004428865349536231],[1781207640,0.004431226711393212],[1781207040,0.004446682148902128],[1781206440,0.0044566186824845574],[1781205840,0.004416515515044556],[1781205240,0.004426459794570711],[1781204640,0.004431001003895697],[1781204040,0.004420905815645262],[1781203440,0.004399112685226288],[1781202840,0.00440844287066335],[1781202240,0.004393745269624331],[1781201640,0.004387236647906852],[1781201040,0.004398411082587105],[1781200440,0.004341070244755808],[1781199840,0.004321347087523704],[1781199240,0.004306848552681632],[1781198640,0.004226864520310276],[1781198040,0.004215808203267896],[1781197440,0.004180419109901859],[1781196840,0.0041642032386808685],[1781196240,0.0041826771913244624],[1781195640,0.004177550150112323],[1781195040,0.0041174746118842215],[1781194440,0.004114326968876229],[1781193840,0.004052472275286238],[1781193240,0.004044853397420723],[1781192640,0.004047794390232093],[1781192040,0.004057501782607247],[1781191440,0.004040732232550393],[1781190840,0.004064137477022413],[1781190240,0.004050369502596467],[1781189640,0.0040834531042001345],[1781189040,0.004118434833521177],[1781188440,0.004107787981808246],[1781187840,0.004139809033311217],[1781187240,0.004144412448538687],[1781186640,0.004172632678736832],[1781186040,0.004164158227349774],[1781185440,0.004129791031883009],[1781184840,0.004103809550083585],[1781184240,0.00416207403006618],[1781183640,0.0042188087261029565],[1781183040,0.0042169988125828235],[1781182440,0.00420354212430465],[1781181840,0.004223010628282952],[1781181240,0.0042177066924955165],[1781180640,0.004233534501381508],[1781180040,0.004382459994937825],[1781179440,0.004389057303294147],[1781178840,0.004312856548544607],[1781178240,0.0043012390837456616],[1781177640,0.004313804837323891],[1781177040,0.0043191928993145355],[1781176440,0.004166892849181126],[1781175840,0.004174409059599477],[1781175240,0.0041687197155405795],[1781174640,0.0042157970857256335],[1781174040,0.004159215547649181],[1781173440,0.00412456053514799],[1781172840,0.004137843706983158],[1781172240,0.004567566477301904],[1781171640,0.004570646150563865],[1781171040,0.004553707276980653],[1781170440,0.004561892238217248],[1781169840,0.004540776818070138],[1781169240,0.0045617533786677135],[1781168640,0.004592871909256308],[1781168040,0.0045935398271149406],[1781167440,0.004598443978410999],[1781166840,0.004607521218162234],[1781166240,0.004613158978868936],[1781165640,0.004600392279007708],[1781165040,0.0046834043766587185],[1781164440,0.00467754706085261],[1781163840,0.004675894837207181],[1781163240,0.004632345479966268],[1781162640,0.004536825766303028],[1781162040,0.004527374737369303],[1781161440,0.004525167002286618],[1781160840,0.004536893757469911],[1781160240,0.004559430070198717],[1781159640,0.004562400035076026],[1781159040,0.0045630204991341065],[1781158440,0.004553456084657759],[1781157840,0.004561597295256516],[1781157240,0.004551637641378849],[1781156640,0.004560146150018526],[1781156040,0.004549015412294974],[1781155440,0.004556201684219701],[1781154840,0.004551899914504456],[1781154240,0.004558640737849971],[1781153640,0.004598624037927476],[1781153040,0.004588248830724136],[1781152440,0.004582222681694338],[1781151840,0.004572905649711213],[1781151240,0.004570807687922526],[1781150640,0.0045703054515368775],[1781150040,0.0045930724256737845],[1781149440,0.004596821738794417],[1781148840,0.004524224126450577],[1781148240,0.004493635729748239],[1781147640,0.004493478609617828],[1781147040,0.004510312521895566],[1781146440,0.004483436226147869],[1781145840,0.00446165318784284],[1781145240,0.004475051871903392],[1781144640,0.004486455644294301],[1781144040,0.004494365782528605],[1781143440,0.004917302131623411],[1781142840,0.004498940213257946],[1781142240,0.004505171813031257],[1781141640,0.004501722792034917],[1781141040,0.004492614462658023],[1781140440,0.004494132517554172],[1781139840,0.0044686015943007544],[1781139240,0.00445838813269376],[1781138640,0.004448395450183785],[1781138040,0.004464399701903835],[1781137440,0.004458881284472558],[1781136840,0.004416549497987879],[1781136240,0.004424849274374881]]},"chart_7":{"points":[[1781222040,0.00456812565668493],[1781220240,0.0045756787163506885],[1781217240,0.004576458719668146],[1781214240,0.0045975005682293195],[1781211240,0.004569247871211312],[1781208240,0.004428865349536231],[1781205240,0.004426459794570711],[1781202240,0.004393745269624331],[1781199240,0.004306848552681632],[1781196240,0.0041826771913244624],[1781193240,0.004044853397420723],[1781190240,0.004050369502596467],[1781187240,0.004144412448538687],[1781184240,0.00416207403006618],[1781181240,0.0042177066924955165],[1781178240,0.0043012390837456616],[1781175240,0.0041687197155405795],[1781172240,0.004567566477301904],[1781169240,0.0045617533786677135],[1781166240,0.004613158978868936],[1781163240,0.004632345479966268],[1781160240,0.004559430070198717],[1781157240,0.004551637641378849],[1781154240,0.004558640737849971],[1781151240,0.004570807687922526],[1781148240,0.004493635729748239],[1781145240,0.004475051871903392],[1781142240,0.004505171813031257],[1781139240,0.00445838813269376],[1781135640,0.004415997653487459],[1781132640,0.004343566380689664],[1781129640,0.004330627710424116],[1781126640,0.004686332979294608],[1781123640,0.004723885696188551],[1781120640,0.004806815149311156],[1781117640,0.004882760542239658],[1781114640,0.005041711757078719],[1781111640,0.004315179123232545],[1781108640,0.004364982936989541],[1781105640,0.004133610731446901],[1781102640,0.004145250921958875],[1781099640,0.004340866441679728],[1781096640,0.00423219584370135],[1781093640,0.0041630957124002416],[1781090640,0.004171757708281967],[1781087640,0.004235293793454612],[1781084640,0.004115418154652698],[1781081640,0.004036311035463416],[1781078640,0.00424586935960321],[1781075640,0.004278558311101319],[1781072640,0.004247826807905681],[1781069640,0.004272655933337452],[1781066640,0.004450511619482542],[1781063640,0.004501389911161343],[1781060640,0.004498757074345803],[1781057640,0.004511053575643305],[1781054640,0.0045588410980004785],[1781051040,0.004656504838817607],[1781049840,0.004661209855291775],[1781046240,0.004680896021498703],[1781042640,0.004661670998847661],[1781039040,0.00473040678936001],[1781035440,0.004447049323281388],[1781031840,0.004468297002134435],[1781031840,0.004468297002134435],[1781028240,0.004480703338805333],[1781024640,0.004460327298861385],[1781021040,0.004536501109732574],[1781017440,0.004596107518248469],[1781013840,0.004753954749581304],[1781013840,0.004753954749581304],[1781010240,0.004936687860249416],[1781006640,0.00452003612809981],[1781003040,0.004548226846412198],[1780999440,0.004545844001251086],[1780995840,0.00457471278024518],[1780992240,0.004615840414766067],[1780992240,0.004615840414766067],[1780988640,0.004636250149715344],[1780985040,0.0046580264578399005],[1780981440,0.004538459526293365],[1780977840,0.004464665155736331],[1780974240,0.004444171975602809],[1780974240,0.004444171975602809],[1780970640,0.004419836113799327],[1780967040,0.004406197716823768],[1780963440,0.0044818043685225985],[1780959840,0.004547607464475645],[1780956240,0.004570649476295789],[1780956240,0.004570649476295789],[1780952640,0.0049065060786201995],[1780949040,0.004934202658123439],[1780945440,0.004908000924676308],[1780941840,0.0050320134818940725],[1780938240,0.004985679841835287],[1780938240,0.004985679841835287],[1780934640,0.0049804983890201545],[1780931040,0.004899932002921127],[1780927440,0.004613054238520403],[1780923840,0.004632578951553034],[1780920240,0.004626373025630017],[1780916640,0.0045839329753203425],[1780916640,0.0045839329753203425],[1780913040,0.0046043683408571725],[1780909440,0.004549899645523818],[1780905840,0.0045722829253014895],[1780902240,0.00455808573892218],[1780898640,0.0045610735240606045],[1780898640,0.0045610735240606045],[1780895040,0.004550997260493614],[1780891440,0.00462776066001083],[1780887840,0.004574482390075687],[1780884240,0.004535097763282683],[1780880640,0.0045640909640790855],[1780880640,0.0045640909640790855],[1780877040,0.004553402203691281],[1780873440,0.004540557328712129],[1780869840,0.004404438147301163],[1780866240,0.0045748849138378235],[1780862640,0.004533248944033421],[1780862640,0.004533248944033421],[1780859040,0.004568095819269602],[1780855440,0.004735550777911937],[1780851840,0.0046976876935826105],[1780848240,0.004617729871429779],[1780844640,0.004639409098924213],[1780844640,0.004639409098924213],[1780841040,0.004606279650886267],[1780837440,0.004559886031370699],[1780833840,0.005055703499075961],[1780830240,0.005014168020509785],[1780826640,0.005027654835363962],[1780823040,0.0052191295300892705],[1780823040,0.0052191295300892705],[1780819440,0.005215492652299683],[1780815840,0.005112192065522685],[1780812240,0.005071317152789944],[1780808640,0.004958394125282957],[1780805040,0.005277748150052647],[1780805040,0.005277748150052647],[1780801440,0.0052843183192497695],[1780797840,0.0050506422212643854],[1780794240,0.004734180141102041],[1780790640,0.004990131821846582],[1780787040,0.004970405139697948],[1780787040,0.004970405139697948],[1780783440,0.004979096389462615],[1780779840,0.004855565975606834],[1780776240,0.004832110539250899],[1780772640,0.004837576799047145],[1780769040,0.004807480113323809],[1780769040,0.004807480113323809],[1780765440,0.004883069423281731],[1780761840,0.004860203638881653],[1780758240,0.004776353130923835],[1780754640,0.004741088996817077],[1780751040,0.004713725803410493],[1780747440,0.004700617185912033],[1780747440,0.004700617185912033],[1780743840,0.004701467045145364],[1780740240,0.0047955186174857825],[1780736640,0.004843919274677469],[1780733040,0.004583727647342099],[1780729440,0.004624317918560907],[1780729440,0.004624317918560907],[1780725840,0.004454524718920977],[1780722240,0.004251124917217158],[1780718640,0.004438198202892046],[1780715040,0.004438404923355538],[1780711440,0.004482064573846659],[1780711440,0.004482064573846659],[1780707840,0.004526584667685563],[1780704240,0.00443662567996353],[1780700640,0.00439280385150004],[1780697040,0.004407487472876556],[1780693440,0.004401654834785384],[1780693440,0.004401654834785384],[1780689840,0.004274955521775149],[1780686240,0.00417606879187858],[1780682640,0.004365841420749853],[1780679040,0.004018569746141484],[1780675440,0.003715089402572791],[1780675440,0.003715089402572791],[1780671840,0.0038379129984050034],[1780668240,0.003911737437564172],[1780664640,0.004044936696201615],[1780661040,0.003963716077389109],[1780657320,0.003884445711857938],[1780657320,0.003884445711857938],[1780653600,0.004093690432934293],[1780650420,0.004043837644433813],[1780646760,0.004101827422364824],[1780643100,0.004383694613577243],[1780639440,0.0041840256558870895],[1780635840,0.004328244220109011],[1780632240,0.0042770663597414185],[1780628640,0.0042967992697712475],[1780625040,0.004373644082911649],[1780621380,0.004383694613577243],[1780617780,0.00434610219708193]]},"chart_30":{"points":[[1781222040,0.00456812565668493],[1781215440,0.004594476799144223],[1781201040,0.004398411082587105],[1781190240,0.004050369502596467],[1781175840,0.004174409059599477],[1781165040,0.0046834043766587185],[1781150640,0.0045703054515368775],[1781136240,0.004424849274374881],[1781125440,0.004716683231724598],[1781111040,0.004337996801309122],[1781100240,0.004354337985169983],[1781085840,0.004215424035298244],[1781071440,0.004244333964580275],[1781060640,0.004498757074345803],[1781046240,0.004680896021498703],[1781035440,0.004447049323281388],[1781021040,0.004536501109732574],[1781006640,0.00452003612809981],[1780995840,0.00457471278024518],[1780981440,0.004538459526293365],[1780970640,0.004419836113799327],[1780956240,0.004570649476295789],[1780941840,0.0050320134818940725],[1780931040,0.004899932002921127],[1780916640,0.0045839329753203425],[1780905840,0.0045722829253014895],[1780891440,0.00462776066001083],[1780877040,0.004553402203691281],[1780866240,0.0045748849138378235],[1780851840,0.0046976876935826105],[1780841040,0.004606279650886267],[1780826640,0.005027654835363962],[1780812240,0.005071317152789944],[1780801440,0.0052843183192497695],[1780787040,0.004970405139697948],[1780776240,0.004832110539250899],[1780761840,0.004860203638881653],[1780747440,0.004700617185912033],[1780736640,0.004843919274677469],[1780722240,0.004251124917217158],[1780711440,0.004482064573846659],[1780697040,0.004407487472876556],[1780682640,0.004365841420749853],[1780671840,0.0038379129984050034],[1780646760,0.004101827422364824],[1780632240,0.0042770663597414185],[1780621380,0.004383694613577243],[1780606980,0.004474921100360565],[1780592460,0.0050005403286073925],[1780581660,0.005049032360422619],[1780567260,0.0045049323938010696],[1780556460,0.005162937855326313],[1780542060,0.005590333956035996],[1780527660,0.005480969192900899],[1780516860,0.005573257634360997],[1780502460,0.00523833414496729],[1780491660,0.005346187554496287],[1780477260,0.00641075823691051],[1780462860,0.006466221067008419],[1780452060,0.006473000847900043],[1780437660,0.006431244075228929],[1780426860,0.006227453597225139],[1780412460,0.006126923432966021],[1780398060,0.0073037332964041015],[1780387260,0.00663308675119748],[1780372860,0.006410703968951635],[1780362060,0.0070767422301289],[1780347660,0.0066886685845136745],[1780333260,0.008736717730795904],[1780322460,0.011980889743191487],[1780308060,0.013118450431367218],[1780297260,0.012958334234955878],[1780282860,0.012903311953930376],[1780268460,0.012344209472823373],[1780257660,0.01239877230037255],[1780243260,0.012688332826406051],[1780232460,0.012835939087945634],[1780218060,0.012423740849803454],[1780203660,0.01285342452227585],[1780192860,0.012681430573136627],[1780178460,0.012443333114916324],[1780167660,0.012292064075515568],[1780153260,0.011526415831452816],[1780138860,0.011522624668152057],[1780128060,0.011719730163837615],[1780113660,0.01181462405377094],[1780102860,0.011895401707267479],[1780088460,0.011681608036519079],[1780074060,0.012008826728505525],[1780063260,0.011566512782622673],[1780048860,0.011466576961169615],[1780038060,0.011508533982830301],[1780023660,0.011352940732120306],[1780009260,0.01138801145228786],[1779998460,0.011487766956551826],[1779984060,0.010979285983440034],[1779973260,0.011561963551305118],[1779958860,0.011676298795197958],[1779944460,0.010923683040718791],[1779933660,0.011648085482756273],[1779919260,0.011731186596207931],[1779908400,0.01262296758598289],[1779894000,0.012128710664528945],[1779879600,0.012811256810477841],[1779868800,0.011977924810521371],[1779854400,0.012089424708368131],[1779843600,0.012646143224421535],[1779829200,0.01384703397674601],[1779815280,0.014281458833391497],[1779804480,0.015307079725601648],[1779789660,0.013948801373113528],[1779778860,0.013824980864932016],[1779764940,0.01341161269745654],[1779750540,0.01492671519758067],[1779739740,0.01538753793643451],[1779725340,0.01713874796621542],[1779710940,0.015726168347481546],[1779700140,0.0162943917562443],[1779685740,0.015647748800521853],[1779674940,0.015516321310199562],[1779660540,0.01422566185454889],[1779649740,0.013988193259845957],[1779635340,0.01283279996377332],[1779620940,0.014316017241137393],[1779610140,0.012227825832381944],[1779595740,0.012279081229825468],[1779584940,0.012786503224085158],[1779570540,0.013900681753330615],[1779556140,0.011803590043883434],[1779545340,0.011585311797983345],[1779530940,0.011068898625758744],[1779520140,0.01202938659032749],[1779505740,0.012491185080959389],[1779491340,0.012946912783952163],[1779480540,0.012508100061427121],[1779466140,0.014000029015079015],[1779455340,0.013277130130727977],[1779440940,0.01374246826272529],[1779426540,0.01400134190768158],[1779415740,0.014280248059037616],[1779401340,0.014039313568444935],[1779390540,0.01451450108122729],[1779376140,0.014796650088124088],[1779361740,0.014231368435507567],[1779350940,0.015489781802802574],[1779336540,0.01511512826969747],[1779325740,0.015410893221280694],[1779311340,0.015068426500987392],[1779296940,0.015079045991954509],[1779286140,0.015029688065399794],[1779271740,0.01434317428116177],[1779260940,0.01478475799570749],[1779246540,0.015133295859312626],[1779232140,0.014644101307672039],[1779221340,0.015106585646382743],[1779206940,0.015771251555271648],[1779196140,0.016299498387578683],[1779181740,0.01680741199664131],[1779167340,0.017548958557222757],[1779156540,0.015650363795421326],[1779142140,0.016924572505473176],[1779131340,0.015182417897909714],[1779116940,0.01599382964262765],[1779102540,0.014757243370855119],[1779091740,0.015243730537457542],[1779077340,0.015244195711892177],[1779066540,0.015642104267547426],[1779052140,0.015954663074334012],[1779037740,0.01521900153504519],[1779026940,0.016053412771881246],[1779012540,0.01408024717007402],[1779001740,0.01421599683797769],[1778987340,0.01285538509284556],[1778972940,0.012936801745470976],[1778962140,0.01260420558975814],[1778947740,0.013342318136118685],[1778936940,0.01309500398431793],[1778922540,0.013363835841222476],[1778908140,0.012377601533825722],[1778897340,0.013835685162295391],[1778882940,0.013118540971007927],[1778872140,0.013565607639190593],[1778857740,0.01400593089415874],[1778843340,0.01629792634465922],[1778832540,0.014690829684959304],[1778818140,0.01396511326263259],[1778807340,0.014591516574737144],[1778792940,0.014843583233115323],[1778778540,0.014415180970416889],[1778767740,0.013235533055540932],[1778753340,0.013381978844569742],[1778742540,0.013138819264964243],[1778728140,0.014607865509393409],[1778713740,0.013564064858497288],[1778702940,0.01305055804685181],[1778688540,0.013391511490073317],[1778677740,0.014978379020001533],[1778663340,0.015526759475731724],[1778648940,0.016685097362636403],[1778638140,0.017774917930723524]]},"chart_90":{"points":[[1781222040,0.00456812565668493],[1781208240,0.004428865349536231],[1781179440,0.004389057303294147],[1781154240,0.004558640737849971],[1781125440,0.004716683231724598],[1781100240,0.004354337985169983],[1781071440,0.004244333964580275],[1781042640,0.004661670998847661],[1781017440,0.004596107518248469],[1780988640,0.004636250149715344],[1780963440,0.0044818043685225985],[1780934640,0.0049804983890201545],[1780905840,0.0045722829253014895],[1780880640,0.0045640909640790855],[1780851840,0.0046976876935826105],[1780826640,0.005027654835363962],[1780797840,0.0050506422212643854],[1780769040,0.004807480113323809],[1780743840,0.004701467045145364],[1780715040,0.004438404923355538],[1780686240,0.00417606879187858],[1780661040,0.003963716077389109],[1780632240,0.0042770663597414185],[1780606980,0.004474921100360565],[1780578060,0.004805088671412899],[1780549260,0.005586193272077894],[1780524060,0.005358503567273321],[1780495260,0.00548452768184546],[1780470060,0.006590337967764981],[1780441260,0.006290570685454641],[1780412460,0.006126923432966021],[1780387260,0.00663308675119748],[1780358460,0.006859449244348022],[1780333260,0.008736717730795904],[1780304460,0.01312251721863487],[1780275660,0.012930760514606475],[1780250460,0.012269049995286859],[1780221660,0.012460944487455187],[1780196460,0.012763854543696442],[1780167660,0.012292064075515568],[1780138860,0.011522624668152057],[1780113660,0.01181462405377094],[1780084860,0.011666494877671126],[1780059660,0.011469118052654716],[1780030860,0.011358298962432874],[1780002060,0.01147133297880866],[1779976860,0.011282739706489051],[1779948060,0.011670934851861797],[1779922860,0.011081610414367418],[1779894000,0.012128710664528945],[1779865200,0.012117095195778239],[1779840000,0.014011216506268838],[1779811680,0.01460790870749555],[1779757740,0.015386970431208983],[1779728940,0.017335353701435335],[1779703740,0.015682423658080112],[1779674940,0.015516321310199562],[1779646140,0.012893270570094506],[1779620940,0.014316017241137393],[1779592140,0.012370287220445884],[1779563340,0.012780431767502619],[1779538140,0.011680878162100304],[1779509340,0.012264006646048877],[1779484140,0.01295195316937892],[1779455340,0.013277130130727977],[1779426540,0.01400134190768158],[1779401340,0.014039313568444935],[1779372540,0.014732951596376867],[1779347340,0.015220467118072047],[1779318540,0.014385633739366443],[1779289740,0.014845846040279338],[1779264540,0.014340634441185097],[1779235740,0.014199556617366877],[1779210540,0.01597048242229523],[1779181740,0.01680741199664131],[1779152940,0.015065555723036247],[1779127740,0.01555465206312893],[1779098940,0.015240945122880762],[1779073740,0.015057235959049488],[1779044940,0.015165141263329475],[1779016140,0.015023915985664422],[1778990940,0.014688243330163914],[1778962140,0.01260420558975814],[1778936940,0.01309500398431793],[1778908140,0.012377601533825722],[1778879340,0.013043269761644499],[1778854140,0.01445567141186946],[1778825340,0.013280869238198437],[1778796540,0.015712299383368242],[1778771340,0.014336289842420791],[1778742540,0.013138819264964243],[1778717340,0.013523108956956185],[1778688540,0.013391511490073317],[1778659740,0.01610258416731852],[1778634540,0.01642837310256456],[1778605740,0.01731892143060975],[1778580540,0.01742492827149997],[1778551620,0.01840598063320181],[1778522820,0.019022632235792467],[1778497620,0.02010387382293774],[1778468400,0.020805574717506787],[1778443200,0.021975784614503873],[1778414760,0.02314194843864798],[1778385960,0.02277175255518357],[1778360760,0.02230030440543926],[1778331960,0.020523818790319517],[1778306760,0.023003797211080878],[1778277600,0.022007240720366694],[1778249100,0.02313719715243402],[1778223900,0.02418581590360815],[1778195100,0.027800351082378223],[1778169900,0.027072953600614826],[1778141100,0.035787361159629064],[1778112300,0.029157684186608215],[1778087100,0.03532216704617947],[1778058300,0.03295990690132335],[1778033100,0.03057021133956017],[1778004300,0.03075063050986259],[1777975500,0.041258357006544503],[1777950300,0.0403490492890688],[1777921500,0.020124431793152205],[1777892700,0.007661477131672191],[1777867500,0.003764109881381189],[1777838700,0.004126454890052024],[1777813500,0.004040951996702005],[1777784700,0.003921313246307646],[1777755900,0.0034324810425856137],[1777730700,0.0034281712080594124],[1777701900,0.003260901159475357],[1777676700,0.0035910091188812885],[1777647900,0.003925434212462391],[1777619100,0.004354064423865879],[1777593900,0.004222161194360286],[1777565100,0.004142211764514264],[1777539900,0.003925979276038497],[1777511100,0.0038886706317669056],[1777482000,0.003665344368377791],[1777456800,0.004094433975026001],[1777428000,0.003788999142106373],[1777402800,0.0033761220435919973],[1777374000,0.0034178870183688495],[1777345200,0.0035540354181617996],[1777320000,0.0032576525079448184],[1777291200,0.0033601907374964453],[1777266000,0.0033363450287220596],[1777237200,0.003192546384140483],[1777208400,0.0032000958783489856],[1777183200,0.0029574269730321865],[1777154400,0.002846749069976621],[1777129200,0.003155288017175147],[1777100400,0.0029882798873108957],[1777071600,0.002960630507498981],[1777046400,0.002532414614601297],[1777017600,0.002672939778695992],[1776992400,0.0022362895077090617],[1776963600,0.0016551206247971888],[1776934800,0.001653669830380613],[1776909600,0.0018062456537255897],[1776880800,0.0018568208445975335],[1776852000,0.0016185272058484288],[1776826800,0.001510696297324562],[1776798000,0.0015249976865428026],[1776772800,0.001561788417184102],[1776744000,0.0015064887494075552],[1776715200,0.0014142601462090447],[1776690000,0.0014047630425981018],[1776661260,0.0014541564880048098],[1776632880,0.0014481667953749962],[1776607260,0.001451809950533786],[1776578640,0.0014267312898549609],[1776553680,0.0019367247791570402],[1776524700,0.0015653550936289334],[1776499440,0.0016847983882619163],[1776470580,0.001767715572070761],[1776441780,0.0019056996456238283],[1776416520,0.0019105255004553193],[1776387900,0.0018523371811381075],[1776359100,0.0017594682982390055],[1776333900,0.0016682517664799521],[1776305040,0.0017402260565698186],[1776279840,0.0016119215418765752],[1776251040,0.001283742565697769],[1776222240,0.0015831225370737622],[1776197040,0.0014635801108093447],[1776168240,0.00210361105176325],[1776143040,0.0020597875528892613],[1776114240,0.0022868593995238676],[1776085440,0.0028038994629047734],[1776060240,0.0031022863949616776],[1776031440,0.0025450963194539765],[1776006240,0.0026020356874057226],[1775977440,0.0032987159632897425],[1775948640,0.0030727946732829266],[1775923440,0.0035136113449586513],[1775894640,0.000955204654243545],[1775869440,0.0010729117570152929],[1775840640,0.0009888276509066767],[1775811720,0.0006881694980241147],[1775786520,0.0005234048080759682],[1775757720,0.0005712328812434741]]},"_snapshot_ts":1781222638};
+const TOKENS = [{"address":"EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs","symbol":"USD₮","name":"Tether USD","decimals":6,"image":"https://cache.tonapi.io/imgproxy/T3PB4s7oprNVaJkwqbGg54nexKE0zzKhcrPv8jcWYzU/rs:fill:200:200:1/g:no/aHR0cHM6Ly90ZXRoZXIudG8vaW1hZ2VzL2xvZ29DaXJjbGUucG5n.webp","holders":3298246,"supply":"1429976002510000","price":0.9991656966433029,"mcap":1428782968.7311096,"spark":[0.9992003197,0.9992455696,0.9995651891,0.99970009,0.9996001599,1,0.9999350042,0.999805038,0.999805038,0.9998100361,0.99980004,0.9998100361,0.9998150342,0.9998400256,0.9998500225,0.9998350272,0.999895006,0.9998900071,0.99980002,0.9995002499,0.99980004,0.99980004,0.9999800004,0.9998850132,0.99970009,0.9997150812,0.99960008,0.9995001249,0.9996001599,0.9995502024,0.9995002499,0.9994552969,0.9992605472,0.9992455696,0.999000999,0.9990509016,0.9991906556,0.9991008093,0.9993004897,0.9991107914]},{"address":"EQC98_qAmNEptUtPc7W6xdHh_ZHrBUFpw5Ft_IzNU20QAJav","symbol":"tsTON","name":"Tonstakers TON","decimals":9,"image":"https://cache.tonapi.io/imgproxy/GjhSro_E6Qxod2SDQeDhJA_F3yARNomyZFKeKw8TVOU/rs:fill:200:200:1/g:no/aHR0cHM6Ly90b25zdGFrZXJzLmNvbS9qZXR0b24vbG9nby5zdmc.webp","holders":135478,"supply":"81653279246496202","price":1.889214665460977,"mcap":154260572.63546106,"spark":[1.8684799524,1.787472669,1.7242811161,1.7017470562,1.6440130014,1.696567574,1.6808443655,1.7057684443,1.7400236381,1.7990977292,1.7886986255,1.8379417373,1.890387722,1.9523303822,1.8908369443,1.9403622437,1.8634304503,1.9005535161,1.91143937,1.9295838894,1.9417289029,1.999212198,1.9413018143,1.911995053,1.9709689518,1.9644607084,1.9068866082,1.9163005087,1.9142520056,1.8520495885,1.8758746088,1.8549644286,1.8069548741,1.826158015,1.8476841172,1.8757781712,1.824540219,1.8889798587,1.9103129703,1.8892146655]},{"address":"EQA2kCVNwVsil2EM2mB0SkXytxCqQjS4mttjDpnXmwG9T6bO","symbol":"STON","name":"STON","decimals":9,"image":"https://cache.tonapi.io/imgproxy/u6g-Eo01CQbP5ugIlzQUZEzM3DsU6ixZ7Z8wwJ2r_4g/rs:fill:200:200:1/g:no/aHR0cHM6Ly9zdGF0aWMuc3Rvbi5maS9sb2dvL3N0b25fc3ltYm9sLnBuZw.webp","holders":70931,"supply":"99999999776549320","price":0.574133362538288,"mcap":57413336.125538304,"spark":[0.6066352774,0.6066475945,0.5107077653,0.5091938337,0.5060533228,0.5075561718,0.5076570643,0.5084293924,0.5142602315,0.5142550899,0.5142576607,0.5236988908,0.5333285847,0.5338410732,0.5302374218,0.5403319076,0.5388227798,0.5437676975,0.5437106136,0.5435856145,0.5566213888,0.5642344475,0.559346512,0.5558780873,0.5633813999,0.5588717802,0.5571193731,0.5576848874,0.5566541171,0.5534430643,0.5645497087,0.5631786117,0.5551441505,0.5560053292,0.5593238084,0.5610958838,0.5595378721,0.5686833816,0.5756884298,0.5741333625]},{"address":"EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT","symbol":"NOT","name":"Notcoin","decimals":9,"image":"https://cache.tonapi.io/imgproxy/4KCMNm34jZLXt0rqeFm4rH-BK4FoK76EVX9r0cCIGDg/rs:fill:200:200:1/g:no/aHR0cHM6Ly9jZG4uam9pbmNvbW11bml0eS54eXovY2xpY2tlci9ub3RfbG9nby5wbmc.webp","holders":2848835,"supply":"102452705868520515135","price":0.0004126021686249001,"mcap":42272208.6228406,"spark":[0.0004095248,0.0003917699,0.0003805156,0.0003785981,0.0003651072,0.0003753982,0.000371919,0.0003650996,0.0003690393,0.0003815682,0.0003793627,0.0003691238,0.0003765574,0.0003927364,0.0003849379,0.0003915352,0.0003701888,0.0003817623,0.0003839489,0.0003875934,0.0003845676,0.0003962303,0.0003833998,0.0003756497,0.0003776254,0.0003811467,0.0003664381,0.0003732298,0.0003790991,0.0003712948,0.0003779395,0.0003959777,0.0003850634,0.0003972872,0.0004050423,0.0004143578,0.0004220486,0.0004266252,0.0004192889,0.0004126022]},{"address":"EQAJ8uWd7EBqsmpSWaRdf_I-8R8-XHwh3gsNKhy-UrdrPcUo","symbol":"HMSTR","name":"Hamster Kombat","decimals":9,"image":"https://cache.tonapi.io/imgproxy/cOMlJuViiVXDCkAghnyNj7plX8pAZ9pv3WhklvebpTY/rs:fill:200:200:1/g:no/aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3RvbmtlZXBlci9vcGVudG9uYXBpL21hc3Rlci9wa2cvcmVmZXJlbmNlcy9tZWRpYS90b2tlbl9wbGFjZWhvbGRlci5wbmc.webp","holders":1325179,"supply":"99999999666659999999","price":0.00027279068065559994,"mcap":27279067.97462795,"spark":[0.0001443495,0.0001380913,0.0001557263,0.0001626735,0.0001504366,0.0001579859,0.0001577191,0.0001738454,0.0001773398,0.0001833605,0.0001823006,0.000174671,0.0001787313,0.0001784572,0.0001847677,0.00018957,0.0001804,0.000184462,0.0001855185,0.0001872795,0.0001768192,0.0001764723,0.0001714925,0.000170242,0.0001744599,0.0001731174,0.0001748793,0.0001781431,0.0001788319,0.0001970249,0.0002345809,0.0002533533,0.0002566527,0.0002679857,0.0002446394,0.0002931313,0.0002969585,0.0003132583,0.0002810307,0.0002727907]},{"address":"EQCvxJy4eG8hyHBFsZ7eePxrRsUQSFE_jpptRAYBmcG_DOGS","symbol":"DOGS","name":"Dogs","decimals":9,"image":"https://cache.tonapi.io/imgproxy/6Pb0sBFy_AzW6l39EIHGs-Iz4eLbbZUh8AYY_Xq-rcg/rs:fill:200:200:1/g:no/aHR0cHM6Ly9jZG4uZG9ncy5kZXYvZG9ncy5wbmc.webp","holders":4901371,"supply":"545217355861168545724","price":4.272745248555693e-05,"mcap":23295748.666859064,"spark":[4.34587e-05,4.34595e-05,3.95975e-05,3.95071e-05,3.88408e-05,3.95914e-05,3.92888e-05,3.8938e-05,3.95529e-05,3.95525e-05,3.95527e-05,3.92659e-05,4.13286e-05,4.11934e-05,4.00827e-05,4.00892e-05,3.89142e-05,4.06814e-05,4.06771e-05,4.06677e-05,4.04571e-05,4.23004e-05,4.16678e-05,4.00399e-05,4.07332e-05,4.02853e-05,3.96763e-05,3.99717e-05,4.00392e-05,3.96128e-05,3.96231e-05,4.20685e-05,4.01257e-05,4.23302e-05,4.38125e-05,4.36724e-05,4.35577e-05,4.39711e-05,4.3572e-05,4.27275e-05]},{"address":"EQBaCgUwOoc6gHCNln_oJzb0mVs79YG7wYoavh-o1ItaneLA","symbol":"UTYA","name":"Utya","decimals":9,"image":"https://cache.tonapi.io/imgproxy/W_W-CXNANOFhdcQRNb-CE-OJ-ZHkEFv0cdWx3SPWFno/rs:fill:200:200:1/g:no/aHR0cHM6Ly94LXhveG94LmdpdGh1Yi5pby91dHlhLzI1Ni5wbmc.webp","holders":8425,"supply":"1000000000000000000","price":0.021182786932281823,"mcap":21182786.932281826,"spark":[0.0162242788,0.0155208785,0.0151242232,0.0138629475,0.015405888,0.016254513,0.0156325773,0.0158597085,0.0161929222,0.0167426736,0.0166458971,0.0180932571,0.018468502,0.0201817653,0.0194526178,0.0210644906,0.0209965296,0.0214717809,0.0215947653,0.021799748,0.0212713874,0.0202775892,0.0200733703,0.0201212836,0.0204578435,0.0196413908,0.0190895111,0.0183865961,0.0183126073,0.0186146232,0.0185761524,0.0195650802,0.0189731861,0.0193439319,0.0183333172,0.0188643382,0.0181401417,0.0201701134,0.0216499457,0.0211827869]},{"address":"EQA1EIDrR33zgL21rwDIfGo7h4ETWieentUvg7jIT-3aP5GG","symbol":"FRT","name":"FORT Token","decimals":9,"image":"https://cache.tonapi.io/imgproxy/nO22EPJ63vRk8VkJUmAc-LSbjHMNy-Wq0q-2DVs67pU/rs:fill:200:200:1/g:no/aHR0cHM6Ly9mb3J0b24uYXBwL2ZvcnQtbG9nby5wbmc.webp","holders":71179,"supply":"498015633818776","price":31.721612057590235,"mcap":15797858.734614128,"spark":[32.6654508254,31.2492470178,31.1599738822,30.530678726,29.3102726415,30.740569835,30.3094924834,30.9672821005,31.2094992023,32.2690650167,32.0825423675,34.3183256623,33.7136557478,34.2397665564,33.2331573104,32.8123943778,33.4596720225,33.6513195859,33.9707460781,32.802221377,33.0214534326,32.3950364978,32.5755008746,33.1811387621,32.5651033712,32.2054267237,32.2584715824,32.2144684529,31.2405973001,31.1127559088,31.6446522641,31.6285183285,30.9862698704,31.3677132199,31.7309200183,32.032951511,31.7162531739,32.6463281699,32.5570509573,31.7216120576]},{"address":"EQBlqsm144Dq6SjbPI4jjZvA1hqTIP3CvHovbIfW_t-SCALE","symbol":"DUST","name":"DeDust","decimals":9,"image":"https://cache.tonapi.io/imgproxy/rJ4qAiXZRWvGV6CCF8jHz-qE0-hmqWMUkI9BDDrfaXc/rs:fill:200:200:1/g:no/aXBmczovL1FtYVpuOHkzSm5kcmVQamVVYkRRdEJ5UFY2ZXpId1A2N3BWYUpHM1dXcGFtTEI.webp","holders":24255,"supply":"16683255523899011","price":0.6165529564857608,"mcap":10286110.517067336,"spark":[0.7486850192,0.7487002205,0.6045251203,0.5970184267,0.5883783609,0.5657270067,0.5705428428,0.5810597464,0.5919477399,0.5919418216,0.5919447807,0.6137156739,0.6303331317,0.6316575781,0.6241921666,0.6363790232,0.6175020988,0.6313909988,0.6313247164,0.6311795748,0.6458189056,0.6618517649,0.6603035875,0.6433919522,0.6645096526,0.6645063311,0.6331527036,0.6275022891,0.6291269094,0.6230239016,0.6197194385,0.6196575037,0.5997544451,0.5918247784,0.6038651909,0.6038953555,0.6024927548,0.6023104098,0.6166361329,0.6165529565]},{"address":"EQBZ_cafPyDr5KUTs0aNxh0ZTDhkpEZONmLJA2SNGlLm4Cko","symbol":"REDO","name":"Resistance Dog","decimals":9,"image":"https://cache.tonapi.io/imgproxy/R-9iv8csp1jZ9ymWn4dvcnYC_z3seU2dCrDdU2whQn4/rs:fill:200:200:1/g:no/aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL1Jlc2lzdGFuY2UtRG9nL3Jlc2lzdGFuY2UtZG9nL21haW4vcmVzaXN0YW5jZS1kb2cud2VicA.webp","holders":26830,"supply":"99999990154876073","price":0.06505186504946733,"mcap":6505185.864503061,"spark":[0.0618116499,0.0591318187,0.0531877745,0.0513665868,0.0529760929,0.0569086418,0.0561936274,0.0568216647,0.0567203186,0.0586459795,0.0583069921,0.0593269287,0.0639088681,0.0663276076,0.0642607846,0.0629751575,0.0639706326,0.0649275658,0.0652994526,0.0659192909,0.0674893673,0.0682967477,0.0654428481,0.0687464137,0.0686896283,0.0678738717,0.0605485956,0.0595344653,0.0602116636,0.0574782767,0.0589087672,0.0609902664,0.057851639,0.0596381094,0.0600874785,0.0601335875,0.0610899521,0.0630460773,0.0663906492,0.065051865]},{"address":"EQBsosmcZrD6FHijA7qWGLw5wo_aH8UN435hi935jJ_STORM","symbol":"STORM","name":"STORM","decimals":9,"image":"https://cache.tonapi.io/imgproxy/4ostIU6F0pvfI_kQyA4ANA6w_E_MbxPB0cwI7cTZlNg/rs:fill:200:200:1/g:no/aHR0cHM6Ly9zdGF0aWMuc3Rvcm0udGcvVE9LRU4ucG5n.webp","holders":26070,"supply":"999998980175219063","price":0.005683423389475242,"mcap":5683417.593379229,"spark":[0.004772054,0.0045651626,0.0048766711,0.0048725481,0.0048389931,0.0049788584,0.004957293,0.0049834546,0.0050313403,0.0052021548,0.0051720852,0.0051502339,0.0050416873,0.0052125583,0.0049510868,0.00507528,0.0049611287,0.0050039065,0.0050325674,0.0050803378,0.0050985095,0.005139293,0.0050133114,0.0049980298,0.0050390886,0.0050560508,0.0049271609,0.0049058477,0.0049202556,0.00511853,0.0052550287,0.0060570481,0.0056158633,0.0056267492,0.0056661247,0.0057128145,0.0055212366,0.0056845242,0.0057023119,0.0056834234]},{"address":"EQC47093oX5Xhb0xuk2lCr2RhS8rj-vul61u4W2UH5ORmG_O","symbol":"GRM","name":"Grm","decimals":9,"image":"https://cache.tonapi.io/imgproxy/lNoY3YdNeBug53ixjK6hxT6XIX3_xoIYNqv-ykIQ1Aw/rs:fill:200:200:1/g:no/aHR0cHM6Ly9ncmFtY29pbi5vcmcvaW1nL2ljb24ucG5n.webp","holders":93139,"supply":"2443967262349735947","price":0.002077331043259239,"mcap":5076929.062788403,"spark":[0.0017100691,0.0016359294,0.0014826025,0.0014154617,0.001438916,0.0014470051,0.001455702,0.0014779303,0.0015068182,0.0015579748,0.0015489693,0.0017975443,0.0019189336,0.0021313882,0.0018720625,0.001925338,0.0018595958,0.0018726297,0.0018833556,0.0019012328,0.0017648891,0.0017224803,0.0016230038,0.0016169252,0.0016748523,0.0016217017,0.0015919775,0.0015058323,0.0015006496,0.0015152923,0.0015750159,0.0019115861,0.0019020216,0.0018816177,0.0019098359,0.0019188002,0.0021037274,0.0020495231,0.00235085,0.002077331]},{"address":"EQCuPm01HldiduQ55xaBF_1kaW_WAUy5DHey8suqzU_MAJOR","symbol":"MAJOR","name":"Major","decimals":9,"image":"https://cache.tonapi.io/imgproxy/GK24g2FMJyJr7v24O2WX2rO02tsJ7_72ZqxlexuXmrc/rs:fill:200:200:1/g:no/aHR0cHM6Ly9tYWpvci5ib3QvaW1hZ2VzL3Rhc2tzL21ham9yX2xvZ28uc3Zn.webp","holders":173441,"supply":"97694329840313316","price":0.03593810683742713,"mcap":3510949.2632120256,"spark":[0.0474796468,0.0454211766,0.0464963119,0.0463089368,0.0458054732,0.0466923871,0.0456552983,0.0430146001,0.0426961687,0.0441457081,0.0438905357,0.0435502846,0.0428882159,0.04486372,0.0444154977,0.046546647,0.0436506364,0.0435949677,0.0438446674,0.0442608516,0.0385168919,0.0401283,0.040857444,0.0402201278,0.0384356988,0.0394970818,0.0371280521,0.0393177061,0.0393118011,0.0381978313,0.0389433077,0.0387636229,0.0379591182,0.0386687239,0.037658499,0.0379611711,0.0362531792,0.0384948818,0.0381771018,0.0359381068]},{"address":"EQDNhy-nxYFgUqzfUzImBEP67JqsyMIcyk2S5_RwNNEYku0k","symbol":"stTON","name":"Staked TON","decimals":9,"image":"https://cache.tonapi.io/imgproxy/BBswWn_XyuF6aNntVmh-yXANFKQ_PkUpt30z-kotVvg/rs:fill:200:200:1/g:no/aHR0cHM6Ly9zdG9yYWdlLmdvb2dsZWFwaXMuY29tL21pbGtjcmVlay90b2tlbnMvc3RUT04ucG5n.webp","holders":16471,"supply":"1209300623617634","price":1.9082566889855437,"mcap":2307656.0040127393,"spark":[1.8865396899,1.8047491551,1.7409453213,1.7187170903,1.6604069484,1.7134855549,1.6976050674,1.7222752566,1.7568617532,1.8165073965,1.8060075641,1.8557271529,1.9092639505,1.9718246844,1.9097169721,1.9597367038,1.8815056938,1.918988815,1.9299802417,1.9483000825,1.9611874172,2.0192459219,1.9607552128,1.9311547733,1.9907195246,1.9835835362,1.9254488254,1.9349542743,1.9328857715,1.8706575157,1.894721875,1.8736015809,1.8246011022,1.8439916279,1.8657279051,1.8940962606,1.842357929,1.9080195954,1.9295676569,1.908256689]},{"address":"EQC7vuKEYLdC72YhUWt3AUVA-Oi66Q1DxTHXH7r6pXaV50j7","symbol":"Yoda","name":"Baby Yoda","decimals":9,"image":"https://cache.tonapi.io/imgproxy/kN4Iuy0QqSWW_hb1i2DAS0HISEn6UmRjUEfwQ6u5Uec/rs:fill:200:200:1/g:no/aHR0cHM6Ly93d3cuYmFieXlvZGEubG9sL2Fzc2V0cy9oZXJvL0JhYnlZb2RhLmpwZw.webp","holders":1876,"supply":"1000000000000000000","price":0.001702430759442673,"mcap":1702430.759442673,"spark":[0.0016049236,0.0015353425,0.0013450597,0.0014357045,0.0016111776,0.0013570191,0.0013451529,0.0012943443,0.0014012848,0.0014488586,0.0014404839,0.0016131903,0.0015940458,0.0019837526,0.001595599,0.0016528062,0.0015277196,0.0014658037,0.0014741994,0.0014881929,0.0015814497,0.0015746742,0.0014313427,0.0014049303,0.0015364027,0.0016411208,0.0014181387,0.0013763283,0.0013992011,0.0013942541,0.0013797702,0.0017490162,0.0014617227,0.0015382289,0.0015588291,0.0013886558,0.0014327032,0.0014292032,0.0017640118,0.0017024308]},{"address":"EQBKRSNRkeP1-2jcg5T_f__0s5Hj-vrbfNLMQy8dnZs7xd_p","symbol":"CHERRY","name":"Hot Cherry","decimals":9,"image":"https://cache.tonapi.io/imgproxy/gjha4w6XYJN_lv3aPMt4QsDNChEm3Bw93MItLfpDDeE/rs:fill:200:200:1/g:no/aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2hvdGNoZXJyeXRvbi93ZWJzaXRlL21haW4vY29pbi5wbmc.webp","holders":3152,"supply":"100000000000000000000","price":1.2661150798682889e-05,"mcap":1266115.0798682887,"spark":[1.04094e-05,9.9581e-06,9.5194e-06,9.7636e-06,9.089e-06,9.4141e-06,9.3461e-06,8.8743e-06,9.169e-06,9.4803e-06,9.4255e-06,1.13669e-05,1.18547e-05,1.22103e-05,1.12629e-05,1.25732e-05,1.20378e-05,1.23974e-05,1.24684e-05,1.25868e-05,1.45174e-05,1.4562e-05,1.40722e-05,1.3584e-05,1.43247e-05,1.43419e-05,1.33392e-05,1.29694e-05,1.30667e-05,1.28723e-05,1.29664e-05,1.28273e-05,1.19521e-05,1.25607e-05,1.28366e-05,1.20241e-05,1.11882e-05,1.2774e-05,1.28006e-05,1.26612e-05]},{"address":"EQAtwo6qMNwtr0iTA9eKVZ32cuACFJ0VKd78GrBWOe83-X1P","symbol":"GROYP","name":"Groyper","decimals":9,"image":"https://cache.tonapi.io/imgproxy/ERo4wE06pA_tMgYenWYCzMHg4edahM-emm_RIy8Bi_Q/rs:fill:200:200:1/g:no/aHR0cHM6Ly9pbWFnZTJ1cmwuY29tL2ltYWdlcy8xNzYzNzQwNDIwNTc0LWUyMWRjNmQyLTdiOTktNGFmNi1hNTQ1LTczZDk4ZmNiODk3ZC5qcGc.webp","holders":1260,"supply":"50000000000000000","price":0.018136817879165563,"mcap":906840.8939582781,"spark":[0.0126175154,0.0120704856,0.0118336189,0.0115637394,0.0116123448,0.0123157217,0.0110324839,0.010605222,0.0101122803,0.0104555933,0.0103951575,0.0116954347,0.0129182289,0.0133434403,0.0127421669,0.013038581,0.0203781376,0.0207887706,0.0209078428,0.0211063052,0.0191039735,0.0197499431,0.0190193739,0.0186545002,0.0204202857,0.0201687665,0.0192373919,0.0205009141,0.0193732388,0.0187046522,0.0188366857,0.0190752271,0.0186306015,0.0187836061,0.0191921736,0.0181448264,0.0177774106,0.0181145377,0.0183419965,0.0181368179]},{"address":"EQBynBO23ywHy_CgarY9NK9FTz0yDsG82PtcbSTQgGoXwiuA","symbol":"jUSDT","name":"jUSDT","decimals":6,"image":"https://cache.tonapi.io/imgproxy/CwB_AmfxXaRx6D2SB22UgGJJu-P49hbxhjTnxv5Ruek/rs:fill:200:200:1/g:no/aHR0cHM6Ly9icmlkZ2UudG9uLm9yZy90b2tlbi8xLzB4ZGFjMTdmOTU4ZDJlZTUyM2EyMjA2MjA2OTk0NTk3YzEzZDgzMWVjNy5wbmc.webp","holders":22878,"supply":"632273925970","price":1.0082434180957818,"mcap":637486.024292832,"spark":[0.9577358077,0.9162133715,0.9815906861,0.9792437992,0.9828979041,1.0100710186,1.0007097374,1.0100645133,1.0067490676,1.0409283055,1.0349114994,1.0031308767,0.9900905554,1.0225327915,0.9903254797,1.0162643049,0.9982752718,1.018162787,1.0239945362,1.0337145409,1.0254885549,0.9943074501,1.0037550404,0.9886019044,1.0190944508,1.0154413766,0.9861159303,1.0139341117,0.9993197891,0.9903720107,1.0031122732,0.991930671,1.0004531033,1.0271800692,1.016234293,1.0290227268,1.0009143777,1.0360177859,1.0195032466,1.0082434181]},{"address":"EQDuGgqZU7_AEgiOwEe-abozIefuoairTWLOyd7c_f8GhzMf","symbol":"MTONGA","name":"Make TON Great Again","decimals":9,"image":"https://cache.tonapi.io/imgproxy/gk1JWHH77KFsD_nWFSsDyyN4n1Ke7vP9DY5ooeRv89o/rs:fill:200:200:1/g:no/aHR0cHM6Ly9jZG4uZGV4c2NyZWVuZXIuY29tL2Ntcy9pbWFnZXMvMVdRMWhFM09KWi1ZYzlzQz93aWR0aD04MDAmaGVpZ2h0PTgwMCZmaXQ9Y3JvcCZxdWFsaXR5PTEwMCZmb3JtYXQ9cG5n.webp","holders":7233,"supply":"99999998999999881","price":0.004487621527832654,"mcap":448762.1482956434,"spark":[0.0043736441,0.0041840257,0.0038844457,0.003837913,0.0041760688,0.0043928039,0.0044384049,0.0045837276,0.0047006172,0.0048602036,0.0048321105,0.0047341801,0.0049583941,0.0052191295,0.004559886,0.0047355508,0.0044044381,0.0045350978,0.0045610735,0.0046043683,0.004899932,0.0049080009,0.0045476075,0.004444172,0.0046158404,0.0045200361,0.0045365011,0.0044470493,0.0045921791,0.0039837144,0.0045634584,0.0047982848,0.004708925,0.0044989402,0.0045534561,0.0041245605,0.0041184348,0.0044209058,0.0045651008,0.0044876215]},{"address":"EQD0vdSA_NedR9uvbgN9EikRX-suesDxGeFg69XQMavfLqIw","symbol":"BOLT","name":"Huebel Bolt","decimals":9,"image":"https://cache.tonapi.io/imgproxy/05DkTmM2Eu4YZX-ED0eQpRS8U1q7SbD3o1GC5r5ZTBw/rs:fill:200:200:1/g:no/aHR0cHM6Ly9jbG91ZGZsYXJlLWlwZnMuY29tL2lwZnMvUW1YNDdkb2RVZzFhY1hveFlEVUxXVE5mU2hYUlc1dUhyQ21vS1NVTlI5eEtRdw.webp","holders":22123,"supply":"6000693317361000","price":0.02791612610680913,"mcap":167516.1113757365,"spark":[0.0275519858,0.0263574752,0.0255042651,0.0251715622,0.02458573,0.0252111065,0.0249663104,0.0252284098,0.0266069943,0.0275103062,0.0273512917,0.0277764192,0.028277212,0.0293411376,0.0285760541,0.0293245256,0.0281618621,0.0287228998,0.0288874168,0.0291616333,0.0293451798,0.0293130731,0.0287007407,0.0287441007,0.0291865665,0.0290742967,0.0290510438,0.0282171731,0.0283698348,0.0274479748,0.0278010694,0.0274911737,0.0267796566,0.0270642533,0.0273832771,0.0277996401,0.0269604592,0.0279126565,0.0282278868,0.0279161261]}];
+const GRAM_TS = Date.UTC(2026,5,15,12,0,0);
 
-const MASTER = 'EQDuGgqZU7_AEgiOwEe-abozIefuoairTWLOyd7c_f8GhzMf';
-const POOL   = 'EQACDeRu55Ixu7lOHZJDlAhpdjCAX_PjDk4Mac4QQ6SnwqoX';
-const DEC = 9;
-
-const fmtNum = (n, maxFD = 2) => {
-  if (n == null || !isFinite(n)) return '—';
-  if (n === 0) return '0';
-  const a = Math.abs(n);
-  if (a >= 1e9) return (n/1e9).toFixed(2) + 'B';
-  if (a >= 1e6) return (n/1e6).toFixed(2) + 'M';
-  if (a >= 1e3) return (n/1e3).toFixed(2) + 'K';
-  if (a >= 1)   return n.toLocaleString(undefined, { maximumFractionDigits: maxFD });
-  return n.toFixed(6).replace(/0+$/,'').replace(/\.$/,'');
-};
-const fmtUsd = n => {
-  if (n == null || !isFinite(n)) return '—';
-  if (n === 0) return '$0.00';
-  if (n < 0.0001) return '<$0.0001';
-  if (n < 1)  return '$' + n.toFixed(6).replace(/0+$/,'').replace(/\.$/,'');
-  if (n >= 1e9) return '$' + (n/1e9).toFixed(2) + 'B';
-  if (n >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
-  if (n >= 1e3) return '$' + (n/1e3).toFixed(2) + 'K';
-  return '$' + n.toLocaleString(undefined, { maximumFractionDigits: 2 });
-};
-const shortAddr = a => a ? a.slice(0,6) + '…' + a.slice(-6) : '—';
-const tonviewerUrl = a => `https://tonviewer.com/${a}`;
-const setDelta = (el, str) => {
-  if (!str) { el.textContent = '—'; return; }
-  el.textContent = str;
-  el.className = 'delta ' + ((str.startsWith('−') || str.startsWith('-')) ? 'down' : (str.startsWith('+') ? 'up' : ''));
-};
-
-async function jget(url) {
-  const r = await fetch(url, { headers: { 'Accept': 'application/json' }});
-  if (!r.ok) throw new Error(`${url} → ${r.status}`);
-  return r.json();
+/* ---------- GRAM switch (shared logic) ---------- */
+function unit(){ return localStorage.getItem("tq_unit") || (Date.now()>=GRAM_TS ? "GRAM":"TON"); }
+function applyUnit(){
+  const u=unit();
+  document.querySelectorAll("[data-unit]").forEach(el=>el.textContent=u);
+  document.getElementById("gramSwitch").classList.toggle("on", u==="GRAM");
+  document.getElementById("optTon").classList.toggle("on", u==="TON");
+  document.getElementById("optGram").classList.toggle("on", u==="GRAM");
 }
-
-let priceChart = null, holderChart = null;
-let cachedRates = null, cachedSupplyTokens = 0;
-
-async function loadPriceChart(days = 7) {
-  const now = Math.floor(Date.now() / 1000);
-  const start = now - days * 86400;
-  let data;
-  try {
-    data = await jget(`https://tonapi.io/v2/rates/chart?token=${MASTER}&currency=usd&start_date=${start}&end_date=${now}&points_count=200`);
-  } catch (e) {
-    data = SNAPSHOT[`chart_${days}`] || { points: [] };
-  }
-  const points = (data.points || []).map(p => ({ x: p[0] * 1000, y: p[1] })).sort((a,b) => a.x - b.x);
-  const ctx = document.getElementById('priceChart').getContext('2d');
-  const grad = ctx.createLinearGradient(0, 0, 0, 280);
-  grad.addColorStop(0, 'rgba(0,152,234,0.20)');
-  grad.addColorStop(1, 'rgba(0,152,234,0.00)');
-  if (priceChart) priceChart.destroy();
-  priceChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      datasets: [{
-        label: 'MTONGA / USD',
-        data: points,
-        borderColor: '#0098ea',
-        backgroundColor: grad,
-        fill: true,
-        tension: 0.25,
-        borderWidth: 2,
-        pointRadius: 0,
-        pointHoverRadius: 4,
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      scales: {
-        x: { type: 'time', time: { unit: days <= 1 ? 'hour' : (days <= 7 ? 'day' : 'week') },
-             grid: { display: false }, ticks: { color: '#5b6573', maxRotation: 0 } },
-        y: { grid: { color: '#eef1f5' }, ticks: { color: '#5b6573', callback: v => fmtUsd(v) } }
-      },
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: { label: c => `${fmtUsd(c.parsed.y)} at ${new Date(c.parsed.x).toLocaleString()}` } }
-      }
-    }
-  });
-}
-
-async function load() {
-  document.body.classList.add('loading');
-  let mode = 'live';
-  let info, holders, rates, events, pool, stonAsset;
-  try {
-    [info, holders, rates, events, pool, stonAsset] = await Promise.all([
-      jget(`https://tonapi.io/v2/jettons/${MASTER}`),
-      jget(`https://tonapi.io/v2/jettons/${MASTER}/holders?limit=100`),
-      jget(`https://tonapi.io/v2/rates?tokens=${MASTER}%2CTON&currencies=usd%2Cton`).catch(()=>({rates:{}})),
-      jget(`https://tonapi.io/v2/accounts/${MASTER}/events?limit=20`).catch(()=>({events:[]})),
-      jget(`https://api.ston.fi/v1/pools/${POOL}`).catch(()=>null),
-      jget(`https://api.ston.fi/v1/assets/${MASTER}`).catch(()=>null),
-    ]);
-  } catch (err) {
-    console.warn('Live fetch failed, using baked-in snapshot:', err);
-    mode = 'snapshot';
-    info = SNAPSHOT.info; holders = SNAPSHOT.holders; rates = SNAPSHOT.rates;
-    events = SNAPSHOT.events; pool = SNAPSHOT.pool; stonAsset = SNAPSHOT.stonAsset;
-  }
-
-  try {
-    cachedRates = rates;
-
-    // Header
-    document.getElementById('name').textContent = info.metadata?.name || 'MTONGA';
-    document.getElementById('symbol').textContent = info.metadata?.symbol || 'MTONGA';
-    if (info.preview || info.metadata?.image) document.getElementById('logo').src = info.preview || info.metadata.image;
-    document.getElementById('addrChip').textContent = shortAddr(MASTER);
-    document.getElementById('addrChip').onclick = () => {
-      navigator.clipboard.writeText(MASTER);
-      const c = document.getElementById('addrChip');
-      const orig = c.textContent;
-      c.textContent = 'Copied!';
-      setTimeout(() => c.textContent = orig, 1200);
-    };
-
-    const v = info.verification || 'none';
-    const verifyPill = document.getElementById('verifyPill');
-    if (v === 'whitelist') { verifyPill.textContent = 'Verified'; verifyPill.className = 'pill good'; }
-    else if (v === 'blacklist') { verifyPill.textContent = 'Blacklisted'; verifyPill.className = 'pill bad'; }
-    else { verifyPill.textContent = 'Unverified'; verifyPill.className = 'pill warn'; }
-
-    // STON.fi tags
-    const stonTags = stonAsset?.asset?.tags || [];
-    const isTaxable = stonAsset?.asset?.taxable || stonTags.some(t => /taxable/.test(t));
-    const isNoLiq = stonTags.some(t => /no_liquidity|liquidity:no/.test(t));
-    const isLowLiq = isNoLiq || stonTags.some(t => /low_liquidity|liquidity:low/.test(t));
-    document.getElementById('taxablePill').style.display = isTaxable ? '' : 'none';
-    const liqPill = document.getElementById('liqPill');
-    liqPill.style.display = isLowLiq ? '' : 'none';
-    if (isNoLiq) { liqPill.textContent = 'No liquidity'; liqPill.className = 'pill bad'; }
-
-    // KPIs
-    const supplyRaw = BigInt(info.total_supply || '0');
-    const supplyTokens = Number(supplyRaw) / Math.pow(10, DEC);
-    cachedSupplyTokens = supplyTokens;
-    document.getElementById('kSupply').textContent = fmtNum(supplyTokens);
-    document.getElementById('kSupplyUnit').textContent = info.metadata?.symbol || 'MTONGA';
-
-    const totalHolders = holders.total ?? holders.addresses?.length ?? 0;
-    document.getElementById('kHolders').textContent = totalHolders.toLocaleString();
-
-    const r = rates.rates?.[MASTER] || {};
-    const usd = r.prices?.USD ?? 0;
-    const ton = r.prices?.TON ?? 0;
-    document.getElementById('kPrice').textContent = fmtUsd(usd);
-    document.getElementById('kPriceTon').textContent = ton ? ton.toFixed(8).replace(/0+$/,'').replace(/\.$/,'') + ' TON' : '—';
-    setDelta(document.getElementById('kPriceDelta'), r.diff_24h?.USD);
-    setDelta(document.getElementById('kPriceTonDelta'), r.diff_24h?.TON);
-    setDelta(document.getElementById('k7d'),  r.diff_7d?.USD);
-    setDelta(document.getElementById('k30d'), r.diff_30d?.USD);
-    document.getElementById('kMcap').textContent = fmtUsd(supplyTokens * usd);
-
-    const tonUsd = rates.rates?.TON?.prices?.USD;
-    document.getElementById('kTon').textContent = fmtUsd(tonUsd);
-    setDelta(document.getElementById('kTonDelta'), rates.rates?.TON?.diff_24h?.USD);
-
-    // Risk banner
-    const risks = [];
-    if (v === 'blacklist') risks.push('Token is BLACKLISTED on TON registries.');
-    if (isTaxable) risks.push('STON.fi flags this jetton as <strong>taxable</strong> — a transfer fee is taken on every swap/send. Account for slippage.');
-    if (isNoLiq) risks.push('STON.fi flags <strong>no liquidity</strong> — the pool is too thin to trade meaningfully right now.');
-    else if (isLowLiq) risks.push('STON.fi flags <strong>low liquidity</strong> — large orders will move price meaningfully.');
-    const adminIsZero = info.admin?.address?.replace(/^0:/, '').match(/^0+$/);
-    if (adminIsZero) risks.push('Admin = zero address → minting renounced (positive signal).');
-    const addresses = holders.addresses || [];
-    if (addresses.length && supplyRaw > 0n) {
-      const topPct = Number(addresses[0].balance) / Number(supplyRaw) * 100;
-      if (topPct > 20) risks.push(`Top holder controls <strong>${topPct.toFixed(2)}%</strong> of supply.`);
-      const top10Pct = addresses.slice(0, 10).reduce((s,h) => s + Number(h.balance), 0) / Number(supplyRaw) * 100;
-      document.getElementById('kTop10').textContent = top10Pct.toFixed(1) + '%';
-    }
-    if (risks.length) {
-      const banner = document.getElementById('riskBanner');
-      banner.style.display = 'flex';
-      banner.className = 'banner ' + (adminIsZero && !isTaxable && v === 'whitelist' ? 'good' : 'warn');
-      document.getElementById('riskList').innerHTML = risks.map(x => '• ' + x).join('<br>');
-    }
-
-    // Holder donut: top 10 + others
-    const top = addresses.slice(0, 10);
-    const others = addresses.slice(10).reduce((s,h) => s + Number(h.balance), 0);
-    const labels = top.map(h => h.owner?.name || shortAddr(h.owner?.address));
-    const data = top.map(h => Number(h.balance)/Math.pow(10, DEC));
-    if (others > 0) { labels.push(`Others (${addresses.length - 10})`); data.push(others/Math.pow(10, DEC)); }
-    const palette = ['#0098ea','#3eaeef','#62bef2','#86cdf4','#aadcf7','#cbe7f9','#d6ddea','#a4adbf','#7c8497','#5b6573','#3a4253'];
-    if (holderChart) holderChart.destroy();
-    holderChart = new Chart(document.getElementById('holderChart').getContext('2d'), {
-      type: 'doughnut',
-      data: { labels, datasets: [{ data, backgroundColor: palette.slice(0, labels.length), borderColor: '#fff', borderWidth: 2 }] },
-      options: {
-        responsive: true, maintainAspectRatio: false, cutout: '60%',
-        plugins: {
-          legend: { position: 'right', labels: { font: { size: 11 }, color: '#0b1220', boxWidth: 10, padding: 8 } },
-          tooltip: { callbacks: { label: c => {
-            const total = c.dataset.data.reduce((a,b)=>a+b,0);
-            const pct = (c.parsed/total*100).toFixed(2);
-            return `${c.label}: ${fmtNum(c.parsed)} (${pct}% of top ${addresses.length})`;
-          }}}
-        }
-      }
-    });
-
-    // Holders table
-    const tbody = document.getElementById('holderTbody');
-    const showRows = Math.min(addresses.length, 25);
-    if (!addresses.length) {
-      tbody.innerHTML = '<tr><td colspan="4" class="empty">No holders found.</td></tr>';
-    } else {
-      tbody.innerHTML = addresses.slice(0, showRows).map((h,i) => {
-        const bal = Number(h.balance) / Math.pow(10, DEC);
-        const pct = Number(h.balance) / Number(supplyRaw) * 100;
-        const owner = h.owner?.name || shortAddr(h.owner?.address);
-        const isDex = (h.owner?.name || '').toLowerCase().includes('ston') || (h.owner?.name || '').toLowerCase().includes('dedust');
-        const tag = isDex ? '<span class="pill">DEX</span>' : '';
-        return `<tr>
-          <td>${i+1}</td>
-          <td>
-            <div><a href="${tonviewerUrl(h.owner?.address)}" target="_blank">${owner}</a> ${tag}</div>
-            ${h.owner?.name ? `<div class="mono small">${shortAddr(h.owner?.address)}</div>` : ''}
-          </td>
-          <td style="text-align:right;font-variant-numeric:tabular-nums">${fmtNum(bal, 4)}</td>
-          <td style="text-align:right;font-variant-numeric:tabular-nums">
-            ${pct.toFixed(pct < 0.01 ? 6 : 3)}%
-            <div class="pct-bar"><div style="width:${Math.min(100, pct*4).toFixed(2)}%"></div></div>
-          </td>
-        </tr>`;
-      }).join('');
-    }
-
-    // Pool
-    if (pool?.pool) {
-      const p = pool.pool;
-      const r0 = Number(p.reserve0) / Math.pow(10, DEC);
-      const r1 = Number(p.reserve1) / 1e9;
-      const tvl = (r0 * usd) + (r1 * (tonUsd || 0));
-      document.getElementById('kTvl').textContent = fmtUsd(tvl);
-      document.getElementById('poolAddr').innerHTML = `<a href="${tonviewerUrl(p.address)}" target="_blank">${shortAddr(p.address)}</a>`;
-      document.getElementById('poolR0').textContent = fmtNum(r0, 2) + ' MTONGA';
-      document.getElementById('poolR1').textContent = fmtNum(r1, 2) + ' TON';
-      document.getElementById('poolTvl').textContent = fmtUsd(tvl);
-      document.getElementById('poolVol').textContent = fmtUsd(parseFloat(p.volume_24h_usd || '0'));
-      document.getElementById('poolApy').textContent =
-        `${parseFloat(p.apy_1d || 0).toFixed(2)}% / ${parseFloat(p.apy_7d || 0).toFixed(2)}% / ${parseFloat(p.apy_30d || 0).toFixed(2)}%`;
-      document.getElementById('poolFees').textContent = `${(Number(p.lp_fee)/100).toFixed(2)}% / ${(Number(p.protocol_fee)/100).toFixed(2)}%`;
-      const drained = r0 < 1 || r1 < 1;
-      document.getElementById('poolStatus').innerHTML = drained
-        ? '<span class="pill bad">Drained</span>'
-        : (p.deprecated ? '<span class="pill warn">Deprecated</span>' :
-           tvl < 10000 ? '<span class="pill warn">Low TVL</span>' :
-                        '<span class="pill good">Active</span>');
-    } else {
-      document.getElementById('poolAddr').textContent = 'pool data unavailable';
-    }
-
-    // Activity feed
-    const feed = document.getElementById('feed');
-    const evs = events.events || [];
-    if (!evs.length) {
-      feed.innerHTML = '<div class="empty">No recent events.</div>';
-    } else {
-      const items = [];
-      for (const e of evs) {
-        for (const a of (e.actions || [])) {
-          const t = a.type;
-          const ts = new Date(e.timestamp * 1000);
-          const body = a.simple_preview?.value || a.simple_preview?.description || t;
-          items.push(`<div class="ev">
-            <div class="ev-head">
-              <span class="ev-tag ${t}">${t}</span>
-              <span class="ev-time">${ts.toISOString().replace('T',' ').slice(0,19)} UTC</span>
-            </div>
-            <div class="ev-body">${body}</div>
-          </div>`);
-        }
-      }
-      feed.innerHTML = items.join('');
-    }
-
-    // Mode pill
-    const modePill = document.getElementById('modePill');
-    if (mode === 'live') {
-      modePill.textContent = '\u25cf Live';
-      modePill.className = 'pill good';
-      document.getElementById('updatedAt').textContent = new Date().toLocaleString();
-    } else {
-      const snapTs = new Date((SNAPSHOT._snapshot_ts || 0) * 1000);
-      modePill.textContent = 'Snapshot ' + snapTs.toLocaleString();
-      modePill.className = 'pill muted';
-      modePill.title = 'Could not reach tonapi.io / api.ston.fi from this viewer. Open the .html file in Chrome or Edge for live data.';
-      document.getElementById('updatedAt').textContent = snapTs.toLocaleString() + ' (cached)';
-    }
-  } catch (err) {
-    console.error('Render error:', err);
-  } finally {
-    document.body.classList.remove('loading');
-  }
-}
-
-// Timeframe tabs for price chart
-document.querySelectorAll('#tfTabs button').forEach(b => {
-  b.addEventListener('click', () => {
-    document.querySelectorAll('#tfTabs button').forEach(x => x.classList.remove('active'));
-    b.classList.add('active');
-    loadPriceChart(parseInt(b.dataset.tf));
-  });
+document.getElementById("gramSwitch").addEventListener("click",()=>{
+  localStorage.setItem("tq_unit", unit()==="GRAM" ? "TON":"GRAM"); applyUnit(); render();
 });
+(function(){
+  const el=document.getElementById("gramCountdown");
+  const ms=GRAM_TS-Date.now();
+  if(ms>0){ el.textContent="GRAM in "+Math.ceil(ms/86400000)+"d"; } else { el.textContent=""; }
+})();
 
-document.getElementById('refreshBtn').addEventListener('click', async () => {
-  await Promise.all([load(), loadPriceChart(parseInt(document.querySelector('#tfTabs .active').dataset.tf))]);
-});
+/* ---------- formatting ---------- */
+const fmtUsd=n=>{
+  if(n==null||!isFinite(n))return "\u2014";
+  if(n===0)return "$0.00";
+  if(n<0.0001)return "$"+n.toExponential(2);
+  if(n<1)return "$"+n.toFixed(6).replace(/0+$/,"").replace(/\.$/,"");
+  if(n>=1e9)return "$"+(n/1e9).toFixed(2)+"B";
+  if(n>=1e6)return "$"+(n/1e6).toFixed(2)+"M";
+  if(n>=1e3)return "$"+(n/1e3).toFixed(2)+"K";
+  return "$"+n.toLocaleString(undefined,{maximumFractionDigits:2});
+};
+const fmtInt=n=>n>=1e6?(n/1e6).toFixed(2)+"M":n.toLocaleString();
+const cls=s=>(!s?"":(s.startsWith("\u2212")||s.startsWith("-"))?"down":(s.startsWith("+")?"up":""));
 
-// Auto-refresh every 60s while tab is visible
-setInterval(() => {
-  if (!document.hidden) {
-    load();
-    loadPriceChart(parseInt(document.querySelector('#tfTabs .active').dataset.tf));
+/* ---------- sparkline ---------- */
+function spark(canvas,pts,upTrend){
+  const w=canvas.width=110,h=canvas.height=34,ctx=canvas.getContext("2d");
+  if(!pts||pts.length<2)return;
+  const mn=Math.min(...pts),mx=Math.max(...pts),rng=(mx-mn)||1;
+  ctx.strokeStyle=upTrend?"#18a957":"#d63b3b";ctx.lineWidth=1.5;ctx.beginPath();
+  pts.forEach((p,i)=>{const x=i/(pts.length-1)*(w-2)+1,y=h-2-((p-mn)/rng)*(h-4);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});
+  ctx.stroke();
+}
+
+/* ---------- state & render ---------- */
+let live={};   // address -> {usd, ton, d24}
+let tonUsd=null;
+function render(){
+  const q=(document.getElementById("searchInput").value||"").trim().toLowerCase();
+  const tb=document.getElementById("tbody");
+  tb.innerHTML="";
+  TOKENS.filter(t=>!q||q.length>40||t.symbol.toLowerCase().includes(q)||t.name.toLowerCase().includes(q))
+   .forEach((t,i)=>{
+    const lv=live[t.address]||{};
+    const usd=lv.usd??t.price, d24=lv.d24||"";
+    const mcap=usd*Number(t.supply)/Math.pow(10,t.decimals);
+    const pTon=(tonUsd&&usd)?usd/tonUsd:null;
+    const tr=document.createElement("tr");
+    tr.innerHTML=`<td class="rank">${i+1}</td>
+      <td><div class="tok"><img loading="lazy" src="${t.image}" onerror="this.style.visibility=\'hidden\'"/><div><div class="nm">${t.name}</div><div class="sy">${t.symbol}</div></div></div></td>
+      <td class="num">${fmtUsd(usd)}</td>
+      <td class="num ${cls(d24)}">${d24||"\u2014"}</td>
+      <td class="num hide-m"><canvas></canvas></td>
+      <td class="num">${fmtUsd(mcap)}</td>
+      <td class="num hide-m">${fmtInt(t.holders)}</td>
+      <td class="num hide-m">${pTon!=null?pTon.toFixed(pTon<0.01?6:4):"\u2014"}</td>`;
+    tr.addEventListener("click",()=>location.href="token.html?a="+t.address);
+    tb.appendChild(tr);
+    const up=t.spark.length>1?t.spark[t.spark.length-1]>=t.spark[0]:true;
+    spark(tr.querySelector("canvas"),t.spark,up);
+  });
+  applyUnit();
+}
+
+/* ---------- live prices ---------- */
+async function refresh(){
+  try{
+    const addrs=TOKENS.map(t=>t.address);
+    for(let i=0;i<addrs.length;i+=10){
+      const chunk=addrs.slice(i,i+10).join("%2C");
+      const r=await fetch(`https://tonapi.io/v2/rates?tokens=${chunk}%2CTON&currencies=usd`,{headers:{Accept:"application/json"}});
+      if(!r.ok)throw new Error(r.status);
+      const d=await r.json();
+      for(const[k,v]of Object.entries(d.rates||{})){
+        if(k==="TON"){tonUsd=v.prices?.USD??tonUsd;continue;}
+        live[k]={usd:v.prices?.USD,d24:(v.diff_24h||{}).USD};
+      }
+    }
+    document.getElementById("livePill").innerHTML="&#9679; Live";
+    document.getElementById("livePill").className="pill good";
+  }catch(e){
+    console.warn("refresh failed",e);
+    document.getElementById("livePill").textContent="Snapshot";
+    document.getElementById("livePill").className="pill";
   }
-}, 60000);
+  render();
+}
 
-// Initial render
-load();
-loadPriceChart(7);
+/* ---------- search / open by address ---------- */
+function go(){
+  const v=document.getElementById("searchInput").value.trim();
+  if(/^[EU]Q[A-Za-z0-9_-]{46}$/.test(v)){ location.href="token.html?a="+encodeURIComponent(v); }
+}
+document.getElementById("goBtn").addEventListener("click",go);
+document.getElementById("searchInput").addEventListener("keydown",e=>{if(e.key==="Enter")go();});
+document.getElementById("searchInput").addEventListener("input",render);
+
+render();
+refresh();
+setInterval(()=>{ if(!document.hidden) refresh(); },60000);
 </script>
 </body>
 </html>
