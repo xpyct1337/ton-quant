@@ -30,6 +30,7 @@ def pct(cur, prev):
     return (cur / prev - 1) * 100
 
 def detect_signals(addr, t, hist, cats, wash_ban, today):
+    """hist: list of older token-records (oldest..newest, excluding today)."""
     out = []
     if "error" in t or not t.get("price"):
         return out
@@ -42,6 +43,7 @@ def detect_signals(addr, t, hist, cats, wash_ban, today):
     dh = pct(t.get("holders", 0), (prev or {}).get("holders")) if prev else None
     dtvl = pct(tvl, (prev or {}).get("tvl")) if prev else None
     flat = d1 is not None and abs(d1) < 2
+    # wash ban
     if tvl > 0 and vol / tvl > 3:
         wash_ban[addr] = today
     ban = wash_ban.get(addr)
@@ -69,6 +71,7 @@ def detect_signals(addr, t, hist, cats, wash_ban, today):
     return out
 
 def run_bot(name, cfg, bot, toks, sig_map, prev_map, today):
+    # ---- exits ----
     still = []
     for p in bot["positions"]:
         t = toks.get(p["addr"])
@@ -94,6 +97,7 @@ def run_bot(name, cfg, bot, toks, sig_map, prev_map, today):
         else:
             still.append(p)
     bot["positions"] = still
+    # ---- entries ----
     open_addrs = {p["addr"] for p in bot["positions"]}
     cands = []
     for addr, sigs in sig_map.items():
@@ -117,6 +121,7 @@ def run_bot(name, cfg, bot, toks, sig_map, prev_map, today):
         bot["positions"].append({"addr": addr, "sym": t["sym"], "signal": sig, "opened": today,
                                   "entry_eff": entry_eff, "qty": qty, "days": 0})
         open_addrs.add(addr)
+    # ---- equity ----
     mtm = bot["cash"]
     for p in bot["positions"]:
         cur = (toks.get(p["addr"]) or {}).get("price") or p["entry_eff"]
@@ -141,22 +146,45 @@ def main():
     if state is None:
         state = {"wash_ban": {}, "bots": {n: {"cash": START_CASH, "positions": [], "trades": [], "equity": []} for n in BOTS}}
     toks = snap["tokens"]
+    # history per token: previous up-to-7 snapshots (excluding latest)
     hist_snaps = [load("data/snapshots/%s.json" % d, {"tokens": {}})["tokens"] for d in dates[-8:-1]]
     prev_map = hist_snaps[-1] if hist_snaps else {}
     sig_map = {}
+    journal = []
     for a, t in toks.items():
         hist = [hs.get(a) for hs in hist_snaps if hs.get(a)]
         sigs = detect_signals(a, t, hist, cats, state["wash_ban"], today)
         if sigs:
             sig_map[a] = sigs
+            prev = prev_map.get(a) or {}
+            d1 = pct(t["price"], prev.get("price"))
+            for sig, w in sigs:
+                journal.append({"addr": a, "sym": t.get("sym"), "sig": sig, "w": w,
+                    "price": t.get("price"), "tvl": t.get("tvl"), "vol24": t.get("vol24"),
+                    "holders": t.get("holders"),
+                    "d1": round(d1, 2) if d1 is not None else None})
     summary = {}
     for name, cfg in BOTS.items():
         mtm = run_bot(name, cfg, state["bots"][name], toks, sig_map, prev_map, today)
         summary[name] = round(mtm, 2)
+    # ---- signals journal (Alpha Engine stage 2: raw material for backtest/scoring) ----
+    os.makedirs("data/signals", exist_ok=True)
+    banned = sorted(a for a, d in state["wash_ban"].items()
+                    if (datetime.date.fromisoformat(today) - datetime.date.fromisoformat(d)).days < 7)
+    with open("data/signals/%s.json" % today, "w") as f:
+        json.dump({"date": today, "ton_usd": snap.get("ton_usd"),
+                   "signals": journal, "wash_banned": banned}, f, separators=(",", ":"))
+    sidx = load("data/signals/index.json", {"dates": []})
+    if today not in sidx["dates"]:
+        sidx["dates"].append(today)
+        sidx["dates"].sort()
+    with open("data/signals/index.json", "w") as f:
+        json.dump(sidx, f, separators=(",", ":"))
     os.makedirs("data/paper", exist_ok=True)
     with open("data/paper/bots.json", "w") as f:
         json.dump(state, f, separators=(",", ":"))
-    print("paper2:", today, "signals:", {a: [s[0] for s in v] for a, v in sig_map.items()}, "equity:", summary)
+    print("paper2:", today, "signals:", {a: [s[0] for s in v] for a, v in sig_map.items()},
+          "journal:", len(journal), "equity:", summary)
 
 if __name__ == "__main__":
     main()
