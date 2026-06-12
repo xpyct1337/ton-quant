@@ -126,10 +126,10 @@
 <div id="movers" style="display:none;margin:-6px 0 16px;font-size:13px"></div>
 <div class="chipsbar" id="chipsbar">
   <span class="fchip active" data-f="all">All 20</span>
-  <span class="fchip" data-f="movers">\ud83d\udd25 Movers</span>
-  <span class="fchip" data-f="dormant">\ud83d\udc80 Dormant</span>
-  <span class="fchip" data-f="wash">\ud83d\udebf Wash?</span>
-  <span class="fchip" data-f="liquid">\ud83d\udca7 Liquid</span>
+  <span class="fchip" data-f="movers">🔥 Movers</span>
+  <span class="fchip" data-f="dormant">💀 Dormant</span>
+  <span class="fchip" data-f="wash">🚿 Wash?</span>
+  <span class="fchip" data-f="liquid">💧 Liquid</span>
 </div>
 <div class="hint">Click a row to open the full dashboard: price history, holders, DEX liquidity, on-chain activity.</div>
 
@@ -412,6 +412,7 @@ function squarify(items,W,H){
 }
 function tmColor(d){
   if(!isFinite(d))return "#a4adbf";
+  if(Math.abs(d)<0.15)return "#7c8497";
   const x=Math.max(-10,Math.min(10,d))/10;
   return x>=0?`rgb(${Math.round(24+(1-x)*60)},${Math.round(140+x*45)},${Math.round(87+(1-x)*30)})`
              :`rgb(${Math.round(180+(-x)*35)},${Math.round(80-(-x)*25)},${Math.round(70-(-x)*15)})`;
