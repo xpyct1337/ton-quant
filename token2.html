@@ -169,7 +169,7 @@
 
 <div class="row">
   <div class="card">
-    <h3>Signals</h3>
+    <h3>Signals <span class="pill warn" id="demoPill" style="display:none">DEMO — all signal types with sample data</span></h3>
     <div class="h-sub">Cross-metric reads: divergences between volume, price, liquidity and holders. Auto-generated, not financial advice.</div>
     <div id="signals" class="feed" style="max-height:none"><div class="empty">Computing&hellip;</div></div>
   </div>
@@ -262,6 +262,7 @@
 <script>
 /* ---------- token from URL ---------- */
 const MASTER=(new URLSearchParams(location.search)).get("a")||"";
+const DEMO=(new URLSearchParams(location.search)).has("demo");
 if(!/^[EU]Q[A-Za-z0-9_-]{46}$/.test(MASTER)){ location.replace("index.html"); }
 let DEC=9, SYM="TOKEN";
 
@@ -536,6 +537,22 @@ async function load(){
     if(hAddrs.length&&supplyRaw>0n){
       const t10=hAddrs.slice(0,10).reduce((acc,h)=>acc+Number(h.balance),0)/Number(supplyRaw)*100;
       if(t10>50)sigs.push(["bad","Whale-controlled",`Top-10 wallets hold ${t10.toFixed(0)}% of supply — price is at the mercy of a few hands.`]);
+    }
+    if(DEMO){
+      sigs.length=0;
+      document.getElementById("demoPill").style.display="";
+      sigs.push(
+        ["good","Hidden buyer","412 sells vs 198 buys in 24h, yet price holds (−0.4%) — someone is quietly buying the dip."],
+        ["good","Momentum confirmed","Buy pressure (310/142) and price (+12.6%) agree — trend is supported by flow."],
+        ["warn","Absorption (sell wall)","287 buys vs 119 sells in 24h, yet price is flat (+0.8%) — a large seller is absorbing demand."],
+        ["warn","Overheated turnover","24h volume is 73% of market cap — extreme churn, expect volatility."],
+        ["warn","Profit-taking zone","Price is above 91% of the last 90 days — most positions are in profit, selling pressure risk is elevated."],
+        ["bad","Wash trading suspected","24h volume is 5.2x the liquidity while price barely moved — classic wash pattern (volume/TVL + flat price)."],
+        ["bad","Whale-controlled","Top-10 wallets hold 78% of supply — price is at the mercy of a few hands."],
+        ["info","Cross-DEX arbitrage","4.7% price gap between pools — arb opportunity (mind the taxable flag and gas)."],
+        ["info","Capitulation zone","Price is below 92% of the last 90 days — late-stage bear territory in Glassnode terms."],
+        ["info","Dormant","24h volume is 0.03% of market cap — market interest is minimal."]
+      );
     }
     const sigEl=document.getElementById("signals");
     sigEl.innerHTML=sigs.length?sigs.map(x=>`<div class="sig ${x[0]}"><span class="dot"></span><div><b>${x[1]}.</b> ${x[2]}</div></div>`).join(""):'<div class="empty">No notable cross-metric signals right now — metrics agree with price.</div>';
