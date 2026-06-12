@@ -182,18 +182,31 @@ function render(){
 }
 
 /* ---------- live prices ---------- */
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const TONAPI_KEY="AEUCH5S5SBNE64AAAAAMCL5S6MOL6AFR42PEXAR3OL2K2VJTQS77IQCN7I3O54EQK76ZIFA";
+async function jget(url){
+  const hdrs={Accept:"application/json"};
+  if(url.includes("tonapi.io")&&TONAPI_KEY)hdrs.Authorization="Bearer "+TONAPI_KEY;
+  for(let i=0;;i++){
+    let r;
+    try{ r=await fetch(url,{headers:hdrs}); }
+    catch(e){ if(i>=3)throw e; await sleep(800*(i+1)); continue; }
+    if(r.ok)return r.json();
+    if(r.status===429&&i<4){ await sleep(1100*(i+1)); continue; }
+    throw new Error(url+" \u2192 "+r.status);
+  }
+}
 async function refresh(){
   try{
     const addrs=TOKENS.map(t=>t.address);
     for(let i=0;i<addrs.length;i+=10){
       const chunk=addrs.slice(i,i+10).join("%2C");
-      const r=await fetch(`https://tonapi.io/v2/rates?tokens=${chunk}%2CTON&currencies=usd`,{headers:{Accept:"application/json"}});
-      if(!r.ok)throw new Error(r.status);
-      const d=await r.json();
+      const d=await jget(`https://tonapi.io/v2/rates?tokens=${chunk}%2CTON&currencies=usd`);
       for(const[k,v]of Object.entries(d.rates||{})){
         if(k==="TON"){tonUsd=v.prices?.USD??tonUsd;continue;}
         live[k]={usd:v.prices?.USD,d24:(v.diff_24h||{}).USD};
       }
+      await sleep(120);
     }
     document.getElementById("livePill").innerHTML="&#9679; Live";
     document.getElementById("livePill").className="pill good";

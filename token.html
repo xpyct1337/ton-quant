@@ -282,10 +282,31 @@ const setDelta=(el,str)=>{
   el.textContent=str;
   el.className="delta "+((str.startsWith("−")||str.startsWith("-"))?"down":(str.startsWith("+")?"up":""));
 };
-async function jget(url){
-  const r=await fetch(url,{headers:{Accept:"application/json"}});
-  if(!r.ok)throw new Error(`${url} → ${r.status}`);
-  return r.json();
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const safeUrl=u=>/^https?:\/\//.test(u||"")?u:"#";
+const TONAPI_KEY="AEUCH5S5SBNE64AAAAAMCL5S6MOL6AFR42PEXAR3OL2K2VJTQS77IQCN7I3O54EQK76ZIFA";
+let tonapiTail=Promise.resolve();
+function jget(url){
+  const isTon=url.includes("tonapi.io");
+  const hdrs={Accept:"application/json"};
+  if(isTon&&TONAPI_KEY)hdrs.Authorization="Bearer "+TONAPI_KEY;
+  const fetchRetry=async()=>{
+    for(let i=0;;i++){
+      let r;
+      try{ r=await fetch(url,{headers:hdrs}); }
+      catch(e){ if(i>=3)throw e; await sleep(800*(i+1)); continue; }
+      if(r.ok)return r.json();
+      if(r.status===429&&i<4){ await sleep(1100*(i+1)); continue; }
+      throw new Error(`${url} \u2192 ${r.status}`);
+    }
+  };
+  if(isTon){
+    const p=tonapiTail.then(fetchRetry);
+    tonapiTail=p.then(()=>sleep(120),()=>sleep(120));
+    return p;
+  }
+  return fetchRetry();
 }
 
 let priceChart=null,holderChart=null;
@@ -360,7 +381,7 @@ async function load(){
     lp.style.display=isLowLiq?"":"none";
     if(isNoLiq){lp.textContent="No liquidity";lp.className="pill bad";}
 
-    const supplyRaw=BigInt(info.total_supply||"0");
+    let supplyRaw=0n; try{ supplyRaw=BigInt(info.total_supply||"0"); }catch(e){}
     const supplyTokens=Number(supplyRaw)/Math.pow(10,DEC);
     document.getElementById("kSupply").textContent=fmtNum(supplyTokens);
     document.getElementById("kSupplyUnit").textContent=SYM;
@@ -424,8 +445,8 @@ async function load(){
     }else document.getElementById("dexAge").textContent="—";
     const ptb=document.getElementById("poolTbody");
     ptb.innerHTML=pairs.length?pairs.slice(0,6).map(p=>`<tr>
-      <td><span class="pill">${p.dexId}</span></td>
-      <td><a href="${p.url}" target="_blank">${p.baseToken?.symbol}/${p.quoteToken?.symbol}</a></td>
+      <td><span class="pill">${esc(p.dexId)}</span></td>
+      <td><a href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer">${esc(p.baseToken?.symbol)}/${esc(p.quoteToken?.symbol)}</a></td>
       <td style="text-align:right">${fmtUsd(p.liquidity?.usd)}</td>
       <td style="text-align:right">${fmtUsd(p.volume?.h24)}</td>
       <td style="text-align:right">${p.txns?.h24?.buys??0}/${p.txns?.h24?.sells??0}</td>
@@ -497,11 +518,11 @@ async function load(){
       tbody.innerHTML=addresses.slice(0,25).map((h,i)=>{
         const bal=Number(h.balance)/Math.pow(10,DEC);
         const pct=Number(h.balance)/Number(supplyRaw)*100;
-        const owner=h.owner?.name||shortAddr(h.owner?.address);
+        const owner=esc(h.owner?.name||shortAddr(h.owner?.address));
         const isDex=/ston|dedust/i.test(h.owner?.name||"");
         return `<tr><td>${i+1}</td>
-          <td><div><a href="${tonviewerUrl(h.owner?.address)}" target="_blank">${owner}</a> ${isDex?'<span class="pill">DEX</span>':""}</div>
-          ${h.owner?.name?`<div class="mono small">${shortAddr(h.owner?.address)}</div>`:""}</td>
+          <td><div><a href="${esc(tonviewerUrl(h.owner?.address))}" target="_blank" rel="noopener noreferrer">${owner}</a> ${isDex?'<span class="pill">DEX</span>':""}</div>
+          ${h.owner?.name?`<div class="mono small">${esc(shortAddr(h.owner?.address))}</div>`:""}</td>
           <td style="text-align:right;font-variant-numeric:tabular-nums">${fmtNum(bal,4)}</td>
           <td style="text-align:right;font-variant-numeric:tabular-nums">${pct.toFixed(pct<0.01?6:3)}%
           <div class="pct-bar"><div style="width:${Math.min(100,pct*4).toFixed(2)}%"></div></div></td></tr>`;
@@ -545,8 +566,9 @@ function renderFeed(){
     const uv=actionUsd(a);
     if(whaleMin>0&&(uv==null||uv<whaleMin))continue;
     const ts=new Date(e.timestamp*1000);
-    const body=a.simple_preview?.value||a.simple_preview?.description||a.type;
-    items.push(`<div class="ev"><div class="ev-head"><span class="ev-tag ${a.type}">${a.type}</span>
+    const body=esc(a.simple_preview?.value||a.simple_preview?.description||a.type);
+    const atype=esc(String(a.type||"").replace(/[^A-Za-z]/g,""));
+    items.push(`<div class="ev"><div class="ev-head"><span class="ev-tag ${atype}">${atype}</span>
       <span>${uv!=null?'<span class="pill '+(uv>=10000?"bad":uv>=1000?"warn":"muted")+'">'+fmtUsd(uv)+"</span> ":""}<span class="ev-time">${ts.toISOString().replace("T"," ").slice(0,19)} UTC</span></span></div>
       <div class="ev-body">${body}</div></div>`);
   }
