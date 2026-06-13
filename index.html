@@ -167,7 +167,7 @@
 <div class="row" style="display:grid;grid-template-columns:1fr 1.4fr;gap:18px;margin-top:18px">
   <div class="cardbox" style="margin-bottom:0">
     <h3>Arbitrage radar</h3>
-    <div class="h-sub">Cross-DEX price gaps per token (pools with &gt;$5K liquidity and real volume).</div>
+    <div class="h-sub">Realizable cross-DEX arb, ranked by net profit after both-leg slippage, 0.6% fees &amp; ~0.3 TON gas. Size = profit-maximising trade.</div>
     <div id="arbList"><div class="hint">Computing&hellip;</div></div>
   </div>
   <div class="cardbox" style="margin-bottom:0">
@@ -376,8 +376,11 @@ async function loadDex(){
     for(const t of TOKENS){
       const ps=pairs.filter(p=>p.baseToken?.address===t.address&&(p.liquidity?.usd||0)>5000&&(p.volume?.h24||0)>100&&p.priceUsd);
       if(ps.length>=2){
-        const vals=ps.map(p=>parseFloat(p.priceUsd));
-        spreads[t.address]={spread:(Math.max(...vals)-Math.min(...vals))/Math.min(...vals)*100,pools:ps.length};
+        const sorted=ps.map(p=>({px:parseFloat(p.priceUsd),liq:p.liquidity?.usd||0})).sort((a,b)=>a.px-b.px);
+        const cheap=sorted[0], exp=sorted[sorted.length-1];
+        const spread=(exp.px-cheap.px)/cheap.px*100;
+        const na=netArb(spread/100,cheap.liq,exp.liq);  // realizable arb after slippage+fees+gas
+        spreads[t.address]={spread,pools:ps.length,cheapLiq:cheap.liq,expLiq:exp.liq,net:na.netPct,netUsd:na.netUsd,size:na.size};
       }
     }
     for(const p of pairs){
@@ -402,7 +405,7 @@ function alphaDigest(){
     if(dx.tvl>0&&dx.vol/dx.tvl>=3&&flat)sigs.push([dx.vol/dx.tvl,t,"bad",`\ud83d\udebf vol ${(dx.vol/dx.tvl).toFixed(1)}x TVL, price flat — wash?`,"wash"]);
     if(dx.buys+dx.sells>50&&dx.buys>dx.sells*1.5&&flat)sigs.push([dx.buys/dx.sells,t,"warn",`\ud83e\uddf1 ${dx.buys} buys vs ${dx.sells} sells, price flat — sell wall absorbing`,"absorption"]);
     if(dx.buys+dx.sells>50&&dx.sells>dx.buys*1.5&&flat)sigs.push([dx.sells/dx.buys,t,"good",`\ud83e\udd11 ${dx.sells} sells vs ${dx.buys} buys, price holds — hidden buyer`,"hidden-buyer"]);
-    if(sp&&sp.spread>2)sigs.push([sp.spread,t,"warn",`\u2696\ufe0f ${sp.spread.toFixed(1)}% gap across ${sp.pools} pools — arb window`,"arb"]);
+    if(sp&&sp.netUsd>0)sigs.push([sp.netUsd,t,"good",`\u2696\ufe0f net +$${sp.netUsd.toFixed(0)} (${sp.net.toFixed(2)}%) arb after costs — ${sp.spread.toFixed(1)}% gross gap`,"arb"]);
     if(CORE(t)&&mc>0&&dx.vol/mc>0.5)sigs.push([dx.vol/mc,t,"warn",`\ud83c\udf21\ufe0f volume ${(dx.vol/mc*100).toFixed(0)}% of mcap — overheated churn`,"turnover"]);
   }
   sigs.sort((a,b)=>b[0]-a[0]);
@@ -555,14 +558,37 @@ async function matrix(){
 }
 const esc2=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
+/* Realizable cross-DEX arb after costs. CPMM avg-execution slippage per leg
+   ≈ S/(poolLiq/2); fees 0.3%/leg (0.6% round-trip); gas ~0.3 TON flat.
+   Scans trade sizes (capped at 25% of the thinner pool) and returns the size
+   that MAXIMISES net USD profit — i.e. is there real money here, and how much. */
+function netArb(spreadFrac,cheapLiq,expLiq){
+  const yc=cheapLiq/2, ye=expLiq/2, fees=0.006;
+  const gasUsd=0.3*(tonUsd||3);
+  const cap=Math.min(yc,ye)*0.5;              // don't model a trade bigger than half the thin side's USD reserve
+  let best={netUsd:-Infinity,netPct:0,size:0};
+  for(let s=20;s<=cap;s*=1.4){
+    const slip=s/yc + s/ye;                    // both legs
+    const netFrac=spreadFrac-slip-fees-gasUsd/s;
+    const netUsd=s*(spreadFrac-slip-fees)-gasUsd;
+    if(netUsd>best.netUsd)best={netUsd,netPct:netFrac*100,size:s};
+  }
+  if(best.size===0)best={netUsd:-gasUsd,netPct:(spreadFrac-fees)*100,size:0};
+  return best;
+}
 function arb(){
   const el=document.getElementById("arbList");
-  const list=TOKENS.map(t=>({t,s:spreads[t.address]})).filter(x=>x.s).sort((a,b)=>b.s.spread-a.s.spread).slice(0,10);
-  el.innerHTML=list.length?list.map(x=>`<div class="arb-row">
+  // rank by realizable net profit, not gross spread
+  const list=TOKENS.map(t=>({t,s:spreads[t.address]})).filter(x=>x.s)
+    .sort((a,b)=>b.s.netUsd-a.s.netUsd).slice(0,10);
+  el.innerHTML=list.length?list.map(x=>{
+    const profitable=x.s.netUsd>0;
+    const sizeLbl=x.s.size>=1000?"$"+(x.s.size/1000).toFixed(1)+"k":"$"+Math.round(x.s.size);
+    return `<div class="arb-row">
     <span style="font-weight:700;cursor:pointer;color:var(--accent)" onclick="location.href='token.html?a=${x.t.address}'">${x.t.symbol}</span>
-    <span class="hint" style="margin:0">${x.s.pools} pools</span>
-    <span class="${x.s.spread>2?"down":""}" style="font-weight:700;font-variant-numeric:tabular-nums">${x.s.spread.toFixed(2)}%</span>
-  </div>`).join(""):'<div class="hint">No multi-pool tokens with meaningful spread.</div>';
+    <span class="hint" style="margin:0">${x.s.spread.toFixed(2)}% gross${profitable?" · "+sizeLbl:""}</span>
+    <span class="${profitable?"up":"hint"}" style="font-weight:700;font-variant-numeric:tabular-nums;margin:0" title="net % after both-leg slippage, 0.6% fees and ~0.3 TON gas">${profitable?"+$"+x.s.netUsd.toFixed(0)+" ("+x.s.net.toFixed(2)+"%)":"unprofitable"}</span>
+  </div>`;}).join(""):'<div class="hint">No multi-pool tokens with meaningful spread.</div>';
 }
 
 /* ---------- Whale tape ---------- */
@@ -603,7 +629,7 @@ async function whaleTape(){
 }
 function renderTape(){
   const el=document.getElementById("tape");
-  if(!tapeItems.length){el.innerHTML='<div class="hint">No moves \u2265 $500 in recent events of the jetton masters.</div>';return;}
+  if(!tapeItems.length){el.innerHTML='<div class="hint">No moves ≥ $500 in recent events of the jetton masters.</div>';return;}
   el.innerHTML=tapeItems.slice(0,tapeShown).map(x=>`<div class="ev">
     <span class="tk" onclick="location.href='token.html?a=${x.t.address}'">${x.t.symbol}</span>
     <span class="pill ${x.usd>=10000?"down":""}" style="${x.usd>=10000?"background:var(--bad);color:#fff":""}">${fmtUsd(x.usd)}</span>
