@@ -2,6 +2,10 @@ import json, os, datetime
 
 START_CASH = 1000.0
 FEE = 0.003
+IMPACT_CAP = 0.01
+TURN_REF = 0.5
+MIN_VSCALE = 0.3
+MIN_POS = 25.0
 
 BOTS = {
     "cons": {"pos": 100.0, "max_open": 3, "tp": 0.15, "sl": -0.07, "max_days": 5,
@@ -17,6 +21,17 @@ def impact(liq_usd, size):
     q = max(liq_usd / 2.0, 1.0)
     return ((q + size) / q) ** 2 - 1
 
+def position_size(cfg, t):
+    base = cfg["pos"]
+    tvl = t.get("tvl", 0) or 0
+    if tvl <= 0:
+        return 0.0
+    impact_cap = (tvl / 2.0) * ((1 + IMPACT_CAP) ** 0.5 - 1)
+    turn = (t.get("vol24", 0) or 0) / tvl
+    vscale = 1.0 if turn <= TURN_REF else max(MIN_VSCALE, TURN_REF / turn)
+    size = min(base, impact_cap) * vscale
+    return round(size, 2) if size >= MIN_POS else 0.0
+
 def load(path, default):
     try:
         with open(path) as f:
@@ -30,7 +45,6 @@ def pct(cur, prev):
     return (cur / prev - 1) * 100
 
 def detect_signals(addr, t, hist, cats, wash_ban, today):
-    """hist: list of older token-records (oldest..newest, excluding today)."""
     out = []
     if "error" in t or not t.get("price"):
         return out
@@ -43,7 +57,6 @@ def detect_signals(addr, t, hist, cats, wash_ban, today):
     dh = pct(t.get("holders", 0), (prev or {}).get("holders")) if prev else None
     dtvl = pct(tvl, (prev or {}).get("tvl")) if prev else None
     flat = d1 is not None and abs(d1) < 2
-    # wash ban
     if tvl > 0 and vol / tvl > 3:
         wash_ban[addr] = today
     ban = wash_ban.get(addr)
@@ -71,7 +84,6 @@ def detect_signals(addr, t, hist, cats, wash_ban, today):
     return out
 
 def run_bot(name, cfg, bot, toks, sig_map, prev_map, today):
-    # ---- exits ----
     still = []
     for p in bot["positions"]:
         t = toks.get(p["addr"])
@@ -88,16 +100,17 @@ def run_bot(name, cfg, bot, toks, sig_map, prev_map, today):
         elif ret <= cfg["sl"]: reason = "sl"
         elif p["days"] >= cfg["max_days"]: reason = "time"
         if reason:
-            out_mult = 1 - min(impact(tvl, cfg["pos"]), 0.5) - FEE
+            size = p.get("size", cfg["pos"])
+            out_mult = 1 - min(impact(tvl, size), 0.5) - FEE
             proceeds = p["qty"] * cur * out_mult
             bot["cash"] += proceeds
             bot["trades"].append({"addr": p["addr"], "sym": p["sym"], "signal": p["signal"],
                 "opened": p["opened"], "closed": today, "entry": p["entry_eff"], "exit": cur,
-                "pnl": round(proceeds - cfg["pos"], 2), "ret": round(ret * 100, 2), "reason": reason})
+                "size": round(size, 2),
+                "pnl": round(proceeds - size, 2), "ret": round(ret * 100, 2), "reason": reason})
         else:
             still.append(p)
     bot["positions"] = still
-    # ---- entries ----
     open_addrs = {p["addr"] for p in bot["positions"]}
     cands = []
     for addr, sigs in sig_map.items():
@@ -113,15 +126,16 @@ def run_bot(name, cfg, bot, toks, sig_map, prev_map, today):
     cands.sort(key=lambda x: -x[0])
     for w, addr, t, sig in cands:
         if len(bot["positions"]) >= cfg["max_open"]: break
-        if addr in open_addrs or bot["cash"] < cfg["pos"]: continue
+        if addr in open_addrs: continue
+        size = position_size(cfg, t)
+        if size <= 0 or bot["cash"] < size: continue
         tvl = t.get("tvl", 0) or 0
-        entry_eff = t["price"] * (1 + min(impact(tvl, cfg["pos"]), 0.5) + FEE)
-        qty = cfg["pos"] / entry_eff
-        bot["cash"] -= cfg["pos"]
+        entry_eff = t["price"] * (1 + min(impact(tvl, size), 0.5) + FEE)
+        qty = size / entry_eff
+        bot["cash"] -= size
         bot["positions"].append({"addr": addr, "sym": t["sym"], "signal": sig, "opened": today,
-                                  "entry_eff": entry_eff, "qty": qty, "days": 0})
+                                  "entry_eff": entry_eff, "qty": qty, "size": size, "days": 0})
         open_addrs.add(addr)
-    # ---- equity ----
     mtm = bot["cash"]
     for p in bot["positions"]:
         cur = (toks.get(p["addr"]) or {}).get("price") or p["entry_eff"]
@@ -146,7 +160,6 @@ def main():
     if state is None:
         state = {"wash_ban": {}, "bots": {n: {"cash": START_CASH, "positions": [], "trades": [], "equity": []} for n in BOTS}}
     toks = snap["tokens"]
-    # history per token: previous up-to-7 snapshots (excluding latest)
     hist_snaps = [load("data/snapshots/%s.json" % d, {"tokens": {}})["tokens"] for d in dates[-8:-1]]
     prev_map = hist_snaps[-1] if hist_snaps else {}
     sig_map = {}
@@ -167,7 +180,6 @@ def main():
     for name, cfg in BOTS.items():
         mtm = run_bot(name, cfg, state["bots"][name], toks, sig_map, prev_map, today)
         summary[name] = round(mtm, 2)
-    # ---- signals journal (Alpha Engine stage 2: raw material for backtest/scoring) ----
     os.makedirs("data/signals", exist_ok=True)
     banned = sorted(a for a, d in state["wash_ban"].items()
                     if (datetime.date.fromisoformat(today) - datetime.date.fromisoformat(d)).days < 7)
