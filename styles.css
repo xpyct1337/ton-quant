@@ -1,0 +1,147 @@
+/* ============================================================
+   TON Quant — shared theme layer  (v1, 2026-06-13)
+   "Quant terminal × Birdeye V2" — modern dark data-viz.
+   Loaded AFTER each page's inline <style>, so these rules win.
+   Pages reference CSS variables, so re-theming = redefining tokens
+   + fixing the handful of hard-coded light colors.
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* ---------- design tokens (dark) ---------- */
+:root {
+  color-scheme: dark !important;
+  --bg:#070a11 !important;
+  --card:#0f141d !important;
+  --card-2:#151b26 !important;
+  --ink:#e9eef6 !important;
+  --muted:#7c879b !important;
+  --line:#1c2533 !important;
+  --accent:#22a7ff !important;            /* brightened TON blue for dark */
+  --accent-soft:rgba(34,167,255,.13) !important;
+  --good:#16c784 !important;              /* CMC green  */
+  --good-soft:rgba(22,199,132,.14) !important;
+  --warn:#f0b90b !important;              /* gold       */
+  --warn-soft:rgba(240,185,11,.14) !important;
+  --bad:#f6465d !important;               /* CMC red    */
+  --bad-soft:rgba(246,70,93,.14) !important;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 14px 40px rgba(0,0,0,.45) !important;
+  --font-ui:'Manrope',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --font-display:'Sora','Manrope',sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
+}
+
+/* ---------- atmosphere: deep background with subtle accent glow ---------- */
+body {
+  background:
+    radial-gradient(1100px 520px at 88% -8%, rgba(34,167,255,.10), transparent 60%),
+    radial-gradient(900px 480px at 6% 4%, rgba(22,199,132,.06), transparent 55%),
+    var(--bg) !important;
+  background-attachment:fixed !important;
+  font-family:var(--font-ui) !important;
+}
+
+/* ---------- typography ---------- */
+h1,h2,h3,.title h1{font-family:var(--font-display) !important;letter-spacing:-.02em}
+.num,.sum .v,.v,.tok .nm,.mover,td.num,.arb-row,.kpi-v,.big{font-family:var(--font-mono) !important;font-variant-numeric:tabular-nums}
+
+/* ---------- cards: elevated, hairline borders, soft depth ---------- */
+.card,.cardbox,.sum,.gram-box{
+  background:linear-gradient(180deg,var(--card-2),var(--card)) !important;
+  border:1px solid var(--line) !important;
+  border-radius:16px !important;
+}
+.cardbox h3,.card h3{letter-spacing:-.01em}
+.sum{position:relative;overflow:hidden}
+.sum::before{content:"";position:absolute;inset:0 auto auto 0;width:3px;height:100%;
+  background:linear-gradient(var(--accent),transparent)}
+
+/* ---------- logo: gradient + glow ---------- */
+.logo{
+  background:linear-gradient(135deg,#22a7ff,#0a6dd0) !important;
+  box-shadow:0 0 0 1px rgba(34,167,255,.35),0 8px 26px rgba(34,167,255,.30) !important;
+}
+
+/* ---------- buttons & accent controls ---------- */
+.searchbar button,.btn,#goBtn{
+  background:linear-gradient(135deg,#26abff,#0c74d6) !important;
+  box-shadow:0 6px 18px rgba(34,167,255,.28) !important;
+}
+.searchbar button:hover,.btn:hover{filter:brightness(1.08) saturate(1.05)}
+.searchbar input{background:var(--card) !important}
+
+/* ---------- tables: dark rows, glowing hover ---------- */
+th{color:var(--muted) !important;border-bottom:1px solid var(--line) !important}
+td{border-bottom:1px solid var(--line) !important}
+tbody tr:hover{background:var(--accent-soft) !important;
+  box-shadow:inset 3px 0 0 var(--accent)}
+.rank{color:var(--muted) !important}
+.tok img,.header img{background:var(--accent-soft) !important;
+  box-shadow:0 0 0 1px var(--line)}
+
+/* ---------- chips / pills / filters ---------- */
+.fchip,.chip,.mover,.addr-chip,.tf-tabs button{
+  background:var(--card-2) !important;border-color:var(--line) !important}
+.fchip.active,.tf-tabs button.active{
+  background:linear-gradient(135deg,#26abff,#0c74d6) !important;color:#fff !important;
+  border-color:transparent !important;box-shadow:0 4px 14px rgba(34,167,255,.30) !important}
+.fchip:hover,.mover:hover,.addr-chip:hover{border-color:var(--accent) !important}
+.pill{background:var(--accent-soft) !important;color:var(--accent) !important}
+.pill.good{background:var(--good-soft) !important;color:var(--good) !important}
+.pill.warn{background:var(--warn-soft) !important;color:var(--warn) !important}
+.pill.bad{background:var(--bad-soft) !important;color:#ff6b80 !important}
+.pill.muted,.chip{color:var(--muted) !important}
+
+/* ---------- up / down ---------- */
+.up{color:var(--good) !important}
+.down{color:var(--bad) !important}
+
+/* ---------- toggle switch (off-state track) ---------- */
+.switch{background:#2a3340 !important}
+.switch.on{background:var(--accent) !important}
+
+/* ---------- banners (token.html + paper.html): translucent dark ---------- */
+.banner,.banner.warn{background:var(--warn-soft) !important;border-color:rgba(240,185,11,.30) !important;color:#f3cf6a !important}
+.banner.good{background:var(--good-soft) !important;border-color:rgba(22,199,132,.30) !important;color:#5fe0a8 !important}
+.banner.bad{background:var(--bad-soft) !important;border-color:rgba(246,70,93,.30) !important;color:#ff8094 !important}
+
+/* ---------- event tape tags (token.html) ---------- */
+.ev .ev-tag{background:var(--accent-soft) !important;color:var(--accent) !important}
+.ev .ev-tag.JettonTransfer{background:var(--accent-soft) !important;color:#5cc1ff !important}
+.ev .ev-tag.TonTransfer,.ev .ev-tag.ContractDeploy{background:rgba(150,110,240,.16) !important;color:#b79bff !important}
+.ev .ev-tag.SmartContractExec{background:var(--warn-soft) !important;color:var(--warn) !important}
+.tape .ev{background:var(--card) !important;border-color:var(--line) !important}
+
+/* ---------- signals (token.html) ---------- */
+.sig{border-color:var(--line) !important}
+
+/* ---------- correlation matrix (main): dark gridlines + light text ---------- */
+table.mx td{color:#cdd6e3 !important}
+table.mx td,table.mx th{border-color:#0a0d13 !important}
+table.mx th{color:var(--muted) !important}
+
+/* ---------- treemap tiles: subtle border ---------- */
+.tm{border-color:rgba(255,255,255,.07) !important}
+
+/* ---------- pct bars / progress ---------- */
+td .pct-bar{background:var(--accent-soft) !important}
+td .pct-bar>div{background:var(--accent) !important}
+
+/* ---------- footer ---------- */
+.footer{border-top:1px solid var(--line) !important;color:var(--muted) !important}
+
+/* ---------- live dot ---------- */
+.live-dot{box-shadow:0 0 8px var(--good)}
+
+/* ---------- custom scrollbars ---------- */
+*{scrollbar-color:#2a3340 transparent}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#222b39;border-radius:8px;border:2px solid var(--bg)}
+::-webkit-scrollbar-thumb:hover{background:#2f3a4c}
+
+/* ---------- staggered page-load reveal ---------- */
+@keyframes tqRise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.header,.sumbar,.searchbar,.cardbox,.card,.chipsbar{animation:tqRise .5s cubic-bezier(.22,1,.36,1) both}
+.sumbar{animation-delay:.04s}.searchbar{animation-delay:.08s}
+.chipsbar{animation-delay:.10s}.card,.cardbox{animation-delay:.12s}
+@media(prefers-reduced-motion:reduce){*{animation:none !important}}

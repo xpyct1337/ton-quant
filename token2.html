@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Token — TON Quant (v2 beta)</title>
 <meta name="description" content="Live TON jetton dashboard: price, market cap, holders, DEX liquidity, on-chain activity. Data from TONAPI + DexScreener." />
-<meta name="theme-color" content="#0098ea" />
+<meta name="theme-color" content="#070a11" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="styles.css" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%230098ea'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3EQ%3C/text%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://tonapi.io" crossorigin />
 <link rel="preconnect" href="https://api.dexscreener.com" crossorigin />
@@ -355,8 +358,8 @@ async function loadPriceChart(days=7){
   priceChart=new Chart(ctx,{type:"line",
     data:{datasets:[{label:`${SYM} / ${chartCur==="usd"?"USD":unit()}`,data:points,borderColor:"#0098ea",backgroundColor:grad,fill:true,tension:.25,borderWidth:2,pointRadius:0,pointHoverRadius:4}]},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
-      scales:{x:{type:"time",time:{unit:days<=1?"hour":(days<=7?"day":"week")},grid:{display:false},ticks:{color:"#5b6573",maxRotation:0}},
-              y:{grid:{color:"#eef1f5"},ticks:{color:"#5b6573",callback:v=>fmtCur(v)}}},
+      scales:{x:{type:"time",time:{unit:days<=1?"hour":(days<=7?"day":"week")},grid:{display:false},ticks:{color:"#8b94a7",maxRotation:0}},
+              y:{grid:{color:"rgba(255,255,255,.06)"},ticks:{color:"#8b94a7",callback:v=>fmtCur(v)}}},
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${fmtCur(c.parsed.y)} at ${new Date(c.parsed.x).toLocaleString()}`}}}}});
   document.getElementById("chartCur").textContent=chartCur==="usd"?"USD":unit();
 }

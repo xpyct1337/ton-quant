@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Paper Bot — TON Quant</title>
 <meta name="description" content="TON Quant paper-trading bot: virtual portfolio trading on cross-metric signals. Live PnL, win-rate by signal type." />
-<meta name="theme-color" content="#0098ea" />
+<meta name="theme-color" content="#070a11" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="styles.css" />
 <link rel="preconnect" href="https://raw.githubusercontent.com" crossorigin />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%230098ea'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3EQ%3C/text%3E%3C/svg%3E" />
 <style>
@@ -98,7 +101,7 @@ function drawEq(bots){
   if(!all.length)return;
   const mn=Math.min(...all,990),mx=Math.max(...all,1010),rng=mx-mn;
   const y0=H-14-((1000-mn)/rng)*(H-28);
-  ctx.strokeStyle="#e4e9f0";ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(0,y0);ctx.lineTo(W,y0);ctx.stroke();ctx.setLineDash([]);
+  ctx.strokeStyle="#2a3340";ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(0,y0);ctx.lineTo(W,y0);ctx.stroke();ctx.setLineDash([]);
   for(const[name,b]of Object.entries(bots)){
     const eq=b.equity;if(!eq.length)continue;
     ctx.strokeStyle=COLORS[name]||"#888";ctx.lineWidth=2;ctx.beginPath();
@@ -106,7 +109,7 @@ function drawEq(bots){
       const x=eq.length===1?W/2:i/(eq.length-1)*(W-20)+10;
       const y=H-14-((p.v-mn)/rng)*(H-28);
       i?ctx.lineTo(x,y):ctx.moveTo(x,y);
-      if(name==="cons"&&(i%Math.ceil(eq.length/8)===0||i===eq.length-1)){ctx.fillStyle="#5b6573";ctx.font="10px sans-serif";ctx.fillText(p.d.slice(5),x-12,H-2);}
+      if(name==="cons"&&(i%Math.ceil(eq.length/8)===0||i===eq.length-1)){ctx.fillStyle="#8b94a7";ctx.font="10px sans-serif";ctx.fillText(p.d.slice(5),x-12,H-2);}
     });
     ctx.stroke();
   }

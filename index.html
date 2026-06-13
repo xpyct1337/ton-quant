@@ -5,7 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>TON Quant — TON Ecosystem Analytics</title>
 <meta name="description" content="Live analytics for the TON ecosystem: top-20 jettons by market cap, prices, holders, liquidity. Open a full dashboard for any token." />
-<meta name="theme-color" content="#0098ea" />
+<meta name="theme-color" content="#070a11" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="styles.css" />
 <meta property="og:title" content="TON Quant — TON Ecosystem Analytics" />
 <meta property="og:description" content="Top-20 TON jettons live: prices, market caps, holders. Full dashboard for any jetton by address." />
 <meta property="og:type" content="website" />
@@ -167,7 +170,7 @@
 <div class="row" style="display:grid;grid-template-columns:1fr 1.4fr;gap:18px;margin-top:18px">
   <div class="cardbox" style="margin-bottom:0">
     <h3>Arbitrage radar</h3>
-    <div class="h-sub">Realizable cross-DEX arb, ranked by net profit after both-leg slippage, 0.6% fees &amp; ~0.3 TON gas. Size = profit-maximising trade.</div>
+    <div class="h-sub">Realizable cross-DEX arb, ranked by net profit after both-leg slippage, 0.6% fees &amp; ~0.05 TON gas. Size = profit-maximising trade.</div>
     <div id="arbList"><div class="hint">Computing&hellip;</div></div>
   </div>
   <div class="cardbox" style="margin-bottom:0">
@@ -559,12 +562,13 @@ async function matrix(){
 const esc2=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 /* Realizable cross-DEX arb after costs. CPMM avg-execution slippage per leg
-   ≈ S/(poolLiq/2); fees 0.3%/leg (0.6% round-trip); gas ~0.3 TON flat.
+   ≈ S/(poolLiq/2); fees 0.3%/leg (0.6% round-trip); gas ~0.05 TON round-trip
+   (2 swaps, post-2025 ~6x TON fee cut — was over-budgeted at 0.3 TON).
    Scans trade sizes (capped at 25% of the thinner pool) and returns the size
    that MAXIMISES net USD profit — i.e. is there real money here, and how much. */
 function netArb(spreadFrac,cheapLiq,expLiq){
   const yc=cheapLiq/2, ye=expLiq/2, fees=0.006;
-  const gasUsd=0.3*(tonUsd||3);
+  const gasUsd=0.05*(tonUsd||3);
   const cap=Math.min(yc,ye)*0.5;              // don't model a trade bigger than half the thin side's USD reserve
   let best={netUsd:-Infinity,netPct:0,size:0};
   for(let s=20;s<=cap;s*=1.4){
@@ -587,7 +591,7 @@ function arb(){
     return `<div class="arb-row">
     <span style="font-weight:700;cursor:pointer;color:var(--accent)" onclick="location.href='token.html?a=${x.t.address}'">${x.t.symbol}</span>
     <span class="hint" style="margin:0">${x.s.spread.toFixed(2)}% gross${profitable?" · "+sizeLbl:""}</span>
-    <span class="${profitable?"up":"hint"}" style="font-weight:700;font-variant-numeric:tabular-nums;margin:0" title="net % after both-leg slippage, 0.6% fees and ~0.3 TON gas">${profitable?"+$"+x.s.netUsd.toFixed(0)+" ("+x.s.net.toFixed(2)+"%)":"unprofitable"}</span>
+    <span class="${profitable?"up":"hint"}" style="font-weight:700;font-variant-numeric:tabular-nums;margin:0" title="net % after both-leg slippage, 0.6% fees and ~0.05 TON gas">${profitable?"+$"+x.s.netUsd.toFixed(0)+" ("+x.s.net.toFixed(2)+"%)":"unprofitable"}</span>
   </div>`;}).join(""):'<div class="hint">No multi-pool tokens with meaningful spread.</div>';
 }
 
