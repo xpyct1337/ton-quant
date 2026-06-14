@@ -249,6 +249,15 @@
 
 <div class="row">
   <div class="card">
+    <h3>Holder tier distribution</h3>
+    <div class="h-sub" id="tierSub">Analysing top-100 holders by USD position size…</div>
+    <div id="tierBar" style="display:flex;height:28px;border-radius:8px;overflow:hidden;gap:2px;margin:12px 0"></div>
+    <div id="tierLegend"></div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="card">
     <h3>Recent on-chain activity
       <span class="tf-tabs" id="whaleTabs">
         <button data-min="0" class="active">All</button>
@@ -655,6 +664,27 @@ async function load(){
           document.getElementById("hMoreRow").remove();
         };
       }
+    }
+
+    /* ---- holder tiers ---- */
+    const TIERS=[{label:"Mega-whale",emoji:"🐋",min:1e5,col:"#f6465d"},{label:"Whale",emoji:"🐳",min:1e4,col:"#ff9f43"},{label:"Dolphin",emoji:"🐬",min:1e3,col:"#22a7ff"},{label:"Fish",emoji:"🐟",min:1e2,col:"#16c784"},{label:"Shrimp",emoji:"🦐",min:0,col:"#5b6573"}];
+    if(addresses.length&&usd>0&&supplyRaw>0n){
+      const td=TIERS.map(t=>({...t,n:0,spct:0}));
+      for(const h of addresses){
+        const bal=Number(h.balance)/Math.pow(10,DEC);
+        const usdVal=bal*usd;
+        const spct=Number(h.balance)/Number(supplyRaw)*100;
+        const ti=td.findIndex(t=>usdVal>=t.min);
+        if(ti>=0){td[ti].n++;td[ti].spct+=spct;}
+      }
+      const totSpct=td.reduce((s,t)=>s+t.spct,0);
+      const whalePct=td[0].spct+td[1].spct;
+      const verdict=whalePct>60?'<span class="pill bad">Whale-dominated ('+whalePct.toFixed(0)+'%)</span>':whalePct<20?'<span class="pill good">Distributed ('+whalePct.toFixed(0)+'% in whales)</span>':'<span class="pill warn">Mixed ('+whalePct.toFixed(0)+'% in whales)</span>';
+      document.getElementById("tierBar").innerHTML=td.filter(t=>t.n>0).map(t=>{const w=totSpct>0?(t.spct/totSpct*100).toFixed(1):0;return '<div title="'+t.emoji+' '+t.label+': '+t.n+' holder(s) · '+t.spct.toFixed(2)+'% of supply" style="width:'+w+'%;background:'+t.col+';height:100%;min-width:3px;cursor:default"></div>';}).join("");
+      const pL=usd<0.001?usd.toExponential(2):'$'+usd.toFixed(usd<1?6:4);
+      document.getElementById("tierSub").innerHTML='Top-'+addresses.length+' holders bucketed by USD value at '+pL+'/token. '+verdict;
+      const mL=t=>t.min>=1e5?"$100K+":t.min>=1e4?"$10K+":t.min>=1e3?"$1K+":t.min>=1e2?"$100+":"<$100";
+      document.getElementById("tierLegend").innerHTML='<div style="display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:10px;font-size:13px">'+td.filter(t=>t.n>0).map(t=>'<span style="display:flex;align-items:center;gap:6px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+t.col+'"></span>'+t.emoji+' '+t.label+' <span style="opacity:.6">'+mL(t)+'</span>: <b>'+t.n+'</b> · <b>'+t.spct.toFixed(1)+'%</b> supply</span>').join("")+'</div>';
     }
 
     /* events feed with whale filter */
