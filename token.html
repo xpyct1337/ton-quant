@@ -257,6 +257,25 @@
 </div>
 
 <div class="row">
+  <div class="card" id="snapCard" style="display:none">
+    <h3>Holder &amp; price history <span class="pill muted" id="snapDaysPill" style="font-size:11px;font-weight:500"></span></h3>
+    <div class="h-sub">Daily snapshots — holders &amp; price trend. Divergence (holders ↑ / price ↓) = hidden accumulation signal.</div>
+    <div id="snapSig" style="margin:10px 0 14px"></div>
+    <table>
+      <thead><tr>
+        <th>Date</th>
+        <th style="text-align:right">Holders</th>
+        <th style="text-align:right">Δ Holders</th>
+        <th style="text-align:right">Price USD</th>
+        <th style="text-align:right">Δ Price</th>
+        <th style="text-align:right">TVL</th>
+      </tr></thead>
+      <tbody id="snapTbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="row">
   <div class="card">
     <h3>Recent on-chain activity
       <span class="tf-tabs" id="whaleTabs">
@@ -762,7 +781,64 @@ document.getElementById("refreshBtn").addEventListener("click",async()=>{
 });
 setInterval(()=>{ if(!document.hidden){ load(); loadPriceChart(parseInt(document.querySelector("#tfTabs .active").dataset.tf)); } },60000);
 
-function start(){applyUnit();load();loadPriceChart(7);}
+/* ---------- snapDivLabel: divergence classification ---------- */
+function snapDivLabel(dh,dp){
+  if(dh==null||dp==null)return null;
+  const hUp=dh>0.1,hDn=dh<-0.1,pUp=dp>0,pDn=dp<0;
+  if(hUp&&pDn)return{cls:"warn",icon:"⚠️",text:"Accum. divergence: holders +"+(dh.toFixed(2))+"%  /  price "+(dp.toFixed(2))+"%",tip:"Holders growing while price falls — hidden accumulation (bullish)"};
+  if(hUp&&pUp)return{cls:"good",icon:"✅",text:"Momentum: holders +"+(dh.toFixed(2))+"%  /  price +"+(dp.toFixed(2))+"%",tip:"Both metrics growing — trend confirmation"};
+  if(hDn&&pUp)return{cls:"bad",icon:"📤",text:"Distribution: holders "+(dh.toFixed(2))+"%  /  price +"+(dp.toFixed(2))+"%",tip:"Holders leaving while price rises — potential dump incoming"};
+  if(hDn&&pDn)return{cls:"bad",icon:"🔴",text:"Exit pressure: holders "+(dh.toFixed(2))+"%  /  price "+(dp.toFixed(2))+"%",tip:"Both metrics declining"};
+  return{cls:"muted",icon:"➖",text:"Stable: holders "+(dh>=0?"+":"")+dh.toFixed(2)+"%  /  price "+(dp>=0?"+":"")+dp.toFixed(2)+"%",tip:"No significant divergence"};
+}
+
+/* ---------- holder history from snapshots ---------- */
+async function loadHolderHistory(){
+  try{
+    const RAW="https://raw.githubusercontent.com/xpyct1337/ton-quant/main";
+    const idx=await fetch(`${RAW}/data/index.json`).then(r=>r.json());
+    const dates=(idx.dates||[]).sort();
+    if(!dates.length)return;
+    const rows=[];
+    for(const d of dates){
+      try{
+        const snap=await fetch(`${RAW}/data/snapshots/${d}.json`).then(r=>r.json());
+        const tk=(snap.tokens||{})[MASTER];
+        if(tk)rows.push({date:d,holders:tk.holders,price:tk.price,tvl:tk.tvl});
+      }catch(e){}
+    }
+    if(!rows.length)return;
+    const enriched=rows.map((r,i)=>{
+      if(i===0)return{...r,dh:null,dp:null};
+      const pv=rows[i-1];
+      const dh=pv.holders>0?(r.holders-pv.holders)/pv.holders*100:null;
+      const dp=pv.price>0?(r.price-pv.price)/pv.price*100:null;
+      return{...r,dh,dp};
+    });
+    const last=enriched[enriched.length-1];
+    const sig=snapDivLabel(last.dh,last.dp);
+    if(sig)document.getElementById("snapSig").innerHTML=
+      `<span class="pill ${sig.cls}" title="${esc(sig.tip)}">${sig.icon} ${esc(sig.text)}</span>`;
+    const cd=v=>{
+      if(v==null)return '<span style="color:var(--muted)">—</span>';
+      const s=(v>=0?"+":"")+v.toFixed(2)+"%";
+      return`<span style="color:${v>0?"var(--good)":v<0?"var(--bad)":"var(--muted)"}">${s}</span>`;
+    };
+    document.getElementById("snapTbody").innerHTML=
+      [...enriched].reverse().map(r=>`<tr>
+        <td class="mono small">${r.date}</td>
+        <td style="text-align:right">${fmtNum(r.holders)}</td>
+        <td style="text-align:right">${cd(r.dh)}</td>
+        <td style="text-align:right">${fmtUsd(r.price)}</td>
+        <td style="text-align:right">${cd(r.dp)}</td>
+        <td style="text-align:right">${fmtUsd(r.tvl)}</td>
+      </tr>`).join("");
+    document.getElementById("snapDaysPill").textContent=rows.length+" day"+(rows.length!==1?"s":"");
+    document.getElementById("snapCard").style.display="";
+  }catch(e){console.warn("Holder history:",e);}
+}
+
+function start(){applyUnit();load();loadPriceChart(7);loadHolderHistory();}
 if(typeof Chart==="undefined"){window.addEventListener("DOMContentLoaded",start);}else{start();}
 </script>
 </body>
