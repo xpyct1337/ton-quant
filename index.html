@@ -520,6 +520,52 @@ window.addEventListener("resize",()=>{clearTimeout(window._tmr);window._tmr=setT
 
 /* ---------- Activity digest (DEX-based, 0 extra requests) ---------- */
 let tapeItems=[],tapeShown=8;
+let snapSigs=[];
+
+/* ---------- Snapshot divergence signals (1 extra pair of fetches at boot) ---------- */
+function snapSignalFor(a,b){
+  const dh=(b.holders-a.holders)/Math.max(a.holders,1)*100;
+  const dp=(b.price-a.price)/Math.max(a.price,1e-18)*100;
+  const dtvl=a.tvl>0?(b.tvl-a.tvl)/a.tvl*100:null;
+  if(dtvl!==null&&dtvl<-20)return{kind:'rug_watch',dh,dp,dtvl};
+  if(dh>1.5&&dp<-2)return{kind:'accum',dh,dp,dtvl};
+  if(dh<-1&&dp>5)return{kind:'distrib',dh,dp,dtvl};
+  if(dtvl!==null&&dtvl>30)return{kind:'liq_inflow',dh,dp,dtvl};
+  return null;
+}
+async function loadSnapshots(){
+  const RAW='https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data';
+  try{
+    const idx=await fetch(RAW+'/index.json').then(r=>r.json());
+    const dates=(idx.dates||[]).slice().sort();
+    if(dates.length<2)return;
+    const[d1,d2]=dates.slice(-2);
+    const[s1,s2]=await Promise.all([
+      fetch(RAW+'/snapshots/'+d1+'.json').then(r=>r.json()),
+      fetch(RAW+'/snapshots/'+d2+'.json').then(r=>r.json())
+    ]);
+    const t1=s1.tokens||{},t2=s2.tokens||{};
+    const out=[];
+    for(const addr of Object.keys(t2)){
+      const a=t1[addr],b=t2[addr];if(!a||!b)continue;
+      const tok=TOKENS.find(x=>x.address===addr);if(!tok)continue;
+      const sig=snapSignalFor(a,b);if(!sig)continue;
+      const vol=dex[addr]?.vol||0;
+      let tag='',desc='',priority=0;
+      if(sig.kind==='rug_watch'){
+        tag='⚠️ Rug watch';desc='TVL '+sig.dtvl.toFixed(1)+'% 24h — liquidity draining';priority=1e6+Math.abs(sig.dtvl)*1e4;
+      }else if(sig.kind==='accum'){
+        tag='📥 Accum';desc='Holders +'+sig.dh.toFixed(1)+'% · price '+sig.dp.toFixed(1)+'% — stealth buying';priority=sig.dh*5e4;
+      }else if(sig.kind==='distrib'){
+        tag='📤 Distrib';desc='Holders '+sig.dh.toFixed(1)+'% · price +'+sig.dp.toFixed(1)+'% — whales selling';priority=Math.abs(sig.dh)*4e4;
+      }else if(sig.kind==='liq_inflow'){
+        tag='💧 Liq inflow';desc='TVL +'+sig.dtvl.toFixed(1)+'% 24h — liquidity growing';priority=sig.dtvl*1e3;
+      }
+      out.push({t:tok,tag,desc,vol,priority,isSnap:true});
+    }
+    snapSigs=out;
+  }catch(e){console.warn('snapshot signals failed',e);}
+}
 function activityDigest(){
   const items=[];
   for(const t of TOKENS){
@@ -542,6 +588,7 @@ function activityDigest(){
     }else continue;
     items.push({t,tag,desc,vol:dx.vol,priority});
   }
+  for(const s of snapSigs)items.push(s);
   items.sort((a,b)=>b.priority-a.priority);
   tapeItems=items.slice(0,15);
   renderTape();
@@ -553,7 +600,7 @@ function renderTape(){
     <span class="tk" onclick="location.href='token.html?a=${x.t.address}'">${x.t.symbol}</span>
     <span class="pill" style="font-size:12px">${x.tag}</span>
     <span style="color:var(--muted);font-size:12px">${x.desc}</span>
-    <span class="tm2">${fmtUsd(x.vol)} vol</span>
+    <span class="tm2">${x.isSnap?'1d snap':(fmtUsd(x.vol)+' vol')}</span>
   </div>`).join("");
   const more=document.getElementById("tapeMore");
   more.style.display=tapeItems.length>tapeShown?"":"none";
@@ -575,6 +622,7 @@ document.getElementById("cntAll").textContent=TOKENS.length;
 render();
 refresh().then(()=>{summary();treemap();});
 loadDex().then(()=>activityDigest());
+loadSnapshots().then(()=>activityDigest());
 // prices: every 60s  |  DEX (liquidity/vol): every 3 min — saves ~120 DexScreener req/hr
 setInterval(()=>{ if(!document.hidden){refresh().then(()=>{summary();treemap();});} },60000);
 setInterval(()=>{ if(!document.hidden){loadDex().then(()=>activityDigest());} },180000);
