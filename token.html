@@ -779,4 +779,211 @@ async function load(){
       const spr=(Math.max(...ps2)-Math.min(...ps2))/Math.min(...ps2)*100;
       if(spr>2)sigs.push(["info","Cross-DEX arbitrage",`${spr.toFixed(1)}% price gap between pools — arb opportunity (mind the taxable flag and gas).`]);
     }
-    const hAddrs=holders.addresses||[]
+    const hAddrs=holders.addresses||[];
+    if(hAddrs.length&&supplyRaw>0n){
+      const t10=hAddrs.slice(0,10).reduce((acc,h)=>acc+Number(h.balance),0)/Number(supplyRaw)*100;
+      if(t10>50)sigs.push(["bad","Whale-controlled",`Top-10 wallets hold ${t10.toFixed(0)}% of supply — price is at the mercy of a few hands.`]);
+    }
+    if(DEMO){
+      sigs.length=0;document.getElementById("demoPill").style.display="";
+      sigs.push(
+        ["good","Hidden buyer","412 sells vs 198 buys in 24h, yet price holds (−0.4%) — someone is quietly buying the dip."],
+        ["good","Momentum confirmed","Buy pressure (310/142) and price (+12.6%) agree — trend is supported by flow."],
+        ["warn","Absorption (sell wall)","287 buys vs 119 sells in 24h, yet price is flat (+0.8%) — a large seller is absorbing demand."],
+        ["warn","Overheated turnover","24h volume is 73% of market cap — extreme churn, expect volatility."],
+        ["warn","Profit-taking zone","Price is above 91% of the last 90 days — most positions are in profit, selling pressure risk is elevated."],
+        ["bad","Wash trading suspected","24h volume is 5.2x the liquidity while price barely moved — classic wash pattern (volume/TVL + flat price)."],
+        ["bad","Whale-controlled","Top-10 wallets hold 78% of supply — price is at the mercy of a few hands."],
+        ["info","Cross-DEX arbitrage","4.7% price gap between pools — arb opportunity (mind the taxable flag and gas)."],
+        ["info","Capitulation zone","Price is below 92% of the last 90 days — late-stage bear territory in Glassnode terms."],
+        ["info","Dormant","24h volume is 0.03% of market cap — market interest is minimal."]
+      );
+    }
+    const sigEl=document.getElementById("signals");
+    sigEl.innerHTML=sigs.length?sigs.map(x=>`<div class="sig ${x[0]}"><span class="dot"></span><div><b>${x[1]}.</b> ${x[2]}</div></div>`).join(""):'<div class="empty">No notable cross-metric signals right now — metrics agree with price.</div>';
+
+    const ptb=document.getElementById("poolTbody");
+    ptb.innerHTML=pairs.length?pairs.slice(0,6).map(p=>`<tr>
+      <td><span class="pill">${esc(p.dexId)}</span></td>
+      <td><a href="${esc(safeUrl(p.url))}" target="_blank" rel="noopener noreferrer">${esc(p.baseToken?.symbol)}/${esc(p.quoteToken?.symbol)}</a></td>
+      <td style="text-align:right">${fmtUsd(p.liquidity?.usd)}</td>
+      <td style="text-align:right">${fmtUsd(p.volume?.h24)}</td>
+      <td style="text-align:right">${p.txns?.h24?.buys??0}/${p.txns?.h24?.sells??0}</td>
+    </tr>`).join(""):'<tr><td colspan="5" class="empty">No DEX pools found.</td></tr>';
+
+    /* Risks */
+    const risks=[];
+    if(v==="blacklist")risks.push("Token is <strong>BLACKLISTED</strong> on TON registries.");
+    if(v==="none")risks.push("Token is <strong>not verified</strong> — double-check the contract before trading.");
+    if(isTaxable)risks.push("STON.fi flags this jetton as <strong>taxable</strong> — a transfer fee is taken on every swap/send.");
+    if(isNoLiq)risks.push("STON.fi flags <strong>no liquidity</strong> — too thin to trade meaningfully.");
+    else if(isLowLiq)risks.push("STON.fi flags <strong>low liquidity</strong> — large orders will move price.");
+    const adminIsZero=info.admin?.address?.replace(/^0:/,"").match(/^0+$/);
+    if(adminIsZero)risks.push("Admin = zero address → minting renounced (positive signal).");
+    else if(info.admin?.address)risks.push("Admin key is <strong>active</strong> — owner can potentially mint or change metadata.");
+    const addresses=holders.addresses||[];
+    if(addresses.length&&supplyRaw>0n){
+      const topPct=Number(addresses[0].balance)/Number(supplyRaw)*100;
+      if(topPct>20)risks.push(`Top holder controls <strong>${topPct.toFixed(2)}%</strong> of supply.`);
+      const top10=addresses.slice(0,10).reduce((s,h)=>s+Number(h.balance),0)/Number(supplyRaw)*100;
+      document.getElementById("kTop10").textContent=top10.toFixed(1)+"%";
+      const hhi=addresses.reduce((s,h)=>{const sh=Number(h.balance)/Number(supplyRaw);return s+sh*sh;},0);
+      const hl=hhi<0.01?["distributed","good"]:(hhi<0.1?["moderate","warn"]:["concentrated","bad"]);
+      document.getElementById("hhi").innerHTML=`HHI ${hhi.toFixed(3)} <span class="pill ${hl[1]}">${hl[0]}</span>`;
+    }
+    if(ageDays!=null&&ageDays<30)risks.push(`Token has been trading for only <strong>${ageDays} days</strong> — very young contract.`);
+
+    /* Score */
+    let top10pct=null;
+    if(addresses.length&&supplyRaw>0n)top10pct=addresses.slice(0,10).reduce((s,h)=>s+Number(h.balance),0)/Number(supplyRaw)*100;
+    const F=[];
+    F.push(["Verification",v==="whitelist"?20:(v==="blacklist"?-60:0),20]);
+    F.push(["Admin key",adminIsZero?15:0,15]);
+    F.push(["Liquidity",totLiq>100000?20:totLiq>10000?12:totLiq>1000?5:0,20]);
+    F.push(["Top-10 concentration",top10pct==null?5:top10pct<20?15:top10pct<40?10:top10pct<60?5:0,15]);
+    F.push(["Holders",totalHolders>10000?15:totalHolders>1000?9:totalHolders>100?4:0,15]);
+    F.push(["Age",ageDays==null?3:ageDays>365?10:ageDays>90?6:ageDays>30?3:0,10]);
+    F.push(["Not taxable",isTaxable?0:5,5]);
+    const score=Math.max(0,Math.min(100,Math.round(F.reduce((s,f)=>s+f[1],0))));
+    const kS=document.getElementById("kScore");
+    kS.textContent=score+" / 100";
+    kS.style.color=score>=70?"var(--good)":score>=40?"var(--warn)":"var(--bad)";
+    document.getElementById("kScoreSub").textContent=score>=70?"healthy":score>=40?"caution":"high risk";
+    document.getElementById("scoreKpi").title=F.map(f=>`${f[0]}: ${f[1]}/${f[2]}`).join("\n");
+    const rb=document.getElementById("riskBanner");
+    if(risks.length){
+      rb.style.display="flex";
+      rb.className="banner "+(adminIsZero&&!isTaxable&&v==="whitelist"?"good":"warn");
+      document.getElementById("riskList").innerHTML=risks.map(x=>"• "+x).join("<br>");
+    }else rb.style.display="none";
+
+    /* Holder donut */
+    const top=addresses.slice(0,10);
+    const others=addresses.slice(10).reduce((s,h)=>s+Number(h.balance),0);
+    const labels=top.map(h=>h.owner?.name||shortAddr(h.owner?.address));
+    const data=top.map(h=>Number(h.balance)/Math.pow(10,DEC));
+    if(others>0){labels.push(`Others (${addresses.length-10})`);data.push(others/Math.pow(10,DEC));}
+    const palette=["#0098ea","#3eaeef","#62bef2","#86cdf4","#aadcf7","#cbe7f9","#d6ddea","#a4adbf","#7c8497","#5b6573","#3a4253"];
+    if(holderChart)holderChart.destroy();
+    holderChart=new Chart(document.getElementById("holderChart").getContext("2d"),{type:"doughnut",
+      data:{labels,datasets:[{data,backgroundColor:palette.slice(0,labels.length),borderColor:"#fff",borderWidth:2}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:"60%",
+        plugins:{legend:{position:"right",labels:{font:{size:11},color:"#0b1220",boxWidth:10,padding:8}},
+          tooltip:{callbacks:{label:c=>{const t=c.dataset.data.reduce((a,b)=>a+b,0);return `${c.label}: ${fmtNum(c.parsed)} (${(c.parsed/t*100).toFixed(2)}%)`;}}}}}});
+
+    /* Stacked bar */
+    renderStackedBar(addresses,supplyRaw);
+
+    /* Bubble map */
+    renderBubbleMap(addresses,supplyRaw,usd);
+
+    /* Holder table with smart-money labels */
+    const tbody=document.getElementById("holderTbody");
+    if(!addresses.length){tbody.innerHTML='<tr><td colspan="4" class="empty">No holders found.</td></tr>';}
+    else{
+      tbody.innerHTML=addresses.slice(0,25).map((h,i)=>{
+        const bal=Number(h.balance)/Math.pow(10,DEC);
+        const pct=Number(h.balance)/Number(supplyRaw)*100;
+        const addr=h.owner?.address||"";
+        const sm=getSmLabel(addr);
+        const isDex=/ston|dedust/i.test(h.owner?.name||"");
+        const displayName=esc(sm?.label||h.owner?.name||shortAddr(addr));
+        return `<tr${i>=10?' class="xrow" style="display:none"':""}><td>${i+1}</td>
+          <td><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <a href="${esc(tonviewerUrl(addr))}" target="_blank" rel="noopener noreferrer">${displayName}</a>
+            ${sm?smPill(sm):(isDex?'<span class="pill dex">DEX</span>':"")}
+          </div>
+          ${(h.owner?.name&&!sm)?`<div class="mono small">${esc(shortAddr(addr))}</div>`:""}</td>
+          <td style="text-align:right;font-variant-numeric:tabular-nums">${fmtNum(bal,4)}</td>
+          <td style="text-align:right;font-variant-numeric:tabular-nums">${pct.toFixed(pct<0.01?6:3)}%
+          <div class="pct-bar"><div style="width:${Math.min(100,pct*4).toFixed(2)}%"></div></div></td></tr>`;
+      }).join("");
+      if(addresses.length>10){
+        tbody.innerHTML+=`<tr id="hMoreRow"><td colspan="4" style="text-align:center;padding:10px">
+          <span class="pill" style="cursor:pointer" id="hMore">Show all ${Math.min(addresses.length,25)} ▾</span></td></tr>`;
+        document.getElementById("hMore").onclick=()=>{
+          document.querySelectorAll("#holderTbody .xrow").forEach(r=>r.style.display="");
+          document.getElementById("hMoreRow").remove();
+        };
+      }
+    }
+
+    /* Events feed */
+    lastEvents=events.events||[];
+    lastUsd=usd; lastTonUsd=tonUsd||0;
+    renderFeed();
+
+    document.getElementById("modePill").innerHTML="&#9679; Live";
+    document.getElementById("modePill").className="pill good";
+    document.getElementById("updatedAt").textContent=new Date().toLocaleString();
+    document.getElementById("errBanner").style.display="none";
+  }catch(err){
+    console.error("Render error:",err);
+  }finally{
+    document.body.classList.remove("loading");
+    applyUnit();
+  }
+}
+
+/* ---------- whale-filtered feed ---------- */
+let lastEvents=[],lastUsd=0,lastTonUsd=0,whaleMin=1000,MASTER_RAW="";
+function actionUsd(a){
+  try{
+    if(a.type==="TonTransfer"&&a.TonTransfer&&lastTonUsd)return Number(a.TonTransfer.amount)/1e9*lastTonUsd;
+    if(a.type==="JettonTransfer"&&a.JettonTransfer){
+      const jt=a.JettonTransfer;
+      const jaddr=(jt.jetton?.address||"").replace(/^0:/,"");
+      if(lastUsd&&MASTER_RAW&&jaddr===MASTER_RAW)return Number(jt.amount)/Math.pow(10,parseInt(jt.jetton?.decimals??DEC))*lastUsd;
+    }
+  }catch(e){}
+  return null;
+}
+function renderFeed(){
+  const feed=document.getElementById("feed");
+  if(!lastEvents.length){feed.innerHTML='<div class="empty">No recent events.</div>';return;}
+  const items=[];
+  for(const e of lastEvents)for(const a of (e.actions||[])){
+    const uv=actionUsd(a);
+    if(whaleMin>0&&(uv==null||uv<whaleMin))continue;
+    const ts=new Date(e.timestamp*1000);
+    const body=esc(a.simple_preview?.value||a.simple_preview?.description||a.type);
+    const atype=esc(String(a.type||"").replace(/[^A-Za-z]/g,""));
+    items.push(`<div class="ev"><div class="ev-head"><span class="ev-tag ${atype}">${atype}</span>
+      <span>${uv!=null?'<span class="pill '+(uv>=10000?"bad":uv>=1000?"warn":"muted")+'">'+fmtUsd(uv)+"</span> ":""}<span class="ev-time">${ts.toISOString().replace("T"," ").slice(0,19)} UTC</span></span></div>
+      <div class="ev-body">${body}</div></div>`);
+  }
+  feed.innerHTML=items.length?items.join(""):'<div class="empty">No transactions above $1K in the last 20 events.</div>';
+}
+document.querySelectorAll("#whaleTabs button").forEach(b=>{
+  b.addEventListener("click",()=>{
+    document.querySelectorAll("#whaleTabs button").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    whaleMin=parseInt(b.dataset.min);
+    renderFeed();
+  });
+});
+document.querySelectorAll("#curTabs button").forEach(b=>{
+  b.addEventListener("click",()=>{
+    document.querySelectorAll("#curTabs button").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    chartCur=b.dataset.cur;
+    loadPriceChart(parseInt(document.querySelector("#tfTabs .active").dataset.tf));
+  });
+});
+document.querySelectorAll("#tfTabs button").forEach(b=>{
+  b.addEventListener("click",()=>{
+    document.querySelectorAll("#tfTabs button").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    loadPriceChart(parseInt(b.dataset.tf));
+  });
+});
+document.getElementById("refreshBtn").addEventListener("click",async()=>{
+  await Promise.all([load(),loadPriceChart(parseInt(document.querySelector("#tfTabs .active").dataset.tf))]);
+});
+setInterval(()=>{ if(!document.hidden){ load(); loadPriceChart(parseInt(document.querySelector("#tfTabs .active").dataset.tf)); } },60000);
+
+function start(){applyUnit();load();loadPriceChart(7);}
+if(typeof Chart==="undefined"){window.addEventListener("DOMContentLoaded",start);}else{start();}
+</script>
+</body>
+</html>
