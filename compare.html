@@ -35,20 +35,13 @@
   .page-sub{color:var(--muted);font-size:13px;margin-bottom:20px}
 
   /* add bar */
-  .add-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px}
-  .add-bar input{flex:1;min-width:220px;padding:11px 14px;border:1px solid var(--line);border-radius:11px;font-size:13px;font-family:inherit;background:var(--card);box-shadow:var(--shadow);outline:none}
-  .add-bar input:focus{border-color:var(--accent)}
-  .add-bar button{padding:10px 18px;border:none;border-radius:11px;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer}
+  .add-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px;align-items:center}
+  .add-bar select{flex:1;min-width:220px;padding:11px 14px;border:1px solid var(--line);border-radius:11px;font-size:13px;font-family:inherit;background:var(--card);box-shadow:var(--shadow);outline:none;color:var(--ink);cursor:pointer;appearance:auto}
+  .add-bar select:focus{border-color:var(--accent)}
+  .add-bar .tok-preview{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--accent-soft);border-radius:10px;font-size:13px;font-weight:600;color:var(--accent);flex:none}
+  .add-bar .tok-preview img{width:22px;height:22px;border-radius:50%;object-fit:cover}
+  .add-bar button{padding:10px 18px;border:none;border-radius:11px;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
   .add-bar button:hover{filter:brightness(1.07)}
-  /* suggestions */
-  .suggestions{background:var(--card);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow);overflow:hidden;margin-top:-18px;margin-bottom:10px;display:none}
-  .suggestions.open{display:block}
-  .sug-item{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--line)}
-  .sug-item:last-child{border-bottom:none}
-  .sug-item:hover{background:var(--accent-soft)}
-  .sug-item img{width:24px;height:24px;border-radius:50%;object-fit:cover}
-  .sug-item .sname{font-weight:700}
-  .sug-item .scat{font-size:11px;color:var(--muted)}
 
   /* compare table */
   .compare-wrap{overflow-x:auto;margin-bottom:24px}
@@ -102,11 +95,16 @@
   <h1 class="page-title">⚖️ Compare tokens</h1>
   <p class="page-sub">Add tokens one by one to compare side-by-side. Select from the top-20 list or paste any jetton address.</p>
 
-  <div class="add-bar">
-    <input id="addInput" placeholder="Type symbol or paste address (EQ… / UQ…)…" autocomplete="off" spellcheck="false" />
-    <button id="addBtn">+ Add token</button>
+  <div class="add-bar" id="addBar">
+    <select id="addSelect">
+      <option value="">— Select token —</option>
+    </select>
+    <div class="tok-preview" id="tokPreview" style="display:none">
+      <img id="tokPreviewImg" src="" onerror="this.style.display='none'"/>
+      <span id="tokPreviewName"></span>
+    </div>
+    <button id="addBtn">+ Add</button>
   </div>
-  <div class="suggestions" id="suggestions"></div>
   <div class="status-bar" id="statusBar" style="display:none">
     <span id="statusText"></span>
   </div>
@@ -152,26 +150,28 @@ function jget(url){
 /* state */
 let tokens=[]; // {meta, live, dex}
 
-/* suggestions */
-const inp=document.getElementById("addInput");
-const sugg=document.getElementById("suggestions");
-inp.addEventListener("input",()=>{
-  const q=inp.value.trim().toLowerCase();
-  if(!q){sugg.classList.remove("open");return;}
-  if(/^[EU]Q[A-Za-z0-9_-]{46}$/.test(inp.value.trim())){sugg.classList.remove("open");return;}
-  const matches=TOP20.filter(t=>t.symbol.toLowerCase().includes(q)||t.name.toLowerCase().includes(q)).slice(0,6);
-  if(!matches.length){sugg.classList.remove("open");return;}
-  sugg.innerHTML=matches.map(t=>`<div class="sug-item" data-addr="${t.address}">
-    <img src="${t.image}" onerror="this.style.display='none'"/>
-    <div><div class="sname">${esc(t.symbol)}</div><div class="scat">${esc(t.name)} · ${t.cat}</div></div>
-  </div>`).join("");
-  sugg.classList.add("open");
-  sugg.querySelectorAll(".sug-item").forEach(el=>{
-    el.addEventListener("click",()=>{inp.value=el.dataset.addr;sugg.classList.remove("open");addToken();});
-  });
+/* populate dropdown */
+const sel=document.getElementById("addSelect");
+TOP20.forEach(t=>{
+  const o=document.createElement("option");
+  o.value=t.address;
+  o.textContent=`${t.symbol} — ${t.name}`;
+  sel.appendChild(o);
 });
-document.addEventListener("click",e=>{if(!sugg.contains(e.target)&&e.target!==inp)sugg.classList.remove("open");});
-inp.addEventListener("keydown",e=>{if(e.key==="Enter"){sugg.classList.remove("open");addToken();}});
+
+/* preview on select change */
+sel.addEventListener("change",()=>{
+  const addr=sel.value;
+  const prev=document.getElementById("tokPreview");
+  if(!addr){prev.style.display="none";return;}
+  const t=TOP20.find(x=>x.address===addr);
+  if(!t){prev.style.display="none";return;}
+  document.getElementById("tokPreviewImg").src=t.image;
+  document.getElementById("tokPreviewImg").style.display="";
+  document.getElementById("tokPreviewName").textContent=`${t.symbol} · ${t.cat}`;
+  prev.style.display="flex";
+});
+
 document.getElementById("addBtn").addEventListener("click",addToken);
 
 function setStatus(msg){
@@ -180,15 +180,13 @@ function setStatus(msg){
 }
 
 async function addToken(){
-  const v=inp.value.trim();
-  if(!v)return;
-  // check if already added
-  const addr=/^[EU]Q[A-Za-z0-9_-]{46}$/.test(v)?v:TOP20.find(t=>t.symbol.toLowerCase()===v.toLowerCase()||t.address===v)?.address;
-  if(!addr){setStatus("Not found in top-20. Try pasting the full jetton address (EQ…).");return;}
+  const addr=document.getElementById("addSelect").value;
+  if(!addr){setStatus("Choose a token from the list.");return;}
   if(tokens.find(t=>t.meta.address===addr)){setStatus("Already in comparison.");return;}
   if(tokens.length>=5){setStatus("Max 5 tokens at once.");return;}
   setStatus("Loading…");
-  inp.value="";
+  document.getElementById("addSelect").value="";
+  document.getElementById("tokPreview").style.display="none";
   try{
     const [info,rates,dex]=await Promise.all([
       jget(`https://tonapi.io/v2/jettons/${addr}`),
@@ -247,7 +245,7 @@ function renderTable(){
   const prices=vals("price"),mcaps=vals("mcap"),holders=vals("holders"),liqs=vals("liq"),vols=vals("vol"),d24s=vals("d24"),d7s=vals("d7");
 
   const rows=[
-    {label:"Price (USD)",vals:tokens.map((t,i)=>({raw:prices[i],fmt:fmtUsd(prices[i]),cls:""})},
+    {label:"Price (USD)",vals:tokens.map((t,i)=>({raw:prices[i],fmt:fmtUsd(prices[i]),cls:""}))},
     {label:"24h change",vals:tokens.map((t,i)=>{const d=d24s[i];const str=t.live.d24;return{raw:d,fmt:str||"—",cls:isFinite(d)?(d>0?"up":d<0?"down":""):""};})},
     {label:"7d change",vals:tokens.map((t,i)=>{const d=d7s[i];const str=t.live.d7;return{raw:d,fmt:str||"—",cls:isFinite(d)?(d>0?"up":d<0?"down":""):""};})},
     {label:"Market Cap",vals:tokens.map((t,i)=>({raw:mcaps[i],fmt:fmtUsd(mcaps[i]),cls:cellClass(mcaps[i],mcaps)}))},
@@ -286,4 +284,10 @@ function renderTable(){
     const td=document.createElement("td");
     td.colSpan=tokens.length+1;td.style.cssText="text-align:center;padding:14px;color:var(--muted);font-size:12px";
     td.textContent="Add one more token to see best/worst highlights.";
-    tr.ap
+    tr.appendChild(td);
+    tbl.querySelector("tbody").appendChild(tr);
+  }
+}
+</script>
+</body>
+</html>

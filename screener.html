@@ -438,9 +438,13 @@ function arbTable(){
 }
 
 async function boot(){
-  document.getElementById("loadState").textContent="Fetching prices…";
-  await loadPrices();
-  document.getElementById("loadState").textContent="Fetching DEX data…";
-  await loadDex();
+  document.getElementById("loadState").textContent="Loading…";
+  await Promise.all([loadPrices(), loadDex()]);
   computeScores();
-  document.getElementById("loadState").textCo
+  document.getElementById("loadState").textContent="";
+  applyFilters();
+  alphaDigest();
+  arbTable();
+}
+boot();
+</scrip
