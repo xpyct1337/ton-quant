@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Portfolio — TON Quant</title>
+<meta name="theme-color" content="#070a11" />
+<link rel="stylesheet" href="styles.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%230098ea'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3EQ%3C/text%3E%3C/svg%3E" />
+<style>
+  :root{color-scheme:light;
+    --bg:#f4f7fb;--card:#fff;--ink:#0b1220;--muted:#5b6573;--line:#e4e9f0;
+    --accent:#0098ea;--accent-soft:#e4f4fd;--good:#18a957;--good-soft:#e3f6e9;
+    --warn:#d59312;--bad:#d63b3b;
+    --shadow:0 1px 2px rgba(11,18,32,.04),0 8px 24px rgba(11,18,32,.05);
+    --nav-h:56px;}
+  *{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .topbar{position:sticky;top:0;z-index:200;background:var(--card);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:10px;padding:0 clamp(16px,4vw,48px);height:var(--nav-h);
+    box-shadow:0 1px 6px rgba(11,18,32,.07);}
+  .topbar .logo{width:34px;height:34px;border-radius:9px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;flex:none;}
+  .topbar .brand{font-weight:800;font-size:16px;letter-spacing:-.01em;white-space:nowrap}
+  .nav-links{display:flex;align-items:center;gap:2px;margin-left:12px}
+  .nav-links a{text-decoration:none;font-size:13px;font-weight:600;color:var(--muted);padding:6px 11px;border-radius:8px;transition:background .12s,color .12s;white-space:nowrap;}
+  .nav-links a:hover,.nav-links a.active{background:var(--accent-soft);color:var(--accent)}
+  .topbar .spacer{flex:1}
+  .nav-burger{display:none;border:1px solid var(--line);background:var(--card);border-radius:8px;padding:7px 10px;font-size:16px;cursor:pointer;color:var(--ink)}
+  .nav-drawer{display:none;position:absolute;top:var(--nav-h);right:0;left:0;background:var(--card);border-bottom:1px solid var(--line);padding:10px clamp(16px,4vw,48px);flex-direction:column;gap:4px;box-shadow:0 4px 12px rgba(11,18,32,.08);z-index:199}
+  .nav-drawer a{text-decoration:none;font-size:14px;font-weight:600;color:var(--muted);padding:9px 12px;border-radius:9px;display:block}
+  .nav-drawer a:hover{background:var(--accent-soft);color:var(--accent)}
+  @media(max-width:700px){.nav-links{display:none}.nav-burger{display:flex;align-items:center}.nav-drawer.open{display:flex}}
+  .page-body{padding:24px clamp(16px,4vw,48px)}
+  .page-title{margin:0 0 4px;font-size:22px;font-weight:800;letter-spacing:-.01em}
+  .page-sub{color:var(--muted);font-size:13px;margin-bottom:20px}
+  /* search bar */
+  .wallet-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px}
+  .wallet-bar input{flex:1;min-width:280px;padding:12px 16px;border:1px solid var(--line);border-radius:12px;font-size:13px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--card);box-shadow:var(--shadow);outline:none}
+  .wallet-bar input:focus{border-color:var(--accent)}
+  .wallet-bar button{padding:11px 20px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-size:13px;font-weight:700;cursor:pointer}
+  .wallet-bar button:hover{filter:brightness(1.07)}
+  .wallet-bar .btn-ghost{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+  /* recents */
+  .recents{display:flex;gap:8px;flex-wrap:wrap;margin:-8px 0 16px;font-size:12px}
+  .recents span{font-weight:600;color:var(--muted)}
+  .recent-chip{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;padding:4px 10px;border-radius:999px;background:var(--card);border:1px solid var(--line);cursor:pointer;color:var(--muted)}
+  .recent-chip:hover{border-color:var(--accent);color:var(--accent)}
+  /* kpi row */
+  .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:18px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:14px 16px;box-shadow:var(--shadow)}
+  .kpi .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  .kpi .val{font-size:21px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums}
+  .kpi .sub{font-size:11px;color:var(--muted);margin-top:2px}
+  /* token table */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:18px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--muted);font-weight:500;padding:11px 13px;border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+  td{padding:11px 13px;border-bottom:1px solid var(--line);vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  tbody tr{transition:background .1s}
+  tbody tr:hover{background:var(--accent-soft);cursor:pointer}
+  .tok{display:flex;align-items:center;gap:10px}
+  .tok img{width:30px;height:30px;border-radius:50%;background:var(--accent-soft);object-fit:cover}
+  .tok .nm{font-weight:700}
+  .tok .sy{color:var(--muted);font-size:11px}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+  .up{color:var(--good)} .down{color:var(--bad)}
+  .bar-wrap{height:4px;background:var(--accent-soft);border-radius:2px;overflow:hidden;margin-top:5px;min-width:60px}
+  .bar-fill{height:100%;background:var(--accent);transition:width .4s}
+  .pill{display:inline-block;padding:2px 7px;font-size:11px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:600}
+  .error-box{background:#fde8e8;border:1px solid #f3bcbc;border-radius:12px;padding:14px 18px;font-size:13px;color:#7a1a1a;margin-bottom:18px}
+  .empty-box{text-align:center;padding:48px 20px;color:var(--muted);font-size:14px}
+  /* TON native row */
+  .ton-row td{background:var(--accent-soft)}
+  .addr-chip{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;background:var(--bg);padding:4px 10px;border-radius:999px;border:1px solid var(--line);cursor:pointer;margin-left:4px}
+  .addr-chip:hover{border-color:var(--accent)}
+  .footer{text-align:center;color:var(--muted);font-size:12px;margin-top:28px;padding:16px 0;border-top:1px solid var(--line)}
+  .footer a{color:var(--accent);text-decoration:none}
+  @media(max-width:660px){.hide-m{display:none}}
+</style>
+</head>
+<body>
+
+<nav class="topbar" id="topbar">
+  <div class="logo">Q</div>
+  <div class="brand">TON Quant</div>
+  <div class="nav-links">
+    <a href="index.html">Markets</a>
+    <a href="screener.html">Screener</a>
+    <a href="compare.html">Compare</a>
+    <a href="portfolio.html" class="active">Portfolio</a>
+  </div>
+  <div class="spacer"></div>
+  <button class="nav-burger" id="navBurger" aria-label="Menu">☰</button>
+</nav>
+<div class="nav-drawer" id="navDrawer">
+  <a href="index.html">📊 Markets</a>
+  <a href="screener.html">🔍 Screener</a>
+  <a href="compare.html">⚖️ Compare</a>
+  <a href="portfolio.html">💼 Portfolio</a>
+</div>
+
+<div class="page-body">
+  <h1 class="page-title">💼 Portfolio</h1>
+  <p class="page-sub">Enter any TON wallet address to see its jetton balances, total USD value, and 24h change per asset.</p>
+
+  <div class="wallet-bar">
+    <input id="walletInput" placeholder="EQ… or UQ… wallet address" autocomplete="off" spellcheck="false" />
+    <button id="analyseBtn">Analyse →</button>
+    <button class="btn-ghost" id="clearBtn" style="display:none">Clear</button>
+  </div>
+  <div class="recents" id="recents" style="display:none">
+    <span>Recent:</span>
+  </div>
+
+  <div id="errBox" class="error-box" style="display:none"></div>
+
+  <div id="kpiRow" class="kpi-row" style="display:none">
+    <div class="kpi"><div class="lbl">Total value</div><div class="val" id="kTotal">—</div><div class="sub" id="kTotalSub">jettons + TON</div></div>
+    <div class="kpi"><div class="lbl">Jetton value</div><div class="val" id="kJettons">—</div><div class="sub">across all tokens</div></div>
+    <div class="kpi"><div class="lbl">TON balance</div><div class="val" id="kTon">—</div><div class="sub" id="kTonUsd"></div></div>
+    <div class="kpi"><div class="lbl">Tokens held</div><div class="val" id="kCount">—</div><div class="sub">distinct jettons</div></div>
+  </div>
+
+  <div id="addressRow" style="display:none;margin-bottom:14px;font-size:13px;color:var(--muted)">
+    Wallet: <span class="addr-chip" id="addrChip"></span>
+    <a id="tvLink" href="#" target="_blank" rel="noopener noreferrer" style="margin-left:8px;color:var(--accent);font-size:12px;font-weight:600">Open on Tonviewer ↗</a>
+  </div>
+
+  <div class="card" id="portfolioCard" style="display:none">
+    <table>
+      <thead><tr>
+        <th>#</th><th>Token</th>
+        <th class="num">Balance</th>
+        <th class="num">Price</th>
+        <th class="num">24h</th>
+        <th class="num">Value USD</th>
+        <th class="num hide-m">Share</th>
+      </tr></thead>
+      <tbody id="portfolioTbody"></tbody>
+    </table>
+  </div>
+
+  <div id="emptyBox" class="empty-box">
+    Enter a TON wallet address above and press Analyse.
+  </div>
+
+  <div class="footer">
+    Data from <a href="https://tonapi.io">tonapi.io</a>. Not financial advice. DYOR.
+  </div>
+</div>
+
+<script>
+const TONAPI_KEY="AEUCH5S5SBNE64AAAAAMCL5S6MOL6AFR42PEXAR3OL2K2VJTQS77IQCN7I3O54EQK76ZIFA";
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const fmtUsd=n=>{if(n==null||!isFinite(n))return"—";if(n===0)return"$0.00";if(n<0.0001)return"$"+n.toExponential(2);if(n<1)return"$"+n.toFixed(6).replace(/0+$/,"").replace(/\.$/,"");if(n>=1e9)return"$"+(n/1e9).toFixed(2)+"B";if(n>=1e6)return"$"+(n/1e6).toFixed(2)+"M";if(n>=1e3)return"$"+(n/1e3).toFixed(2)+"K";return"$"+n.toLocaleString(undefined,{maximumFractionDigits:2});};
+const fmtNum=(n,fd=4)=>{if(n==null||!isFinite(n))return"—";if(n>=1e9)return(n/1e9).toFixed(2)+"B";if(n>=1e6)return(n/1e6).toFixed(2)+"M";if(n>=1e3)return n.toLocaleString(undefined,{maximumFractionDigits:2});if(n>=1)return n.toFixed(2);return n.toFixed(fd).replace(/0+$/,"").replace(/\.$/,"");};
+const shortAddr=a=>a?a.slice(0,8)+"…"+a.slice(-6):"—";
+const esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* nav */
+document.getElementById("navBurger").addEventListener("click",()=>document.getElementById("navDrawer").classList.toggle("open"));
+document.addEventListener("click",e=>{if(!document.getElementById("topbar").contains(e.target))document.getElementById("navDrawer").classList.remove("open");});
+
+const POOL=4;let poolActive=0;const poolWait=[];
+async function acquire(){if(poolActive<POOL){poolActive++;return;}await new Promise(r=>poolWait.push(r));poolActive++;}
+function release(){poolActive--;const w=poolWait.shift();if(w)w();}
+function jget(url){
+  const hdrs={Accept:"application/json",Authorization:"Bearer "+TONAPI_KEY};
+  const fetchRetry=async()=>{for(let i=0;;i++){let r;try{r=await fetch(url,{headers:hdrs});}catch(e){if(i>=3)throw e;await sleep(800*(i+1));continue;}if(r.ok)return r.json();if(r.status===429&&i<4){await sleep(1100*(i+1));continue;}throw new Error(url+" → "+r.status);}};
+  return(async()=>{await acquire();try{return await fetchRetry();}finally{release();}})();
+}
+
+/* recents from localStorage */
+function getRecents(){try{return JSON.parse(localStorage.getItem("tq_recent_wallets")||"[]");}catch{return[];}}
+function saveRecent(addr){const r=getRecents().filter(a=>a!==addr);r.unshift(addr);localStorage.setItem("tq_recent_wallets",JSON.stringify(r.slice(0,5)));}
+function renderRecents(){
+  const r=getRecents();const el=document.getElementById("recents");
+  if(!r.length){el.style.display="none";return;}
+  el.style.display="flex";
+  const chips=r.map(a=>`<span class="recent-chip" data-addr="${esc(a)}">${esc(shortAddr(a))}</span>`).join("");
+  el.innerHTML="<span>Recent:</span>"+chips;
+  el.querySelectorAll(".recent-chip").forEach(c=>{c.addEventListener("click",()=>{document.getElementById("walletInput").value=c.dataset.addr;analyse();});});
+}
+renderRecents();
+
+/* URL param */
+const urlAddr=(new URLSearchParams(location.search)).get("a");
+if(urlAddr&&/^[EU]Q[A-Za-z0-9_-]{46}$/.test(urlAddr)){document.getElementById("walletInput").value=urlAddr;}
+
+document.getElementById("analyseBtn").addEventListener("click",analyse);
+document.getElementById("walletInput").addEventListener("keydown",e=>{if(e.key==="Enter")analyse();});
+document.getElementById("clearBtn").addEventListener("click",()=>{
+  document.getElementById("walletInput").value="";
+  ["kpiRow","portfolioCard","addressRow","errBox"].forEach(id=>document.getElementById(id).style.display="none");
+  document.getElementById("emptyBox").style.display="";
+  document.getElementById("clearBtn").style.display="none";
+});
+
+async function analyse(){
+  const addr=document.getElementById("walletInput").value.trim();
+  if(!/^[EU]Q[A-Za-z0-9_-]{46}$/.test(addr)){showErr("Invalid address. Must start with EQ or UQ and be 48 chars.");return;}
+  clearErr();
+  ["kpiRow","portfolioCard","addressRow"].forEach(id=>document.getElementById(id).style.display="none");
+  document.getElementById("emptyBox").innerHTML="Loading…";document.getElementById("emptyBox").style.display="";
+  document.getElementById("clearBtn").style.display="";
+  try{
+    const [account,jettonsRes]=await Promise.all([
+      jget(`https://tonapi.io/v2/accounts/${addr}`),
+      jget(`https://tonapi.io/v2/accounts/${addr}/jettons?limit=250`),
+    ]);
+    const jettons=(jettonsRes.balances||[]).filter(j=>Number(j.balance)>0);
+    // fetch prices for unique jetton addresses (batch by 10)
+    const addrs=jettons.map(j=>j.jetton?.address).filter(Boolean);
+    const rates={};
+    for(let i=0;i<addrs.length;i+=10){
+      try{
+        const chunk=addrs.slice(i,i+10).join("%2C");
+        const d=await jget(`https://tonapi.io/v2/rates?tokens=${chunk}%2CTON&currencies=usd`);
+        for(const[k,v]of Object.entries(d.rates||{}))rates[k]=v;
+      }catch(e){}
+      await sleep(100);
+    }
+    const tonUsd=rates["TON"]?.prices?.USD||rates["ton"]?.prices?.USD||null;
+    const tonBalance=Number(account.balance||0)/1e9;
+    const tonUsdVal=tonUsd?tonBalance*tonUsd:null;
+
+    // build rows
+    const rows=jettons.map(j=>{
+      const jaddr=j.jetton?.address||"";
+      const dec=parseInt(j.jetton?.decimals??9);
+      const balance=Number(j.balance)/Math.pow(10,dec);
+      const r=rates[jaddr]||{};
+      const usd=r.prices?.USD;
+      const usdVal=usd?balance*usd:null;
+      const d24=r.diff_24h?.USD||"";
+      return{jaddr,name:j.jetton?.name||"Unknown",symbol:j.jetton?.symbol||"???",image:j.jetton?.image||"",balance,usd,usdVal,d24};
+    }).sort((a,b)=>(b.usdVal??-1)-(a.usdVal??-1));
+
+    const totalJetton=rows.reduce((s,r)=>s+(r.usdVal||0),0);
+    const totalAll=totalJetton+(tonUsdVal||0);
+
+    // kpi
+    document.getElementById("kTotal").textContent=fmtUsd(totalAll);
+    document.getElementById("kJettons").textContent=fmtUsd(totalJetton);
+    document.getElementById("kTon").textContent=fmtNum(tonBalance)+" TON";
+    document.getElementById("kTonUsd").textContent=tonUsdVal?fmtUsd(tonUsdVal):"price unknown";
+    document.getElementById("kCount").textContent=rows.length;
+    document.getElementById("kpiRow").style.display="";
+    document.getElementById("emptyBox").style.display="none";
+    document.getElementById("portfolioCard").style.display="";
+    // address row
+    const chip=document.getElementById("addrChip");
+    chip.textContent=shortAddr(addr);
+    chip.onclick=()=>{navigator.clipboard.writeText(addr).then(()=>{const o=chip.textContent;chip.textContent="Copied!";setTimeout(()=>chip.textContent=o,1200);});};
+    document.getElementById("tvLink").href=`https://tonviewer.com/${addr}`;
+    document.getElementById("addressRow").style.display="";
+
+    // table
+    const tbody=document.getElementById("portfolioTbody");
+    let html="";
+    // TON native first
+    if(tonBalance>0){
+      html+=`<tr class="ton-row">
+        <td style="color:var(--muted);font-size:12px">—</td>
+        <td><div class="tok"><img src="https://cache.tonapi.io/imgproxy/yBCaa1B_TwnlWB8oCnSYzaVqVz_RkxM_VJwWVFjWTnQ/rs:fill:200:200:1/g:no/aHR0cHM6Ly90b24ub3JnL2Rvd25sb2Fkcy90b25fYWxvcGhvdG8ucG5n.webp" onerror="this.src=''" style="width:30px;height:30px;border-radius:50%;object-fit:cover"/><div><div class="nm">Toncoin</div><div class="sy">TON</div></div></div></td>
+        <td class="num">${fmtNum(tonBalance)}</td>
+        <td class="num">${fmtUsd(tonUsd)}</td>
+        <td class="num">—</td>
+        <td class="num">${fmtUsd(tonUsdVal)}</td>
+        <td class="num hide-m">—</td>
+      </tr>`;
+    }
+    rows.forEach((r,i)=>{
+      const share=totalAll>0&&r.usdVal?r.usdVal/totalAll*100:null;
+      const d24str=r.d24||"";
+      const dnum=parseFloat(String(d24str).replace("−","-").replace("%",""));
+      const dcls=isFinite(dnum)?(dnum>0?"up":dnum<0?"down":""):"";
+      html+=`<tr onclick="location.href='token.html?a=${r.jaddr}'">
+        <td style="color:var(--muted);font-size:12px">${i+1}</td>
+        <td><div class="tok"><img src="${esc(r.image)}" onerror="this.style.display='none'" style="width:30px;height:30px;border-radius:50%;object-fit:cover"/><div><div class="nm">${esc(r.name)}</div><div class="sy">${esc(r.symbol)}</div></div></div></td>
+        <td class="num">${fmtNum(r.balance)}</td>
+        <td class="num">${fmtUsd(r.usd)||"—"}</td>
+        <td class="num ${dcls}">${d24str||"—"}</td>
+        <td class="num" style="font-weight:600">${fmtUsd(r.usdVal)}</td>
+        <td class="num hide-m">${share!=null?share.toFixed(1)+"%":"—"}
+          ${share!=null?`<div class="bar-wrap"><div class="bar-fill" style="width:${Math.min(100,share).toFixed(1)}%"></div></div>`:""}
+        </td>
+      </tr>`;
+    });
+    if(!rows.length&&tonBalance===0){html='<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">No jettons found in this wallet.</td></tr>';}
+    tbody.innerHTML=html;
+    saveRecent(addr);
+    renderRecents();
+  }catch(err){
+    showErr("Error loading wallet: "+String(err.message||err).slice(0,120));
+    document.getElementById("emptyBox").style.display="none";
+  }
+}
+function showErr(msg){const b=document.getElementById("errBox");b.textContent=msg;b.style.display="";}
+function clearErr(){document.getElementById("errBox").style.display="none";}
+
+// auto-load from URL
+if(urlAddr&&/^[EU]Q[A-Za-z0-9_-]{46}$/.test(urlAddr))analyse();
+</script>
+</body>
+</html>
