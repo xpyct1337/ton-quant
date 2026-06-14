@@ -19,8 +19,8 @@
   .topbar{position:sticky;top:0;z-index:200;background:var(--card);border-bottom:1px solid var(--line);
     display:flex;align-items:center;gap:10px;padding:0 clamp(16px,4vw,48px);height:var(--nav-h);
     box-shadow:0 1px 6px rgba(11,18,32,.07);}
-  .topbar .logo{width:34px;height:34px;border-radius:9px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;flex:none;}
-  .topbar .brand{font-weight:800;font-size:16px;letter-spacing:-.01em;white-space:nowrap}
+  .topbar .logo{width:34px;height:34px;border-radius:9px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;flex:none;text-decoration:none;}
+  .topbar .brand{font-weight:800;font-size:16px;letter-spacing:-.01em;white-space:nowrap;text-decoration:none;color:var(--ink)}
   .nav-links{display:flex;align-items:center;gap:2px;margin-left:12px}
   .nav-links a{text-decoration:none;font-size:13px;font-weight:600;color:var(--muted);padding:6px 11px;border-radius:8px;transition:background .12s,color .12s;white-space:nowrap;}
   .nav-links a:hover,.nav-links a.active{background:var(--accent-soft);color:var(--accent)}
@@ -82,10 +82,10 @@
 <body>
 
 <nav class="topbar" id="topbar">
-  <div class="logo">Q</div>
-  <div class="brand">TON Quant</div>
+  <a class="logo" href="main-page.html">Q</a>
+  <a class="brand" href="main-page.html">TON Quant</a>
   <div class="nav-links">
-    <a href="index.html">Markets</a>
+    <a href="main-page.html">Markets</a>
     <a href="screener.html">Screener</a>
     <a href="compare.html">Compare</a>
     <a href="portfolio.html" class="active">Portfolio</a>
@@ -94,7 +94,7 @@
   <button class="nav-burger" id="navBurger" aria-label="Menu">☰</button>
 </nav>
 <div class="nav-drawer" id="navDrawer">
-  <a href="index.html">📊 Markets</a>
+  <a href="main-page.html">📊 Markets</a>
   <a href="screener.html">🔍 Screener</a>
   <a href="compare.html">⚖️ Compare</a>
   <a href="portfolio.html">💼 Portfolio</a>
@@ -300,8 +300,4 @@ async function analyse(){
 function showErr(msg){const b=document.getElementById("errBox");b.textContent=msg;b.style.display="";}
 function clearErr(){document.getElementById("errBox").style.display="none";}
 
-// auto-load from URL
-if(urlAddr&&/^[EU]Q[A-Za-z0-9_-]{46}$/.test(urlAddr))analyse();
-</script>
-</body>
-</html>
+// auto-load from

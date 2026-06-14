@@ -4,14 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>TON Quant — TON Ecosystem Analytics</title>
-<meta name="description" content="Live analytics for the TON ecosystem: top-20 jettons by market cap, prices, holders, liquidity. Open a full dashboard for any token." />
+<meta name="description" content="Live analytics for the TON ecosystem: top-20 jettons by market cap, prices, holders, liquidity." />
 <meta name="theme-color" content="#070a11" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="styles.css" />
-<meta property="og:title" content="TON Quant — TON Ecosystem Analytics" />
-<meta property="og:description" content="Top-20 TON jettons live: prices, market caps, holders. Full dashboard for any jetton by address." />
-<meta property="og:type" content="website" />
 <link rel="preconnect" href="https://tonapi.io" crossorigin />
 <link rel="preconnect" href="https://api.dexscreener.com" crossorigin />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%230098ea'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3EQ%3C/text%3E%3C/svg%3E" />
@@ -20,32 +17,71 @@
     --bg:#f4f7fb; --card:#fff; --ink:#0b1220; --muted:#5b6573; --line:#e4e9f0;
     --accent:#0098ea; --accent-soft:#e4f4fd; --good:#18a957; --good-soft:#e3f6e9;
     --warn:#d59312; --bad:#d63b3b;
-    --shadow:0 1px 2px rgba(11,18,32,.04), 0 8px 24px rgba(11,18,32,.05); }
+    --shadow:0 1px 2px rgba(11,18,32,.04), 0 8px 24px rgba(11,18,32,.05);
+    --nav-h:56px; }
   *{box-sizing:border-box} html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
-  body{padding:0}
-  .header{display:flex;align-items:center;gap:16px;margin-bottom:8px;flex-wrap:wrap}
-  .logo{width:52px;height:52px;border-radius:14px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800}
-  .title h1{margin:0;font-size:26px;letter-spacing:-.01em}
-  .title .sub{color:var(--muted);font-size:13px;margin-top:2px}
-  .spacer{flex:1}
+
+  /* ---- Sticky topbar ---- */
+  .topbar{
+    position:sticky;top:0;z-index:200;
+    background:var(--card);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:10px;
+    padding:0 clamp(16px,4vw,48px);height:var(--nav-h);
+    box-shadow:0 1px 6px rgba(11,18,32,.07);
+  }
+  .topbar .logo{
+    width:34px;height:34px;border-radius:9px;background:var(--accent);
+    color:#fff;display:flex;align-items:center;justify-content:center;
+    font-size:17px;font-weight:800;flex:none;
+  }
+  .topbar .brand{font-weight:800;font-size:16px;letter-spacing:-.01em;white-space:nowrap}
+  .topbar .brand span{color:var(--muted);font-weight:400;font-size:12px;margin-left:6px}
+  .nav-links{display:flex;align-items:center;gap:2px;margin-left:12px}
+  .nav-links a{
+    text-decoration:none;font-size:13px;font-weight:600;color:var(--muted);
+    padding:6px 11px;border-radius:8px;transition:background .12s,color .12s;white-space:nowrap;
+  }
+  .nav-links a:hover{background:var(--accent-soft);color:var(--accent)}
+  .nav-links a.active{background:var(--accent-soft);color:var(--accent)}
+  .topbar .spacer{flex:1}
+  .gram-box{display:flex;align-items:center;gap:7px;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:5px 10px;flex:none}
+  .gram-box .lbl{font-size:11px;color:var(--muted);white-space:nowrap}
+  .gram-box .opt{font-size:12px;font-weight:700;color:var(--muted)}
+  .gram-box .opt.on{color:var(--ink)}
+  .switch{position:relative;width:36px;height:20px;border-radius:999px;background:#d6ddea;cursor:pointer;transition:background .2s;border:none;padding:0;flex:none}
+  .switch.on{background:var(--accent)}
+  .switch::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+  .switch.on::after{left:19px}
+  .live-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;font-size:11px;border-radius:999px;background:var(--good-soft);color:var(--good);font-weight:600}
+  .live-pill .dot{width:6px;height:6px;border-radius:50%;background:var(--good);animation:pulse 2s ease infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  /* burger */
+  .nav-burger{display:none;border:1px solid var(--line);background:var(--card);border-radius:8px;padding:7px 10px;font-size:16px;cursor:pointer;color:var(--ink)}
+  .nav-drawer{display:none;position:absolute;top:var(--nav-h);right:0;left:0;background:var(--card);border-bottom:1px solid var(--line);padding:10px clamp(16px,4vw,48px);flex-direction:column;gap:4px;box-shadow:0 4px 12px rgba(11,18,32,.08);z-index:199}
+  .nav-drawer a{text-decoration:none;font-size:14px;font-weight:600;color:var(--muted);padding:9px 12px;border-radius:9px;display:block}
+  .nav-drawer a:hover{background:var(--accent-soft);color:var(--accent)}
+  .nav-drawer .gram-row{display:flex;align-items:center;gap:8px;padding:9px 12px;border-top:1px solid var(--line);margin-top:4px}
+  @media(max-width:700px){
+    .nav-links{display:none}
+    .nav-burger{display:flex;align-items:center}
+    .nav-drawer.open{display:flex}
+    .gram-box .lbl{display:none}
+  }
+
+  /* ---- page body ---- */
+  .page-body{padding:24px clamp(16px,4vw,48px)}
+  .gram-note{font-size:11px;color:var(--muted);margin-bottom:14px}
   .pill{display:inline-block;padding:2px 8px;font-size:11px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:600}
   .pill.good{background:var(--good-soft);color:var(--good)}
-  .gram-box{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 14px;box-shadow:var(--shadow)}
-  .gram-box .lbl{font-size:12px;color:var(--muted)}
-  .gram-box .opt{font-size:13px;font-weight:700;color:var(--muted);cursor:default}
-  .gram-box .opt.on{color:var(--ink)}
-  .switch{position:relative;width:44px;height:24px;border-radius:999px;background:#d6ddea;cursor:pointer;transition:background .2s;border:none;padding:0}
-  .switch.on{background:var(--accent)}
-  .switch::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
-  .switch.on::after{left:23px}
-  .gram-note{font-size:11px;color:var(--muted);max-width:240px}
-  .searchbar{display:flex;gap:10px;margin:18px 0 22px;flex-wrap:wrap}
+  .pill.bad{background:#fde8e8;color:#7a1a1a}
+  .pill.warn{background:#fef3df;color:#8a5d10}
+  .searchbar{display:flex;gap:10px;margin:0 0 22px;flex-wrap:wrap}
   .searchbar input{flex:1;min-width:260px;padding:12px 16px;border:1px solid var(--line);border-radius:12px;font-size:14px;background:var(--card);box-shadow:var(--shadow);outline:none;font-family:inherit}
   .searchbar input:focus{border-color:var(--accent)}
   .searchbar button{padding:12px 20px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer}
   .searchbar button:hover{filter:brightness(1.06)}
-  .hint{font-size:12px;color:var(--muted);margin:-14px 0 18px}
+  .hint{font-size:12px;color:var(--muted);margin-bottom:14px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
   table{width:100%;border-collapse:collapse;font-size:14px}
   th{text-align:left;color:var(--muted);font-weight:500;padding:12px 14px;border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
@@ -62,7 +98,7 @@
   .rank{color:var(--muted);font-size:12px;width:28px}
   .footer{text-align:center;color:var(--muted);font-size:12px;margin-top:28px;padding:16px 0;border-top:1px solid var(--line)}
   .footer a{color:var(--accent);text-decoration:none}
-  .sumbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:6px 0 18px}
+  .sumbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 18px}
   .sum{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px;box-shadow:var(--shadow)}
   .sum .l{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.05em}
   .sum .v{font-size:19px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums}
@@ -70,16 +106,11 @@
   .cardbox{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:16px 18px;margin-bottom:18px}
   .cardbox h3{margin:0 0 4px;font-size:15px}
   .cardbox .h-sub{color:var(--muted);font-size:12px;margin-bottom:12px}
-  #tmap{position:relative;height:340px;border-radius:10px;overflow:hidden}
+  #tmap{position:relative;height:300px;border-radius:10px;overflow:hidden}
   .tm{position:absolute;display:flex;flex-direction:column;justify-content:center;align-items:center;overflow:hidden;cursor:pointer;border:1px solid rgba(255,255,255,.6);transition:filter .1s;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.25)}
   .tm:hover{filter:brightness(1.12)}
   .tm .ts{font-weight:800}
   .tm .tp{font-size:11px;opacity:.9}
-  .matrix-wrap{overflow-x:auto}
-  table.mx{border-collapse:collapse;font-size:10px}
-  table.mx td,table.mx th{padding:0;border:1px solid #fff}
-  table.mx th{font-weight:600;color:var(--muted);padding:2px 4px;text-align:right;white-space:nowrap}
-  table.mx td{width:26px;height:22px;text-align:center;font-variant-numeric:tabular-nums;color:#1b2536}
   .mover{display:inline-flex;gap:6px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:5px 12px;margin:0 6px 6px 0;cursor:pointer;font-weight:600;box-shadow:var(--shadow)}
   .mover:hover{border-color:var(--accent)}
   .mover img{width:18px;height:18px;border-radius:50%}
@@ -87,41 +118,20 @@
   .fchip{font-size:12px;font-weight:600;padding:6px 14px;border-radius:999px;background:var(--card);border:1px solid var(--line);color:var(--muted);cursor:pointer;box-shadow:var(--shadow)}
   .fchip:hover{border-color:var(--accent)}
   .fchip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-  .arb-row{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;align-items:center}
-  .arb-row:last-child{border-bottom:none}
   .tape{display:flex;flex-direction:column;gap:8px}
   .tape .ev{display:flex;gap:10px;align-items:center;padding:9px 12px;border:1px solid var(--line);border-radius:10px;font-size:13px;flex-wrap:wrap}
   .tape .tk{font-weight:700;cursor:pointer;color:var(--accent)}
   .tape .tm2{color:var(--muted);font-size:11px;margin-left:auto}
-  .live-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--good);margin-right:6px;animation:pulse 2s ease infinite}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-  @media(max-width:860px){ .hide-m{display:none} body{padding:16px} }
-
-  --nav-h:56px;
-  .topbar{position:sticky;top:0;z-index:200;background:var(--card);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:0 clamp(16px,4vw,48px);height:var(--nav-h);box-shadow:0 1px 6px rgba(11,18,32,.07);}
-  .topbar .logo-nav{width:34px;height:34px;border-radius:9px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;flex:none;}
-  .topbar .brand{font-weight:800;font-size:16px;letter-spacing:-.01em;white-space:nowrap}
-  .topbar .brand span{color:var(--muted);font-weight:400;font-size:12px;margin-left:6px}
-  .nav-links{display:flex;align-items:center;gap:2px;margin-left:12px}
-  .nav-links a{text-decoration:none;font-size:13px;font-weight:600;color:var(--muted);padding:6px 11px;border-radius:8px;transition:background .12s,color .12s;white-space:nowrap;}
-  .nav-links a:hover,.nav-links a.active{background:var(--accent-soft);color:var(--accent)}
-  .topbar .spacer{flex:1}
-  .nav-gram{display:flex;align-items:center;gap:7px;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:5px 10px;flex:none}
-  .nav-gram .opt{font-size:12px;font-weight:700;color:var(--muted)}
-  .nav-gram .opt.on{color:var(--ink)}
-  .nav-gram .lbl{font-size:11px;color:var(--muted);white-space:nowrap}
-  .nav-burger{display:none;border:1px solid var(--line);background:var(--card);border-radius:8px;padding:7px 10px;font-size:16px;cursor:pointer;color:var(--ink)}
-  .nav-drawer{display:none;position:absolute;top:var(--nav-h);right:0;left:0;background:var(--card);border-bottom:1px solid var(--line);padding:10px clamp(16px,4vw,48px);flex-direction:column;gap:4px;box-shadow:0 4px 12px rgba(11,18,32,.08);z-index:199}
-  .nav-drawer a{text-decoration:none;font-size:14px;font-weight:600;color:var(--muted);padding:9px 12px;border-radius:9px;display:block}
-  .nav-drawer a:hover{background:var(--accent-soft);color:var(--accent)}
-  .nav-drawer .gram-row{display:flex;align-items:center;gap:8px;padding:9px 12px;border-top:1px solid var(--line);margin-top:4px}
-  @media(max-width:700px){.nav-links{display:none}.nav-burger{display:flex;align-items:center}.nav-drawer.open{display:flex}}
-  .page-body{padding:24px clamp(16px,4vw,48px)}
+  .two-col{display:grid;grid-template-columns:1fr 1.4fr;gap:18px;margin-top:18px}
+  @media(max-width:920px){.two-col{grid-template-columns:1fr} .hide-m{display:none} }
+  @media(max-width:680px){.hide-s{display:none}}
 </style>
 </head>
 <body>
+
+<!-- ======= TOPBAR ======= -->
 <nav class="topbar" id="topbar">
-  <div class="logo-nav">Q</div>
+  <div class="logo">Q</div>
   <div class="brand">TON Quant <span id="liveBadge">Live</span></div>
   <div class="nav-links">
     <a href="index.html" class="active">Markets</a>
@@ -130,7 +140,7 @@
     <a href="portfolio.html">Portfolio</a>
   </div>
   <div class="spacer"></div>
-  <div class="nav-gram">
+  <div class="gram-box">
     <span class="lbl" id="gramCountdown"></span>
     <span class="opt" id="optTon">TON</span>
     <button class="switch" id="gramSwitch" aria-label="Toggle TON/GRAM"></button>
@@ -150,27 +160,26 @@
     <span style="font-size:11px;color:var(--muted);margin-left:6px" id="gramCountdown2"></span>
   </div>
 </div>
+
+<!-- ======= PAGE BODY ======= -->
 <div class="page-body">
-<div class="gram-note" style="margin:0 0 14px 0">Toncoin is being renamed to <strong>Gram</strong> (ticker GRAM) on Jun 15, 2026 &middot; the blockchain stays &laquo;TON&raquo;. The switch relabels the native coin across TON Quant.</div>
+
+<div class="gram-note" id="gramNote" style="display:none">Toncoin is being renamed to <strong>Gram</strong> (ticker GRAM) on Jun 15, 2026 &middot; the blockchain stays &laquo;TON&raquo;. The switch relabels the native coin across TON Quant.</div>
 
 <div class="sumbar" id="sumbar" style="display:none">
   <div class="sum"><div class="l">Top-20 Market Cap</div><div class="v" id="sMcap">&mdash;</div><div class="s" id="sMcapD"></div></div>
   <div class="sum"><div class="l">DEX Liquidity</div><div class="v" id="sTvl">&mdash;</div><div class="s">across all pools</div></div>
   <div class="sum"><div class="l">Volume 24h</div><div class="v" id="sVol">&mdash;</div><div class="s" id="sTx"></div></div>
-  <div class="sum"><div class="l">TON Core Index</div><div class="v" id="sIdx">&mdash;</div><div class="s">mcap-weighted 24h, ex-stables/staking</div></div>
-  <div class="sum"><div class="l">Breadth</div><div class="v" id="sBr">&mdash;</div><div class="s">above own 7d average</div></div>
+  <div class="sum"><div class="l">TON Core Index</div><div class="v" id="sIdx">&mdash;</div><div class="s">mcap-weighted 24h</div></div>
+  <div class="sum"><div class="l">Breadth</div><div class="v" id="sBr">&mdash;</div><div class="s">above own 7d avg</div></div>
 </div>
 
 <div class="searchbar">
-  <input id="searchInput" placeholder="Filter top-20, or paste any jetton master address (EQ&hellip; / UQ&hellip;) to open its dashboard" autocomplete="off" spellcheck="false" />
-  <button id="goBtn">Open dashboard</button>
+  <input id="searchInput" placeholder="Filter top-20, or paste any jetton address (EQ… / UQ…) to open its dashboard" autocomplete="off" spellcheck="false" />
+  <button id="goBtn">Open →</button>
 </div>
+
 <div id="movers" style="display:none;margin:-6px 0 16px;font-size:13px"></div>
-<div class="cardbox" id="alphaBox" style="display:none">
-  <h3>⚡ Alpha digest</h3>
-  <div class="h-sub">Every triggered cross-metric signal across all tracked tokens, right now. The raw feed an alpha bot would trade on.</div>
-  <div id="alphaList" class="tape"></div>
-</div>
 
 <div class="chipsbar" id="catbar">
   <span class="fchip active" data-c="all">All <span id="cntAll"></span></span>
@@ -188,9 +197,9 @@
 </div>
 <div class="hint">Click a row to open the full dashboard: price history, holders, DEX liquidity, on-chain activity.</div>
 
-<div class="cardbox">
+<div class="cardbox" style="margin-bottom:18px">
   <h3>Market map</h3>
-  <div class="h-sub">Tile size = market cap &middot; color = 24h change &middot; stables &amp; staking excluded (pick a tab to see them). Click to open the dashboard.</div>
+  <div class="h-sub">Tile size = market cap &middot; color = 24h change &middot; stables &amp; staking excluded. Click to open the dashboard.</div>
   <div id="tmap"></div>
 </div>
 
@@ -198,69 +207,90 @@
 <table>
   <thead><tr>
     <th class="rank">#</th><th>Token</th><th class="num">Price</th><th class="num">24h</th>
-    <th class="num hide-m">7d chart</th><th class="num">Market cap</th><th class="num hide-m">Vol 24h</th><th class="num hide-m">TVL</th><th class="num hide-m">Vol/TVL</th><th class="num hide-m">Holders</th>
+    <th class="num hide-s">7d chart</th><th class="num">Market cap</th>
+    <th class="num hide-m">Vol 24h</th><th class="num hide-m">TVL</th>
+    <th class="num hide-m">Vol/TVL</th><th class="num hide-m">Holders</th>
   </tr></thead>
   <tbody id="tbody"></tbody>
 </table>
 </div>
 
-<div class="row" style="display:grid;grid-template-columns:1fr 1.4fr;gap:18px;margin-top:18px">
+<div class="two-col">
   <div class="cardbox" style="margin-bottom:0">
-    <h3>Arbitrage radar</h3>
-    <div class="h-sub">Realizable cross-DEX arb, ranked by net profit after both-leg slippage, 0.6% fees &amp; ~0.05 TON gas. Size = profit-maximising trade.</div>
-    <div id="arbList"><div class="hint">Computing&hellip;</div></div>
-  </div>
-  <div class="cardbox" style="margin-bottom:0">
-    <h3>Whale tape</h3>
-    <div class="h-sub">Recent large on-chain moves (&ge;$500) across the top-20 jetton masters. Newest first.</div>
-    <div id="tape" class="tape"><div class="hint">Scanning whale moves&hellip;</div></div>
+    <h3>Activity signals <span style="font-size:11px;font-weight:400;color:var(--muted)">DEX-based</span></h3>
+    <div class="h-sub">Buy/sell pressure, vol anomalies &amp; arb — computed from DEX data. No extra API calls.</div>
+    <div id="tape" class="tape"><div class="hint">Loading DEX data&hellip;</div></div>
     <div style="text-align:center;margin-top:8px"><span class="fchip" id="tapeMore" style="display:none">Show more</span></div>
   </div>
-</div>
-<style>@media(max-width:920px){.row{grid-template-columns:1fr !important}}</style>
-
-<div class="cardbox" style="margin-top:18px">
-  <h3>Correlation matrix (7d) &amp; beta to <span data-unit>TON</span></h3>
-  <div class="h-sub">Pearson correlation of daily returns between top-20 tokens. &beta; &gt; 1 = amplifies <span data-unit>TON</span> moves; &beta; &asymp; 0 = lives its own life. Blue = moves together, red = moves opposite.</div>
-  <div class="matrix-wrap" id="mxWrap"><div class="hint">Computing&hellip;</div></div>
+  <div class="cardbox" style="margin-bottom:0">
+    <h3>Quick links</h3>
+    <div class="h-sub">Tools in this app</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <a href="screener.html" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--ink);font-size:13px;font-weight:600">
+        <span style="font-size:20px">🔍</span>
+        <div><div>Screener</div><div style="font-weight:400;color:var(--muted);font-size:12px">Combo-filters: Score, liquidity, momentum, arb radar</div></div>
+      </a>
+      <a href="compare.html" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--ink);font-size:13px;font-weight:600">
+        <span style="font-size:20px">⚖️</span>
+        <div><div>Compare tokens</div><div style="font-weight:400;color:var(--muted);font-size:12px">Side-by-side metrics: add tokens one by one</div></div>
+      </a>
+      <a href="portfolio.html" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--ink);font-size:13px;font-weight:600">
+        <span style="font-size:20px">💼</span>
+        <div><div>Portfolio</div><div style="font-weight:400;color:var(--muted);font-size:12px">Analyse any TON wallet — balances, P&amp;L, USD value</div></div>
+      </a>
+      <a href="paper.html" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--ink);font-size:13px;font-weight:600">
+        <span style="font-size:20px">📄</span>
+        <div><div>Paper bot</div><div style="font-weight:400;color:var(--muted);font-size:12px">Simulate trades without real money</div></div>
+      </a>
+    </div>
+  </div>
 </div>
 
 <div class="footer">
-  <span class="live-dot"></span>Live data from <a href="https://tonapi.io">tonapi.io</a>. Prices auto-refresh every 60s.
+  Live data from <a href="https://tonapi.io">tonapi.io</a> &amp; DexScreener. Prices refresh every 60s &middot; DEX data every 3 min.
   <div style="margin-top:6px"><strong>TON Quant</strong> &mdash; analytics for the TON ecosystem. Not financial advice. DYOR.</div>
 </div>
+
+</div><!-- /page-body -->
 
 <script>
 const TOKENS = [{"address":"EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs","symbol":"USD₮","name":"Tether USD","decimals":6,"image":"https://cache.tonapi.io/imgproxy/T3PB4s7oprNVaJkwqbGg54nexKE0zzKhcrPv8jcWYzU/rs:fill:200:200:1/g:no/aHR0cHM6Ly90ZXRoZXIudG8vaW1hZ2VzL2xvZ29DaXJjbGUucG5n.webp","holders":3298761,"supply":"1429976002510000","cat":"stable","price":0.9993743618323446,"mcap":1429081354.9439986,"spark":[0.9992003197,0.9993703967,0.99970009,0.999705087,0.99990001,0.9999850002,0.99980004,0.9998200324,0.9998250306,0.99980004,0.9998100361,0.99980004,0.999845024,0.99980004,0.999895011,0.99990001,0.99980004,0.99951024,0.9996001599,0.99980004,0.9999800004,0.9998850132,0.99970009,0.9997150812,0.9995001249,0.9994952549,0.99960008,0.9995002499,0.9995002499,0.9994003598,0.9992455696,0.9993004897,0.998996009,0.9990708641,0.9992206079,0.9991008093,0.9993004897,0.9990004995,0.9989660701,0.9991008093]},{"address":"EQC98_qAmNEptUtPc7W6xdHh_ZHrBUFpw5Ft_IzNU20QAJav","symbol":"tsTON","name":"Tonstakers TON","decimals":9,"image":"https://cache.tonapi.io/imgproxy/GjhSro_E6Qxod2SDQeDhJA_F3yARNomyZFKeKw8TVOU/rs:fill:200:200:1/g:no/aHR0cHM6Ly90b25zdGFrZXJzLmNvbS9qZXR0b24vbG9nby5zdmc.webp","holders":135532,"supply":"81857283496593399","cat":"staking","price":1.9032650079453064,"mcap":155796103.32452503,"spark":[1.8684799524,1.8727753175,1.7017470562,1.6644557009,1.7086159163,1.6248638907,1.7584810232,1.7550050864,1.7795811797,1.8431082756,1.8996585039,1.938054727,1.9176562748,1.8920858038,1.8563187034,1.9127038892,1.9072166425,1.9295838894,1.9255651958,1.999212198,1.9413018143,1.911995053,1.9709689518,1.9644607084,1.9104181889,1.9269930787,1.9142520056,1.8502570204,1.8706093557,1.892536641,1.8321770512,1.7869728051,1.8545549199,1.8639241916,1.838008026,1.8079069464,1.9300357983,1.9280010162,1.8909940199,1.9030748716]},{"address":"EQA2kCVNwVsil2EM2mB0SkXytxCqQjS4mttjDpnXmwG9T6bO","symbol":"STON","name":"STON","decimals":9,"image":"https://cache.tonapi.io/imgproxy/u6g-Eo01CQbP5ugIlzQUZEzM3DsU6ixZ7Z8wwJ2r_4g/rs:fill:200:200:1/g:no/aHR0cHM6Ly9zdGF0aWMuc3Rvbi5maS9sb2dvL3N0b25fc3ltYm9sLnBuZw.webp","holders":70932,"supply":"99999999776549320","cat":"defi","price":0.5740855286344863,"mcap":57408552.735168815,"spark":[0.6066352774,0.6544243356,0.5091938337,0.5054833854,0.506126486,0.5007773355,0.5142576607,0.5142885119,0.5142910831,0.5142628023,0.5366090982,0.5340120498,0.5338319248,0.5403400114,0.5361366457,0.5437676975,0.5437676975,0.5435856145,0.5575796193,0.5642344475,0.559346512,0.5558780873,0.5633813999,0.5588717802,0.5521361485,0.5576501025,0.5566541171,0.5538838608,0.5534615768,0.5660114169,0.5595605916,0.5513626576,0.5592259979,0.5591436914,0.5599138782,0.5586955882,0.575770384,0.574540261,0.5745538622,0.5740855286]},{"address":"EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT","symbol":"NOT","name":"Notcoin","decimals":9,"image":"https://cache.tonapi.io/imgproxy/4KCMNm34jZLXt0rqeFm4rH-BK4FoK76EVX9r0cCIGDg/rs:fill:200:200:1/g:no/aHR0cHM6Ly9jZG4uam9pbmNvbW11bml0eS54eXovY2xpY2tlci9ub3RfbG9nby5wbmc.webp","holders":2848832,"supply":"102452705868520515135","cat":"meme","price":0.0004148823344936057,"mcap":42505817.78591853,"spark":[0.0004095248,0.0004104659,0.0003785981,0.0003666434,0.0003780641,0.0003494264,0.0003729539,0.0003722167,0.000377429,0.0003909024,0.000376766,0.0003898648,0.0003903978,0.0003817937,0.0003685835,0.0003842029,0.0003831007,0.0003875934,0.000378423,0.0003962303,0.0003833998,0.0003756497,0.0003776254,0.0003811467,0.0003689434,0.0003768724,0.0003790991,0.000368697,0.0003744621,0.00038312,0.000390547,0.0003887623,0.0003982218,0.0004086023,0.0004046198,0.0004177674,0.0004243514,0.0004176353,0.0004078919,0.0004148823]},{"address":"EQAJ8uWd7EBqsmpSWaRdf_I-8R8-XHwh3gsNKhy-UrdrPcUo","symbol":"HMSTR","name":"Hamster Kombat","decimals":9,"image":"https://cache.tonapi.io/imgproxy/cOMlJuViiVXDCkAghnyNj7plX8pAZ9pv3WhklvebpTY/rs:fill:200:200:1/g:no/aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3RvbmtlZXBlci9vcGVudG9uYXBpL21hc3Rlci9wa2cvcmVmZXJlbmNlcy9tZWRpYS90b2tlbl9wbGFjZWhvbGRlci5wbmc.webp","holders":1325182,"supply":"99999999666659999999","cat":"meme","price":0.00034250055133992936,"mcap":34250055.019823804,"spark":[0.0001443495,0.0001446812,0.0001626735,0.0001561371,0.0001591078,0.0001609769,0.000179221,0.0001788667,0.0001813714,0.000187846,0.0001805575,0.0001767223,0.0001943781,0.0001848535,0.0001807935,0.0001856412,0.0001851087,0.0001872795,0.0001826081,0.0001764723,0.0001714925,0.000170242,0.0001744599,0.0001731174,0.0001776235,0.0001779822,0.0001788319,0.0001876049,0.00019534,0.0002522179,0.0002664117,0.0002600102,0.0002827989,0.0002247361,0.0002964352,0.0002994131,0.0002896033,0.0002697004,0.000300023,0.0003425006]},{"address":"EQCvxJy4eG8hyHBFsZ7eePxrRsUQSFE_jpptRAYBmcG_DOGS","symbol":"DOGS","name":"Dogs","decimals":9,"image":"https://cache.tonapi.io/imgproxy/6Pb0sBFy_AzW6l39EIHGs-Iz4eLbbZUh8AYY_Xq-rcg/rs:fill:200:200:1/g:no/aHR0cHM6Ly9jZG4uZG9ncy5kZXYvZG9ncy5wbmc.webp","holders":4901366,"supply":"545217355861168545724","cat":"meme","price":4.3316391677300365e-05,"mcap":23616848.535744432,"spark":[4.34587e-05,4.68822e-05,3.95071e-05,3.82114e-05,3.92906e-05,3.70658e-05,3.95527e-05,3.95551e-05,3.95553e-05,3.95531e-05,4.16108e-05,4.11443e-05,4.06626e-05,4.00898e-05,3.9137e-05,4.06814e-05,4.06814e-05,4.06677e-05,4.04543e-05,4.23004e-05,4.16678e-05,4.00399e-05,4.07332e-05,4.02853e-05,3.91797e-05,4.00345e-05,4.00392e-05,3.94833e-05,3.93401e-05,4.0757e-05,4.13986e-05,4.02331e-05,4.33613e-05,4.30186e-05,4.34575e-05,4.30922e-05,4.39171e-05,4.27204e-05,4.31959e-05,4.33164e-05]},{"address":"EQBaCgUwOoc6gHCNln_oJzb0mVs79YG7wYoavh-o1ItaneLA","symbol":"UTYA","name":"Utya","decimals":9,"image":"https://cache.tonapi.io/imgproxy/W_W-CXNANOFhdcQRNb-CE-OJ-ZHkEFv0cdWx3SPWFno/rs:fill:200:200:1/g:no/aHR0cHM6Ly94LXhveG94LmdpdGh1Yi5pby91dHlhLzI1Ni5wbmc.webp","holders":8426,"supply":"1000000000000000000","cat":"meme","price":0.020204285507040235,"mcap":20204285.507040236,"spark":[0.0162242788,0.0162615618,0.0138629475,0.0155918156,0.0160483355,0.014977933,0.01636469,0.0163323415,0.0165610489,0.0171522413,0.0178909847,0.0193121225,0.0191379825,0.0201589944,0.0207594961,0.0216090516,0.0215470584,0.021799748,0.0215388113,0.0202775892,0.0200733703,0.0201212836,0.0204578435,0.0196413908,0.0178262758,0.0186480534,0.0183126073,0.0184344586,0.0187086653,0.0193047587,0.019249896,0.0190078922,0.0183414343,0.0183502592,0.018245916,0.01922591,0.0209193164,0.02147842,0.0196505219,0.0202042855]},{"address":"EQA1EIDrR33zgL21rwDIfGo7h4ETWieentUvg7jIT-3aP5GG","symbol":"FRT","name":"FORT Token","decimals":9,"image":"https://cache.tonapi.io/imgproxy/nO22EPJ63vRk8VkJUmAc-LSbjHMNy-Wq0q-2DVs67pU/rs:fill:200:200:1/g:no/aHR0cHM6Ly9mb3J0b24uYXBwL2ZvcnQtbG9nby5wbmc.webp","holders":71166,"supply":"498015393506627","cat":"defi","price":31.651263438920193,"mcap":15762816.416515756,"spark":[32.6654508254,32.7405152589,31.1599738822,30.530678726,30.0430923849,31.0085612143,29.288703064,31.7086673804,31.4782096504,31.9190099571,33.0584471462,34.2480442519,34.3773099494,33.4758666436,32.8513851064,33.6735820725,33.5769775338,33.9707460781,33.0324876725,33.0214534326,32.3950364978,32.5755008746,33.1811387621,32.5651033712,32.2992704354,32.4378296241,32.2144684529,31.0199982689,31.4156904149,31.8318308108,31.3523227819,30.7894410892,32.5297354694,31.7417692986,32.3078161651,31.5620919578,32.9160954736,32.4907830018,31.9500639744,31.6512634389]},{"address":"EQBlqsm144Dq6SjbPI4jjZvA1hqTIP3CvHovbIfW_t-SCALE","symbol":"DUST","name":"DeDust","decimals":9,"image":"https://cache.tonapi.io/imgproxy/rJ4qAiXZRWvGV6CCF8jHz-qE0-hmqWMUkI9BDDrfaXc/rs:fill:200:200:1/g:no/aXBmczovL1FtYVpuOHkzSm5kcmVQamVVYkRRdEJ5UFY2ZXpId1A2N3BWYUpHM1dXcGFtTEI.webp","holders":24254,"supply":"16683255523899011","cat":"defi","price":0.6229073254757627,"mcap":10392122.078620678,"spark":[0.7486850192,0.8076643653,0.5970184267,0.5542755294,0.5656958919,0.561183005,0.5919447807,0.5919802926,0.5919832521,0.5919506991,0.6316099101,0.6302890172,0.6378122628,0.620545859,0.6174712283,0.6313909988,0.6313909988,0.6311795748,0.6457543496,0.6618517649,0.6603035875,0.6433919522,0.6645096526,0.6645063311,0.6274647385,0.6274647385,0.6291269094,0.6230239016,0.6229927659,0.6196729862,0.6181094193,0.5906650779,0.600058488,0.6038832893,0.6038822264,0.602250239,0.6166361329,0.6164513269,0.6254657139,0.6229073255]},{"address":"EQBZ_cafPyDr5KUTs0aNxh0ZTDhkpEZONmLJA2SNGlLm4Cko","symbol":"REDO","name":"Resistance Dog","decimals":9,"image":"https://cache.tonapi.io/imgproxy/R-9iv8csp1jZ9ymWn4dvcnYC_z3seU2dCrDdU2whQn4/rs:fill:200:200:1/g:no/aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL1Jlc2lzdGFuY2UtRG9nL3Jlc2lzdGFuY2UtZG9nL21haW4vcmVzaXN0YW5jZS1kb2cud2VicA.webp","holders":26831,"supply":"99999990154876073","cat":"meme","price":0.07333943720277207,"mcap":7333942.99824136,"spark":[0.0618116499,0.0619536916,0.0513665868,0.0549586549,0.0573656855,0.0543463909,0.0570654736,0.0572086745,0.0580097874,0.060080607,0.0619846236,0.0660152275,0.0645705077,0.0614083302,0.0621344864,0.0653426523,0.0651551939,0.0659192909,0.0657484698,0.0682967477,0.0654428481,0.0687464137,0.0686896283,0.0678738717,0.0609875797,0.0606225862,0.0602116636,0.0574793626,0.0587483256,0.0606697361,0.0594178084,0.0576965972,0.0602779569,0.0592659056,0.0598295255,0.061779695,0.0664120436,0.0665085836,0.0708483494,0.0733394372]},{"address":"EQBsosmcZrD6FHijA7qWGLw5wo_aH8UN435hi935jJ_STORM","symbol":"STORM","name":"STORM","decimals":9,"image":"https://cache.tonapi.io/imgproxy/4ostIU6F0pvfI_kQyA4ANA6w_E_MbxPB0cwI7cTZlNg/rs:fill:200:200:1/g:no/aHR0cHM6Ly9zdGF0aWMuc3Rvcm0udGcvVE9LRU4ucG5n.webp","holders":26072,"supply":"999998980175219063","cat":"defi","price":0.005759008809529608,"mcap":5759002.93634971,"spark":[0.004772054,0.00478302,0.0048725481,0.0049283952,0.0050375605,0.0048691864,0.0050847107,0.0050746596,0.0051457218,0.0053294126,0.0050674382,0.0051571825,0.0049384734,0.0049490066,0.0049563279,0.0050358968,0.0050214496,0.0050803378,0.0050572771,0.005139293,0.0050133114,0.0049980298,0.0050390886,0.0050560508,0.0049367013,0.004931496,0.0049202556,0.0051349605,0.0051641054,0.0058630313,0.0057696931,0.0055524321,0.0056907357,0.0057525576,0.0056519826,0.0054765179,0.0057652547,0.0058043347,0.0057091331,0.0057590088]},{"address":"EQC47093oX5Xhb0xuk2lCr2RhS8rj-vul61u4W2UH5ORmG_O","symbol":"GRM","name":"Grm","decimals":9,"image":"https://cache.tonapi.io/imgproxy/lNoY3YdNeBug53ixjK6hxT6XIX3_xoIYNqv-ykIQ1Aw/rs:fill:200:200:1/g:no/aHR0cHM6Ly9ncmFtY29pbi5vcmcvaW1nL2ljb24ucG5n.webp","holders":93145,"supply":"2443781666095267197","cat":"meme","price":0.002116506013507447,"mcap":5172278.591989881,"spark":[0.0017100691,0.0017139988,0.0014154617,0.0014661075,0.0014855493,0.00149753,0.0015228019,0.0015197917,0.0015410739,0.0015960868,0.0018091439,0.0019719448,0.001998514,0.0018774355,0.0018373315,0.0018846015,0.0018791949,0.0019012328,0.001774511,0.0017224803,0.0016230038,0.0016169252,0.0016748523,0.0016217017,0.0015436487,0.0015254429,0.0015006496,0.0014825349,0.001512023,0.0017282369,0.0019913188,0.0018882391,0.0019129816,0.001870153,0.0019680431,0.0018025295,0.0022032768,0.0021551233,0.0020973394,0.002116506]},{"address":"EQCuPm01HldiduQ55xaBF_1kaW_WAUy5DHey8suqzU_MAJOR","symbol":"MAJOR","name":"Major","decimals":9,"image":"https://cache.tonapi.io/imgproxy/GK24g2FMJyJr7v24O2WX2rO02tsJ7_72ZqxlexuXmrc/rs:fill:200:200:1/g:no/aHR0cHM6Ly9tYWpvci5ib3QvaW1hZ2VzL3Rhc2tzL21ham9yX2xvZ28uc3Zn.webp","holders":173442,"supply":"97694329840313316","cat":"meme","price":0.03521912117593357,"mcap":3440708.4408476176,"spark":[0.0474796468,0.0475887539,0.0463089368,0.0467684741,0.0470239777,0.0444335324,0.043149072,0.0430637781,0.0436668152,0.0452256227,0.0427494315,0.0445669025,0.0447832527,0.0453885625,0.0437941621,0.0438736734,0.0437478063,0.0442608516,0.0384599593,0.0401283,0.040857444,0.0402201278,0.0384356988,0.0394970818,0.0389035301,0.0393626159,0.0393118011,0.0387580744,0.0385702992,0.0395973482,0.0378611859,0.0378624449,0.0379080562,0.0379134287,0.037908556,0.0368350705,0.03907121,0.0369965709,0.0350642548,0.0352191212]},{"address":"EQDNhy-nxYFgUqzfUzImBEP67JqsyMIcyk2S5_RwNNEYku0k","symbol":"stTON","name":"Staked TON","decimals":9,"image":"https://cache.tonapi.io/imgproxy/BBswWn_XyuF6aNntVmh-yXANFKQ_PkUpt30z-kotVvg/rs:fill:200:200:1/g:no/aHR0cHM6Ly9zdG9yYWdlLmdvb2dsZWFwaXMuY29tL21pbGtjcmVlay90b2tlbnMvc3RUT04ucG5n.webp","holders":16470,"supply":"1209200516732719","cat":"staking","price":1.9222565164159664,"mcap":2324393.572943023,"spark":[1.8865396899,1.8908749134,1.7187170903,1.6810534827,1.7256540417,1.6410663764,1.7754978164,1.7719881449,1.7968019106,1.8609437158,1.9186273646,1.9574069277,1.9368040955,1.9109782878,1.8748538276,1.9312570463,1.9257165547,1.9483000825,1.9442423825,2.0192459219,1.9607552128,1.9311547733,1.9907195246,1.9835835362,1.9290147444,1.9457509277,1.9328857715,1.8688470013,1.8894037544,1.9115513053,1.8505851526,1.8044237629,1.8726658094,1.8821265373,1.8559572595,1.826129546,1.9494892799,1.9474339748,1.9100539635,1.9222565164]},{"address":"EQC7vuKEYLdC72YhUWt3AUVA-Oi66Q1DxTHXH7r6pXaV50j7","symbol":"Yoda","name":"Baby Yoda","decimals":9,"image":"https://cache.tonapi.io/imgproxy/kN4Iuy0QqSWW_hb1i2DAS0HISEn6UmRjUEfwQ6u5Uec/rs:fill:200:200:1/g:no/aHR0cHM6Ly93d3cuYmFieXlvZGEubG9sL2Fzc2V0cy9oZXJvL0JhYnlZb2RhLmpwZw.webp","holders":1876,"supply":"1000000000000000000","cat":"meme","price":0.0016796448789222237,"mcap":1679644.8789222238,"spark":[0.0016049236,0.0016086117,0.0014357045,0.0014182649,0.0013049226,0.0011876749,0.001486829,0.0014133498,0.0014331414,0.0014843013,0.0015862309,0.0017604198,0.0016175967,0.0016116842,0.0016090868,0.0014751747,0.0014709426,0.0014881929,0.001723299,0.0015746742,0.0014313427,0.0014049303,0.0015364027,0.0016411208,0.0014111941,0.0014120058,0.0013992011,0.00143442,0.0014795371,0.0016025214,0.0015575598,0.0015801261,0.0014624736,0.0014025679,0.0014127721,0.0013781674,0.0018726161,0.0016950775,0.0017274006,0.0016796449]},{"address":"EQBKRSNRkeP1-2jcg5T_f__0s5Hj-vrbfNLMQy8dnZs7xd_p","symbol":"CHERRY","name":"Hot Cherry","decimals":9,"image":"https://cache.tonapi.io/imgproxy/gjha4w6XYJN_lv3aPMt4QsDNChEm3Bw93MItLfpDDeE/rs:fill:200:200:1/g:no/aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL2hvdGNoZXJyeXRvbi93ZWJzaXRlL21haW4vY29pbi5wbmc.webp","holders":3153,"supply":"100000000000000000000","cat":"meme","price":1.3689189072124875e-05,"mcap":1368918.9072124874,"spark":[1.04094e-05,1.04334e-05,9.7636e-06,9.1923e-06,9.4863e-06,8.2985e-06,9.1375e-06,9.2479e-06,9.3774e-06,9.7122e-06,1.18652e-05,1.21561e-05,1.1593e-05,1.22604e-05,1.19371e-05,1.24767e-05,1.24409e-05,1.25868e-05,1.48173e-05,1.4562e-05,1.40722e-05,1.3584e-05,1.43247e-05,1.43419e-05,1.29788e-05,1.29497e-05,1.30667e-05,1.26962e-05,1.29917e-05,1.32869e-05,1.24645e-05,1.22443e-05,1.2384e-05,1.269e-05,1.16501e-05,1.13058e-05,1.29097e-05,1.30714e-05,1.35756e-05,1.36892e-05]},{"address":"EQAtwo6qMNwtr0iTA9eKVZ32cuACFJ0VKd78GrBWOe83-X1P","symbol":"GROYP","name":"Groyper","decimals":9,"image":"https://cache.tonapi.io/imgproxy/ERo4wE06pA_tMgYenWYCzMHg4edahM-emm_RIy8Bi_Q/rs:fill:200:200:1/g:no/aHR0cHM6Ly9pbWFnZTJ1cmwuY29tL2ltYWdlcy8xNzYzNzQwNDIwNTc0LWUyMWRjNmQyLTdiOTktNGFmNi1hNTQ1LTczZDk4ZmNiODk3ZC5qcGc.webp","holders":1258,"supply":"50000000000000000","cat":"meme","price":0.0191598203207182,"mcap":957991.01603591,"spark":[0.0126175154,0.0126465101,0.0115637394,0.0137930606,0.012403183,0.0098884065,0.0102195472,0.0101993459,0.0103421709,0.0107113633,0.0129815825,0.0131720775,0.0129266372,0.01271418,0.0177563707,0.0209216747,0.0208616535,0.0211063052,0.0186109149,0.0197499431,0.0190193739,0.0186545002,0.0204202857,0.0201687665,0.0192730194,0.0205223748,0.0193732388,0.0186850982,0.0188920953,0.0190053186,0.0189509517,0.0185308564,0.0192129239,0.0179457206,0.0178537836,0.0174087636,0.0185333873,0.0185091741,0.0188017786,0.0191598203]},{"address":"EQBynBO23ywHy_CgarY9NK9FTz0yDsG82PtcbSTQgGoXwiuA","symbol":"jUSDT","name":"jUSDT","decimals":6,"image":"https://cache.tonapi.io/imgproxy/CwB_AmfxXaRx6D2SB22UgGJJu-P49hbxhjTnxv5Ruek/rs:fill:200:200:1/g:no/aHR0cHM6Ly9icmlkZ2UudG9uLm9yZy90b2tlbi8xLzB4ZGFjMTdmOTU4ZDJlZTUyM2EyMjA2MjA2OTk0NTk3YzEzZDgzMWVjNy5wbmc.webp","holders":22879,"supply":"632273925970","cat":"stable","price":1.0006067080505867,"mcap":632657.531651062,"spark":[0.9577358077,0.959936662,0.9792437992,1.0019371584,1.0172441376,0.9897351874,1.0318763934,1.0154170694,1.0296363074,1.0663920182,0.9949461585,1.0150561486,1.0043720996,0.9909795625,0.9947459742,1.0246719737,1.021732341,1.0337145409,1.0171952597,0.9943074501,1.0037550404,0.9886019044,1.0190944508,1.0154413766,1.0108217425,1.0059711936,0.9993197891,0.9895323379,1.0002967296,1.0120221868,0.9860013259,1.0115236054,1.0279707399,1.0224769681,1.0083026084,0.9915530708,1.0300290031,1.0289430655,0.9849942402,1.0006067081]},{"address":"EQDuGgqZU7_AEgiOwEe-abozIefuoairTWLOyd7c_f8GhzMf","symbol":"MTONGA","name":"Make TON Great Again","decimals":9,"image":"https://cache.tonapi.io/imgproxy/gk1JWHH77KFsD_nWFSsDyyN4n1Ke7vP9DY5ooeRv89o/rs:fill:200:200:1/g:no/aHR0cHM6Ly9jZG4uZGV4c2NyZWVuZXIuY29tL2Ntcy9pbWFnZXMvMVdRMWhFM09KWi1ZYzlzQz93aWR0aD04MDAmaGVpZ2h0PTgwMCZmaXQ9Y3JvcCZxdWFsaXR5PTEwMCZmb3JtYXQ9cG5n.webp","holders":7232,"supply":"99999998999999881","cat":"meme","price":0.004541604685599599,"mcap":454160.4640183547,"spark":[]},{"address":"EQACLXDwit01stiqK9FvYiJo15luVzfD5zU8uwDSq6JXxbP8","symbol":"SP","name":"Spintria","decimals":8,"image":"https://cache.tonapi.io/imgproxy/1n6JgCgUl5OVenawa4IQnTuZCDwSxpB3gXkW_1kEdGc/rs:fill:200:200:1/g:no/aHR0cHM6Ly9zdGF0aWMueW91c3BhY2UuZGV2L3RvbmNvaW4uanBn.webp","holders":3178,"supply":"8000000012171580","cat":"meme","price":0.004188747388930419,"mcap":335099.79162427026,"spark":[0.0040877741,0.0040971677,0.0037339567,0.0036235755,0.0037917559,0.003599561,0.0039346771,0.0039042353,0.0039818891,0.0041240336,0.0042787824,0.0043654164,0.0043436459,0.0042835409,0.004170209,0.004302102,0.0042897599,0.0043400673,0.0043359853,0.0043368182,0.0041364409,0.0040914335,0.0042300827,0.0042325416,0.0041162147,0.0041559386,0.0041294079,0.0039932624,0.0040369875,0.0040672526,0.0039565372,0.0038354529,0.0039904257,0.0040111479,0.0039815694,0.003930345,0.0042542363,0.0042295947,0.0041683339,0.0041887474]},{"address":"EQDV0Q8euPPdsxHfaOQAmtdDrh3j5o_odMYIJM4nuiUO6t88","symbol":"SCAT","name":"Scared Cats","decimals":9,"image":"https://cache.tonapi.io/imgproxy/FsoWcb9z4cLizNl_p_mE4xy4SHDbbVtCDdbCU2Ck0UQ/rs:fill:200:200:1/g:no/aHR0cHM6Ly9pLnBvc3RpbWcuY2MvelhUZ1NINDIvc2NhdGN0by5hdmlm.webp","holders":506,"supply":"100000000000000000","cat":"meme","price":0.002802308373387117,"mcap":280230.8373387117,"spark":[0.0030014995,0.0030083969,0.0028027343,0.0030213981,0.0029843954,0.002470966,0.0028063605,0.0028245992,0.0028641531,0.0029663969,0.0035968592,0.0035917952,0.0043645513,0.0039935578,0.0038667202,0.0039000311,0.0038888424,0.0039344482,0.0039790685,0.0036210324,0.0033246075,0.0035280088,0.0031729731,0.0030757297,0.0028943886,0.0027591203,0.0029167513,0.0027718929,0.0029745048,0.0028006782,0.0024891113,0.0028049364,0.002577636,0.0027692175,0.0024548657,0.0024058459,0.002826411,0.0028550382,0.0027160581,0.0028023084]},{"address":"EQC4Dx5Mqy9qhqHpH0cl_U8hejBnchNXZn_L0_Oj2zLY5B3P","symbol":"COIN","name":"The Coin","decimals":9,"image":"https://cache.tonapi.io/imgproxy/dUC5x5CIc7ISc5Ky8IUwRVRMhg1fNus7PwgVgwz_prM/rs:fill:200:200:1/g:no/aHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL1RoZUNvaW5PblRvbi9UaGVDb2luL21haW4vY29pbiUyMGxvZ28lMjBwbmcucG5n.webp","holders":567,"supply":"1000000000000000000","cat":"meme","price":0.00024167475791589217,"mcap":241674.7579158922,"spark":[6.24607e-05,6.26043e-05,5.31004e-05,4.6787e-05,4.67527e-05,4.42206e-05,4.79934e-05,4.78985e-05,4.85693e-05,5.03031e-05,5.55537e-05,6.24272e-05,0.0001281856,0.0001210142,0.0001141389,0.0001503921,0.0001499607,0.0001517193,0.0003001938,0.000293529,0.0002835733,0.0002490616,0.000311952,0.0003001732,0.0002851354,0.0002235707,0.0002197745,0.0002783325,0.0002879017,0.0002773139,0.000249723,0.0002226238,0.0002071025,0.0002137735,0.0002119534,0.000214425,0.0002238229,0.0002396185,0.0002438715,0.0002416748]},{"address":"EQD0vdSA_NedR9uvbgN9EikRX-suesDxGeFg69XQMavfLqIw","symbol":"BOLT","name":"Huebel Bolt","decimals":9,"image":"https://cache.tonapi.io/imgproxy/05DkTmM2Eu4YZX-ED0eQpRS8U1q7SbD3o1GC5r5ZTBw/rs:fill:200:200:1/g:no/aHR0cHM6Ly9jbG91ZGZsYXJlLWlwZnMuY29tL2lwZnMvUW1YNDdkb2RVZzFhY1hveFlEVUxXVE5mU2hYUlc1dUhyQ21vS1NVTlI5eEtRdw.webp","holders":22123,"supply":"6000693317361000","cat":"defi","price":0.028046756700906426,"mcap":168299.98550877903,"spark":[]},{"address":"EQBARQjzu8ZnTzJJMXlDqrnaZ-CH_nrV2XbzL28l6-p8xNo9","symbol":"GTA","name":"Grand Ton Ape","decimals":9,"image":"https://cache.tonapi.io/imgproxy/Bf0GlV6gPCDw78hpbiKhvLZYDYXX-HQ8MjErlucMaeo/rs:fill:200:200:1/g:no/aHR0cHM6Ly9maWxlcy5jYXRib3gubW9lL2p2MHhoZy5wbmc.webp","holders":503,"supply":"1000000000000000000","cat":"meme","price":2.8499115996783365e-05,"mcap":28499.115996783366,"spark":[7.09755e-05,7.11386e-05,5.70525e-05,5.12721e-05,5.11123e-05,4.81162e-05,5.70388e-05,5.08421e-05,5.15541e-05,5.33944e-05,4.44038e-05,4.2638e-05,4.03918e-05,3.79853e-05,3.75977e-05,5.06382e-05,5.04929e-05,5.1085e-05,3.64567e-05,4.16132e-05,3.93811e-05,4.14681e-05,4.4933e-05,4.40054e-05,3.21744e-05,3.28331e-05,3.41053e-05,3.41052e-05,3.7072e-05,2.98291e-05,2.67391e-05,2.95459e-05,3.32663e-05,3.05442e-05,3.03247e-05,2.97342e-05,2.81773e-05,2.40424e-05,3.08335e-05,2.84991e-05]}];
 const GRAM_TS = Date.UTC(2026,5,15,12,0,0);
 
-/* ---------- GRAM switch (shared logic) ---------- */
-function unit(){ return localStorage.getItem("tq_unit") || (Date.now()>=GRAM_TS ? "GRAM":"TON"); }
+/* ---------- GRAM switch ---------- */
+function unit(){ return localStorage.getItem("tq_unit")||(Date.now()>=GRAM_TS?"GRAM":"TON"); }
 function applyUnit(){
   const u=unit();
   document.querySelectorAll("[data-unit]").forEach(el=>el.textContent=u);
-  document.getElementById("gramSwitch").classList.toggle("on", u==="GRAM");
-  const _s2=document.getElementById("gramSwitch2");if(_s2)_s2.classList.toggle("on",u==="GRAM");
-  const _o2=document.getElementById("optTon2");if(_o2)_o2.classList.toggle("on",u==="TON");
-  const _g2=document.getElementById("optGram2");if(_g2)_g2.classList.toggle("on",u==="GRAM");
-  const _gc2=document.getElementById("gramCountdown2");if(_gc2)_gc2.textContent=document.getElementById("gramCountdown").textContent;
-  document.getElementById("optTon").classList.toggle("on", u==="TON");
-  document.getElementById("optGram").classList.toggle("on", u==="GRAM");
+  ["gramSwitch","gramSwitch2"].forEach(id=>{
+    const el=document.getElementById(id); if(el)el.classList.toggle("on",u==="GRAM");
+  });
+  ["optTon","optTon2"].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.toggle("on",u==="TON");});
+  ["optGram","optGram2"].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.toggle("on",u==="GRAM");});
 }
-document.getElementById("gramSwitch").addEventListener("click",()=>{
-  localStorage.setItem("tq_unit", unit()==="GRAM" ? "TON":"GRAM"); applyUnit(); render();
+["gramSwitch","gramSwitch2"].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el)el.addEventListener("click",()=>{localStorage.setItem("tq_unit",unit()==="GRAM"?"TON":"GRAM");applyUnit();render();});
 });
-const _sw2=document.getElementById("gramSwitch2");
-if(_sw2)_sw2.addEventListener("click",()=>{localStorage.setItem("tq_unit",unit()==="GRAM"?"TON":"GRAM");applyUnit();render();});
 (function(){
-  const el=document.getElementById("gramCountdown");
   const ms=GRAM_TS-Date.now();
-  if(ms>0){ el.textContent="GRAM in "+Math.ceil(ms/86400000)+"d"; } else { el.textContent=""; }
+  const lbl=ms>0?"GRAM in "+Math.ceil(ms/86400000)+"d":"";
+  ["gramCountdown","gramCountdown2"].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=lbl;});
+  if(ms>0) document.getElementById("gramNote").style.display="";
 })();
+
+/* ---------- Burger ---------- */
+document.getElementById("navBurger").addEventListener("click",()=>{
+  document.getElementById("navDrawer").classList.toggle("open");
+});
+document.addEventListener("click",e=>{
+  if(!document.getElementById("topbar").contains(e.target)&&!document.getElementById("navDrawer").contains(e.target))
+    document.getElementById("navDrawer").classList.remove("open");
+});
 
 /* ---------- formatting ---------- */
 const fmtUsd=n=>{
-  if(n==null||!isFinite(n))return "\u2014";
+  if(n==null||!isFinite(n))return "—";
   if(n===0)return "$0.00";
   if(n<0.0001)return "$"+n.toExponential(2);
   if(n<1)return "$"+n.toFixed(6).replace(/0+$/,"").replace(/\.$/,"");
@@ -270,11 +300,12 @@ const fmtUsd=n=>{
   return "$"+n.toLocaleString(undefined,{maximumFractionDigits:2});
 };
 const fmtInt=n=>n>=1e6?(n/1e6).toFixed(2)+"M":n.toLocaleString();
-const cls=s=>(!s?"":(s.startsWith("\u2212")||s.startsWith("-"))?"down":(s.startsWith("+")?"up":""));
+const cls=s=>(!s?"":(s.startsWith("−")||s.startsWith("-"))?"down":(s.startsWith("+")?"up":""));
+const esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 /* ---------- sparkline ---------- */
 function spark(canvas,pts,upTrend){
-  const w=canvas.width=110,h=canvas.height=34,ctx=canvas.getContext("2d");
+  const w=canvas.width=100,h=canvas.height=30,ctx=canvas.getContext("2d");
   if(!pts||pts.length<2)return;
   const mn=Math.min(...pts),mx=Math.max(...pts),rng=(mx-mn)||1;
   ctx.strokeStyle=upTrend?"#18a957":"#d63b3b";ctx.lineWidth=1.5;ctx.beginPath();
@@ -282,28 +313,21 @@ function spark(canvas,pts,upTrend){
   ctx.stroke();
 }
 
-/* ---------- categories ---------- */
-const CORE=t=>t.cat!=="stable"&&t.cat!=="staking";  // for treemap/movers/index/breadth
-let CATF="all";
-const CAT_LABELS={all:"All",meme:"Memes",defi:"DeFi",stable:"Stables",staking:"Staking"};
-
-/* ---------- state & render ---------- */
-let live={};   // address -> {usd, ton, d24}
-let dex={};    // address -> {tvl, vol, buys, sells}
-let spreads={};
+/* ---------- categories / filters ---------- */
+const CORE=t=>t.cat!=="stable"&&t.cat!=="staking";
+let CATF="all", FILT="all";
+let live={},dex={};
 let tonUsd=null;
-let tonSeries=null;
-let FILT="all";
+
 function passFilter(t){
-  const dx=dex[t.address];
-  const d=d24Of(t);
-  const mc=mcapOf(t);
+  const dx=dex[t.address];const d=d24Of(t);const mc=mcapOf(t);
   if(FILT==="movers")return isFinite(d)&&Math.abs(d)>=5;
   if(FILT==="dormant")return dx&&mc>0&&dx.vol/mc<0.001;
   if(FILT==="wash")return dx&&dx.tvl>0&&dx.vol/dx.tvl>=3&&isFinite(d)&&Math.abs(d)<2;
   if(FILT==="liquid")return dx&&dx.tvl>=100000;
   return true;
 }
+
 function render(){
   const q=(document.getElementById("searchInput").value||"").trim().toLowerCase();
   const tb=document.getElementById("tbody");
@@ -312,20 +336,20 @@ function render(){
    .forEach((t,i)=>{
     const lv=live[t.address]||{};
     const usd=lv.usd??t.price, d24=lv.d24||"";
-    const dnum=parseFloat(String(d24).replace("\u2212","-").replace("%",""));
+    const dnum=parseFloat(String(d24).replace("−","-").replace("%",""));
     const mcap=usd*Number(t.supply)/Math.pow(10,t.decimals);
     const dx=dex[t.address];
     const vt=(dx&&dx.tvl>0)?dx.vol/dx.tvl:null;
     const tr=document.createElement("tr");
     tr.innerHTML=`<td class="rank">${i+1}</td>
-      <td><div class="tok"><img loading="lazy" src="${t.image}" onerror="this.style.visibility=\'hidden\'"/><div><div class="nm">${t.name}</div><div class="sy">${t.symbol}</div></div></div></td>
+      <td><div class="tok"><img loading="lazy" src="${t.image}" onerror="this.style.visibility='hidden'"/><div><div class="nm">${t.name}</div><div class="sy">${t.symbol}</div></div></div></td>
       <td class="num">${fmtUsd(usd)}</td>
-      <td class="num ${cls(d24)}">${d24||"\u2014"}</td>
-      <td class="num hide-m"><canvas></canvas></td>
+      <td class="num ${cls(d24)}">${d24||"—"}</td>
+      <td class="num hide-s"><canvas></canvas></td>
       <td class="num">${fmtUsd(mcap)}</td>
-      <td class="num hide-m">${dx?fmtUsd(dx.vol):"\u2014"}</td>
-      <td class="num hide-m">${dx?fmtUsd(dx.tvl):"\u2014"}</td>
-      <td class="num hide-m">${vt!=null?(vt>=3&&Math.abs(dnum||0)<2?'<span class="pill bad" title="volume/TVL high with flat price \u2014 wash?">'+vt.toFixed(1)+"x \ud83d\udebf</span>":vt.toFixed(2)+"x"):"\u2014"}</td>
+      <td class="num hide-m">${dx?fmtUsd(dx.vol):"—"}</td>
+      <td class="num hide-m">${dx?fmtUsd(dx.tvl):"—"}</td>
+      <td class="num hide-m">${vt!=null?(vt>=3&&Math.abs(dnum||0)<2?'<span class="pill" style="background:#fde8e8;color:#7a1a1a" title="Vol/TVL high + flat price">'+vt.toFixed(1)+"x 🚿</span>":vt.toFixed(2)+"x"):"—"}</td>
       <td class="num hide-m">${fmtInt(t.holders)}</td>`;
     tr.addEventListener("click",()=>location.href="token.html?a="+t.address);
     tb.appendChild(tr);
@@ -352,12 +376,13 @@ function jget(url){
       catch(e){ if(i>=3)throw e; await sleep(800*(i+1)); continue; }
       if(r.ok)return r.json();
       if(r.status===429&&i<4){ await sleep(1100*(i+1)); continue; }
-      throw new Error(url+" \u2192 "+r.status);
+      throw new Error(url+" → "+r.status);
     }
   };
   if(!isTon)return fetchRetry();
   return (async()=>{ await acquire(); try{ return await fetchRetry(); } finally{ release(); } })();
 }
+
 async function refresh(){
   try{
     const addrs=TOKENS.map(t=>t.address);
@@ -370,37 +395,37 @@ async function refresh(){
       }
       await sleep(120);
     }
-    document.getElementById("livePill").innerHTML="&#9679; Live";
-    document.getElementById("livePill").className="pill good";
-    /* trending: top movers 24h */
+    const badge=document.getElementById("liveBadge");
+    badge.style.color="var(--good)";badge.textContent="Live";
+    /* trending movers */
     const movers=TOKENS.filter(CORE).map(t=>{
-      const d=parseFloat(String((live[t.address]||{}).d24||"").replace("\u2212","-").replace("%",""));
-      return {t,d};
-    }).filter(x=>isFinite(x.d)&&Math.abs(x.d)>=2).sort((a,b)=>Math.abs(b.d)-Math.abs(a.d)).slice(0,4);
+      const d=parseFloat(String((live[t.address]||{}).d24||"").replace("−","-").replace("%",""));
+      return{t,d};
+    }).filter(x=>isFinite(x.d)&&Math.abs(x.d)>=2).sort((a,b)=>Math.abs(b.d)-Math.abs(a.d)).slice(0,5);
     const mv=document.getElementById("movers");
     if(movers.length){
       mv.style.display="";
-      mv.innerHTML='<span style="color:var(--muted);margin-right:6px">\ud83d\udd25 24h movers:</span>'+movers.map(x=>
+      mv.innerHTML='<span style="color:var(--muted);margin-right:6px">🔥 24h movers:</span>'+movers.map(x=>
         `<span class="mover" onclick="location.href='token.html?a=${x.t.address}'"><img src="${x.t.image}"/>${x.t.symbol} <span class="${x.d>0?"up":"down"}">${x.d>0?"+":""}${x.d}%</span></span>`).join("");
     }else mv.style.display="none";
   }catch(e){
     console.warn("refresh failed",e);
-    document.getElementById("livePill").textContent="Snapshot";
-    document.getElementById("livePill").className="pill";
+    const badge=document.getElementById("liveBadge");
+    badge.style.color="var(--muted)";badge.textContent="Snapshot";
   }
   render();
 }
 
-/* ---------- search / open by address ---------- */
+/* ---------- search ---------- */
 function go(){
   const v=document.getElementById("searchInput").value.trim();
-  if(/^[EU]Q[A-Za-z0-9_-]{46}$/.test(v)){ location.href="token.html?a="+encodeURIComponent(v); }
+  if(/^[EU]Q[A-Za-z0-9_-]{46}$/.test(v)) location.href="token.html?a="+encodeURIComponent(v);
 }
 document.getElementById("goBtn").addEventListener("click",go);
 document.getElementById("searchInput").addEventListener("keydown",e=>{if(e.key==="Enter")go();});
 let _sd;document.getElementById("searchInput").addEventListener("input",()=>{clearTimeout(_sd);_sd=setTimeout(render,120);});
 
-/* ---------- DexScreener batch ---------- */
+/* ---------- DexScreener ---------- */
 async function loadDex(){
   try{
     const addrs=TOKENS.map(t=>t.address);
@@ -410,64 +435,21 @@ async function loadDex(){
       const d=await jget("https://api.dexscreener.com/latest/dex/tokens/"+chunk.join(","));
       pairs=pairs.concat((d.pairs||[]).filter(p=>p.chainId==="ton"));
     }
-    const known=new Set(pairs.map(p=>p.pairAddress));
-    const noBase=addrs.filter(a=>!pairs.some(p=>p.baseToken?.address===a));
-    for(const a of noBase){
-      try{
-        const d=await jget("https://api.dexscreener.com/latest/dex/tokens/"+a);
-        for(const p of (d.pairs||[]).filter(p=>p.chainId==="ton"&&!known.has(p.pairAddress))){p._forced=a;pairs.push(p);known.add(p.pairAddress);}
-      }catch(e){}
-    }
-    dex={}; spreads={};
-    for(const t of TOKENS){
-      const ps=pairs.filter(p=>p.baseToken?.address===t.address&&(p.liquidity?.usd||0)>5000&&(p.volume?.h24||0)>100&&p.priceUsd);
-      if(ps.length>=2){
-        const sorted=ps.map(p=>({px:parseFloat(p.priceUsd),liq:p.liquidity?.usd||0})).sort((a,b)=>a.px-b.px);
-        const cheap=sorted[0], exp=sorted[sorted.length-1];
-        const spread=(exp.px-cheap.px)/cheap.px*100;
-        const na=netArb(spread/100,cheap.liq,exp.liq);  // realizable arb after slippage+fees+gas
-        spreads[t.address]={spread,pools:ps.length,cheapLiq:cheap.liq,expLiq:exp.liq,net:na.netPct,netUsd:na.netUsd,size:na.size};
-      }
-    }
+    dex={};
     for(const p of pairs){
-      const owner=p._forced||((TOKENS.some(t=>t.address===p.baseToken?.address))?p.baseToken.address:(TOKENS.some(t=>t.address===p.quoteToken?.address)?p.quoteToken.address:null));
+      const owner=(TOKENS.some(t=>t.address===p.baseToken?.address))?p.baseToken.address:(TOKENS.some(t=>t.address===p.quoteToken?.address)?p.quoteToken.address:null);
       if(!owner)continue;
       const d=dex[owner]||(dex[owner]={tvl:0,vol:0,buys:0,sells:0,pools:0});
       d.tvl+=p.liquidity?.usd||0; d.vol+=p.volume?.h24||0;
       d.buys+=p.txns?.h24?.buys||0; d.sells+=p.txns?.h24?.sells||0; d.pools++;
     }
   }catch(e){console.warn("dex batch failed",e);}
-  render(); summary(); treemap(); arb(); alphaDigest();
-}
-
-/* ---------- Alpha digest: all triggered signals across tokens ---------- */
-function alphaDigest(){
-  const sigs=[];
-  for(const t of TOKENS){
-    const dx=dex[t.address]; if(!dx)continue;
-    const d=d24Of(t), mc=mcapOf(t), flat=isFinite(d)&&Math.abs(d)<2;
-    const sp=spreads[t.address];
-    if(CORE(t)&&isFinite(d)&&Math.abs(d)>=8)sigs.push([Math.abs(d),t,d>0?"good":"bad",`${d>0?"\ud83d\udd25":"\ud83d\udd3b"} ${d>0?"+":""}${d.toFixed(1)}% 24h`,"momentum"]);
-    if(dx.tvl>0&&dx.vol/dx.tvl>=3&&flat)sigs.push([dx.vol/dx.tvl,t,"bad",`\ud83d\udebf vol ${(dx.vol/dx.tvl).toFixed(1)}x TVL, price flat — wash?`,"wash"]);
-    if(dx.buys+dx.sells>50&&dx.buys>dx.sells*1.5&&flat)sigs.push([dx.buys/dx.sells,t,"warn",`\ud83e\uddf1 ${dx.buys} buys vs ${dx.sells} sells, price flat — sell wall absorbing`,"absorption"]);
-    if(dx.buys+dx.sells>50&&dx.sells>dx.buys*1.5&&flat)sigs.push([dx.sells/dx.buys,t,"good",`\ud83e\udd11 ${dx.sells} sells vs ${dx.buys} buys, price holds — hidden buyer`,"hidden-buyer"]);
-    if(sp&&sp.netUsd>0)sigs.push([sp.netUsd,t,"good",`\u2696\ufe0f net +$${sp.netUsd.toFixed(0)} (${sp.net.toFixed(2)}%) arb after costs — ${sp.spread.toFixed(1)}% gross gap`,"arb"]);
-    if(CORE(t)&&mc>0&&dx.vol/mc>0.5)sigs.push([dx.vol/mc,t,"warn",`\ud83c\udf21\ufe0f volume ${(dx.vol/mc*100).toFixed(0)}% of mcap — overheated churn`,"turnover"]);
-  }
-  sigs.sort((a,b)=>b[0]-a[0]);
-  const box=document.getElementById("alphaBox"), el=document.getElementById("alphaList");
-  if(!sigs.length){box.style.display="none";return;}
-  box.style.display="";
-  el.innerHTML=sigs.slice(0,8).map(x=>`<div class="ev">
-    <span class="tk" onclick="location.href='token.html?a=${x[1].address}'">${x[1].symbol}</span>
-    <span>${x[3]}</span>
-    <span class="pill ${x[2]==="good"?"good":x[2]==="bad"?"bad":"warn"}" style="margin-left:auto">${x[4]}</span>
-  </div>`).join("");
+  render(); summary(); treemap();
 }
 
 /* ---------- summary bar ---------- */
 function mcapOf(t){const lv=live[t.address]||{};return (lv.usd??t.price)*Number(t.supply)/Math.pow(10,t.decimals);}
-function d24Of(t){return parseFloat(String((live[t.address]||{}).d24||"").replace("\u2212","-").replace("%",""));}
+function d24Of(t){return parseFloat(String((live[t.address]||{}).d24||"").replace("−","-").replace("%",""));}
 function summary(){
   const totalM=TOKENS.reduce((s,t)=>s+mcapOf(t),0);
   const totalT=Object.values(dex).reduce((s,d)=>s+d.tvl,0);
@@ -486,8 +468,8 @@ function summary(){
   }
   document.getElementById("sumbar").style.display="";
   document.getElementById("sMcap").textContent=fmtUsd(totalM);
-  document.getElementById("sTvl").textContent=totalT?fmtUsd(totalT):"\u2014";
-  document.getElementById("sVol").textContent=totalV?fmtUsd(totalV):"\u2014";
+  document.getElementById("sTvl").textContent=totalT?fmtUsd(totalT):"—";
+  document.getElementById("sVol").textContent=totalV?fmtUsd(totalV):"—";
   document.getElementById("sTx").textContent=totalTx?totalTx.toLocaleString()+" trades":"";
   const si=document.getElementById("sIdx");
   if(idx!=null){si.textContent=(idx>0?"+":"")+idx.toFixed(2)+"%";si.className="v "+(idx>0?"up":idx<0?"down":"");}
@@ -522,173 +504,63 @@ function tmColor(d){
 }
 function treemap(){
   const el=document.getElementById("tmap");
-  const W=el.clientWidth||1200,H=el.clientHeight||340;
+  const W=el.clientWidth||1200,H=el.clientHeight||300;
   const base=CATF==="all"?TOKENS.filter(CORE):TOKENS.filter(t=>t.cat===CATF);
   const items=base.map(t=>({value:Math.max(mcapOf(t),1),t})).sort((a,b)=>b.value-a.value);
   el.innerHTML=squarify(items,W,H).map(r=>{
     const d=d24Of(r.it.t);
     const big=r.w>70&&r.h>40;
     return `<div class="tm" style="left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px;background:${tmColor(d)}"
-      onclick="location.href='token.html?a=${r.it.t.address}'" title="${esc2(r.it.t.name)}: ${fmtUsd(r.it.value)} mcap, ${isFinite(d)?d+"%":"?"} 24h">
+      onclick="location.href='token.html?a=${r.it.t.address}'" title="${esc(r.it.t.name)}: ${fmtUsd(r.it.value)} mcap, ${isFinite(d)?d+"%":"?"} 24h">
       <span class="ts" style="font-size:${big?14:10}px">${r.it.t.symbol}</span>
       ${big?`<span class="tp">${isFinite(d)?(d>0?"+":"")+d.toFixed(1)+"%":""}</span>`:""}</div>`;
   }).join("");
 }
 window.addEventListener("resize",()=>{clearTimeout(window._tmr);window._tmr=setTimeout(treemap,200);});
 
-/* ---------- correlation matrix + beta ---------- */
-const rets=a=>{const r=[];for(let i=1;i<a.length;i++){r.push(a[i-1]>0?Math.log(a[i]/a[i-1]):0);}return r;};
-function pearson(x,y){
-  const n=Math.min(x.length,y.length);if(n<5)return null;
-  let sx=0,sy=0;for(let i=0;i<n;i++){sx+=x[i];sy+=y[i];}
-  const mx=sx/n,my=sy/n;let num=0,dx=0,dy=0;
-  for(let i=0;i<n;i++){num+=(x[i]-mx)*(y[i]-my);dx+=(x[i]-mx)**2;dy+=(y[i]-my)**2;}
-  if(dx===0||dy===0)return 0;
-  return num/Math.sqrt(dx*dy);
-}
-function mxColor(c){
-  if(c==null)return "#eef0f3";
-  const x=Math.max(-1,Math.min(1,c));
-  return x>=0?`rgba(0,152,234,${(0.08+x*0.85).toFixed(2)})`:`rgba(214,59,59,${(0.08-x*0.85).toFixed(2)})`;
-}
-async function matrix(){
-  try{
-    const c=JSON.parse(sessionStorage.getItem("tq_mx_v1")||"null");
-    if(c&&Date.now()-c.ts<15*60*1000){document.getElementById("mxWrap").innerHTML=c.html;applyUnit();return;}
-  }catch(e){}
-  const now=Math.floor(Date.now()/1000), start=now-7*86400;
-  const STEP=3*3600, grid=[];
-  for(let t=start;t<=now;t+=STEP)grid.push(t);
-  const resample=pts=>{ // pts: [[ts,val],...] ascending -> forward-filled grid values
-    const sorted=pts.slice().sort((a,b)=>a[0]-b[0]);
-    const out=[];let k=0,last=null;
-    for(const g of grid){
-      while(k<sorted.length&&sorted[k][0]<=g){last=sorted[k][1];k++;}
-      out.push(last);
-    }
-    return out.map(v=>v==null?out.find(x=>x!=null):v);
-  };
-  async function series(token){
-    try{
-      const d=await jget(`https://tonapi.io/v2/rates/chart?token=${token}&currency=usd&start_date=${start}&end_date=${now}&points_count=120`);
-      const pts=d.points||[];
-      if(pts.length<10)return null;
-      return resample(pts);
-    }catch(e){return null;}
-  }
-  const tonS=await series("ton");
-  const S=[];
-  for(const t of TOKENS)S.push(await series(t.address));
-  const R=S.map(x=>x?rets(x):[]);
-  const tonR=tonS?rets(tonS):null;
-  let html='<table class="mx"><tr><th></th>'+TOKENS.map(t=>`<th style="text-align:center" title="${esc2(t.name)}">${esc2(t.symbol.slice(0,5))}</th>`).join("")+'<th style="text-align:center">&beta; <span data-unit>TON</span></th></tr>';
-  for(let i=0;i<TOKENS.length;i++){
-    html+=`<tr><th title="${esc2(TOKENS[i].name)}">${esc2(TOKENS[i].symbol.slice(0,6))}</th>`;
-    for(let j=0;j<TOKENS.length;j++){
-      const c=i===j?1:pearson(R[i],R[j]);
-      html+=`<td style="background:${mxColor(c)}" title="${esc2(TOKENS[i].symbol)} \u00d7 ${esc2(TOKENS[j].symbol)}: ${c==null?"n/a":c.toFixed(2)}">${i===j?"1":(c!=null&&Math.abs(c)>=0.5?(Math.round(c*10)/10).toString().replace("0.","."):"")}</td>`;
-    }
-    let beta=null;
-    if(tonR&&R[i].length){
-      const n=Math.min(R[i].length,tonR.length);
-      let mx=0,my=0;for(let k=0;k<n;k++){mx+=R[i][k];my+=tonR[k];}mx/=n;my/=n;
-      let cv=0,v=0;for(let k=0;k<n;k++){cv+=(R[i][k]-mx)*(tonR[k]-my);v+=(tonR[k]-my)**2;}
-      if(v>0)beta=cv/v;
-    }
-    html+=`<td style="width:46px;font-weight:700;background:#f4f7fb">${beta==null?"\u2014":beta.toFixed(2)}</td></tr>`;
-  }
-  html+="</table>";
-  document.getElementById("mxWrap").innerHTML=html;
-  try{sessionStorage.setItem("tq_mx_v1",JSON.stringify({ts:Date.now(),html}));}catch(e){}
-  applyUnit();
-}
-const esc2=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-
-/* Realizable cross-DEX arb after costs. CPMM avg-execution slippage per leg
-   ≈ S/(poolLiq/2); fees 0.3%/leg (0.6% round-trip); gas ~0.05 TON round-trip
-   (2 swaps, post-2025 ~6x TON fee cut — was over-budgeted at 0.3 TON).
-   Scans trade sizes (capped at 25% of the thinner pool) and returns the size
-   that MAXIMISES net USD profit — i.e. is there real money here, and how much. */
-function netArb(spreadFrac,cheapLiq,expLiq){
-  const yc=cheapLiq/2, ye=expLiq/2, fees=0.006;
-  const gasUsd=0.05*(tonUsd||3);
-  const cap=Math.min(yc,ye)*0.5;              // don't model a trade bigger than half the thin side's USD reserve
-  let best={netUsd:-Infinity,netPct:0,size:0};
-  for(let s=20;s<=cap;s*=1.4){
-    const slip=s/yc + s/ye;                    // both legs
-    const netFrac=spreadFrac-slip-fees-gasUsd/s;
-    const netUsd=s*(spreadFrac-slip-fees)-gasUsd;
-    if(netUsd>best.netUsd)best={netUsd,netPct:netFrac*100,size:s};
-  }
-  if(best.size===0)best={netUsd:-gasUsd,netPct:(spreadFrac-fees)*100,size:0};
-  return best;
-}
-function arb(){
-  const el=document.getElementById("arbList");
-  // rank by realizable net profit, not gross spread
-  const list=TOKENS.map(t=>({t,s:spreads[t.address]})).filter(x=>x.s)
-    .sort((a,b)=>b.s.netUsd-a.s.netUsd).slice(0,10);
-  el.innerHTML=list.length?list.map(x=>{
-    const profitable=x.s.netUsd>0;
-    const sizeLbl=x.s.size>=1000?"$"+(x.s.size/1000).toFixed(1)+"k":"$"+Math.round(x.s.size);
-    return `<div class="arb-row">
-    <span style="font-weight:700;cursor:pointer;color:var(--accent)" onclick="location.href='token.html?a=${x.t.address}'">${x.t.symbol}</span>
-    <span class="hint" style="margin:0">${x.s.spread.toFixed(2)}% gross${profitable?" · "+sizeLbl:""}</span>
-    <span class="${profitable?"up":"hint"}" style="font-weight:700;font-variant-numeric:tabular-nums;margin:0" title="net % after both-leg slippage, 0.6% fees and ~0.05 TON gas">${profitable?"+$"+x.s.netUsd.toFixed(0)+" ("+x.s.net.toFixed(2)+"%)":"unprofitable"}</span>
-  </div>`;}).join(""):'<div class="hint">No multi-pool tokens with meaningful spread.</div>';
-}
-
-/* ---------- Whale tape ---------- */
+/* ---------- Activity digest (DEX-based, 0 extra requests) ---------- */
 let tapeItems=[],tapeShown=8;
-async function whaleTape(){
-  try{
-    const c=JSON.parse(sessionStorage.getItem("tq_tape_v1")||"null");
-    if(c&&Date.now()-c.ts<5*60*1000){
-      tapeItems=c.items.map(x=>({...x,t:TOKENS.find(t=>t.address===x.addr)||{symbol:x.symX,address:x.addr}}));
-      renderTape();return;
-    }
-  }catch(e){}
+function activityDigest(){
   const items=[];
   for(const t of TOKENS){
-    try{
-      const ev=await jget(`https://tonapi.io/v2/accounts/${t.address}/events?limit=10`);
-      const price=(live[t.address]||{}).usd??t.price;
-      for(const e of (ev.events||[])){
-        for(const a of (e.actions||[])){
-          let usd=null,desc="";
-          if(a.type==="TonTransfer"&&a.TonTransfer&&tonUsd){usd=Number(a.TonTransfer.amount)/1e9*tonUsd;desc=(Number(a.TonTransfer.amount)/1e9).toFixed(1)+" TON";}
-          else if(a.type==="JettonTransfer"&&a.JettonTransfer){
-            const jt=a.JettonTransfer;
-            if(jt.jetton?.address&&price&&(jt.jetton.symbol===t.symbol||jt.jetton?.address)){
-              const amt=Number(jt.amount)/Math.pow(10,parseInt(jt.jetton?.decimals??9));
-              if(jt.jetton.symbol===t.symbol){usd=amt*price;desc=amt.toLocaleString(undefined,{maximumFractionDigits:0})+" "+t.symbol;}
-            }
-          }
-          if(usd!=null&&usd>=500)items.push({ts:e.timestamp,usd,desc,type:a.type,t});
-        }
-      }
-    }catch(e){}
+    const dx=dex[t.address]; if(!dx||!dx.vol)continue;
+    const lv=live[t.address]||{};
+    const d=parseFloat(String(lv.d24||"").replace("−","-").replace("%",""));
+    const mc=mcapOf(t);
+    const flat=isFinite(d)&&Math.abs(d)<2;
+    let tag="",desc="",priority=0;
+    if(dx.tvl>0&&dx.vol/dx.tvl>=3&&flat){
+      tag="🚿 Wash?"; desc=`Vol ${(dx.vol/dx.tvl).toFixed(1)}× TVL — price ${d?d.toFixed(1)+"%":"flat"}`; priority=dx.vol*1.5;
+    }else if(dx.buys>0&&dx.sells>0&&dx.buys/dx.sells>=2&&flat){
+      tag="🏦 Buy pressure"; desc=`${dx.buys}B / ${dx.sells}S buys dominate — price flat`; priority=dx.vol*1.2;
+    }else if(dx.buys>0&&dx.sells>0&&dx.sells/dx.buys>=2&&flat){
+      tag="🧱 Sell wall"; desc=`${dx.sells}S / ${dx.buys}B sells absorbed — price holds`; priority=dx.vol*1.2;
+    }else if(mc>0&&dx.vol/mc>=0.12){
+      tag="🌡️ Hot"; desc=`${(dx.vol/mc*100).toFixed(0)}% vol/mcap · ${fmtUsd(dx.vol)} traded 24h`; priority=dx.vol/mc*2e5;
+    }else if(dx.vol>=50000){
+      tag="💰 Volume"; desc=`${fmtUsd(dx.vol)} 24h across ${dx.pools} pool${dx.pools!==1?"s":""}`; priority=dx.vol;
+    }else continue;
+    items.push({t,tag,desc,vol:dx.vol,priority});
   }
-  items.sort((a,b)=>b.ts-a.ts);
-  tapeItems=items.slice(0,30);
-  try{sessionStorage.setItem("tq_tape_v1",JSON.stringify({ts:Date.now(),items:tapeItems.map(x=>({ts:x.ts,usd:x.usd,desc:x.desc,type:x.type,addr:x.t.address,symX:x.t.symbol}))}));}catch(e){}
+  items.sort((a,b)=>b.priority-a.priority);
+  tapeItems=items.slice(0,15);
   renderTape();
 }
 function renderTape(){
   const el=document.getElementById("tape");
-  if(!tapeItems.length){el.innerHTML='<div class="hint">No moves ≥ $500 in recent events of the jetton masters.</div>';return;}
+  if(!tapeItems.length){el.innerHTML='<div class="hint">Waiting for DEX data…</div>';return;}
   el.innerHTML=tapeItems.slice(0,tapeShown).map(x=>`<div class="ev">
     <span class="tk" onclick="location.href='token.html?a=${x.t.address}'">${x.t.symbol}</span>
-    <span class="pill ${x.usd>=10000?"down":""}" style="${x.usd>=10000?"background:var(--bad);color:#fff":""}">${fmtUsd(x.usd)}</span>
-    <span>${x.desc}</span>
-    <span class="hint" style="margin:0">${x.type}</span>
-    <span class="tm2">${new Date(x.ts*1000).toISOString().slice(5,16).replace("T"," ")} UTC</span>
+    <span class="pill" style="font-size:12px">${x.tag}</span>
+    <span style="color:var(--muted);font-size:12px">${x.desc}</span>
+    <span class="tm2">${fmtUsd(x.vol)} vol</span>
   </div>`).join("");
   const more=document.getElementById("tapeMore");
   more.style.display=tapeItems.length>tapeShown?"":"none";
-  more.onclick=()=>{tapeShown=30;renderTape();};
+  more.onclick=()=>{tapeShown=15;renderTape();};
 }
 
+/* ---------- chips ---------- */
 document.querySelectorAll("#chipsbar .fchip").forEach(c=>c.addEventListener("click",()=>{
   document.querySelectorAll("#chipsbar .fchip").forEach(x=>x.classList.remove("active"));
   c.classList.add("active");FILT=c.dataset.f;render();
@@ -699,15 +571,13 @@ document.querySelectorAll("#catbar .fchip").forEach(c=>c.addEventListener("click
 }));
 document.getElementById("cntAll").textContent=TOKENS.length;
 
+/* ---------- boot ---------- */
 render();
-refresh().then(()=>{summary();treemap();whaleTape();});
-loadDex();
-matrix();
-setInterval(()=>{ if(!document.hidden){refresh().then(()=>{summary();treemap();});loadDex();} },60000);
-
-/* nav burger */
-const _nb=document.getElementById("navBurger"),_nd=document.getElementById("navDrawer");if(_nb&&_nd)_nb.addEventListener("click",()=>_nd.classList.toggle("open"));
+refresh().then(()=>{summary();treemap();});
+loadDex().then(()=>activityDigest());
+// prices: every 60s  |  DEX (liquidity/vol): every 3 min — saves ~120 DexScreener req/hr
+setInterval(()=>{ if(!document.hidden){refresh().then(()=>{summary();treemap();});} },60000);
+setInterval(()=>{ if(!document.hidden){loadDex().then(()=>activityDigest());} },180000);
 </script>
-</div><!-- /page-body -->
 </body>
 </html>
