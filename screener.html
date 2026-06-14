@@ -170,7 +170,7 @@
   <div class="results-header">
     <h2>Results</h2>
     <span class="badge" id="resultCount">—</span>
-    <span style="font-size:12px;color:var(--muted)" id="loadState">Loading…</span>
+    <span style="font-size:12px;color:var(--muted)" id="loadState"></span>
   </div>
 
   <div class="card">
@@ -439,12 +439,11 @@ function arbTable(){
 
 async function boot(){
   document.getElementById("loadState").textContent="Loading…";
-  await Promise.all([loadPrices(), loadDex()]);
-  computeScores();
-  document.getElementById("loadState").textContent="";
-  applyFilters();
-  alphaDigest();
-  arbTable();
-}
-boot();
-</scrip
+  try{
+    await Promise.all([loadPrices(), loadDex()]);
+    computeScores();
+    applyFilters();
+    alphaDigest();
+    arbTable();
+    document.getElementById("loadState").textContent="";
+  }catch
