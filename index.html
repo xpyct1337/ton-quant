@@ -98,32 +98,30 @@
   @media(max-width:860px){ .hide-m{display:none} body{padding:16px} }
 
   --nav-h:56px;
-  /* ---- Sticky topbar nav ---- */
   .topbar{position:sticky;top:0;z-index:200;background:var(--card);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:0 clamp(16px,4vw,48px);height:var(--nav-h);box-shadow:0 1px 6px rgba(11,18,32,.07);}
-  .topbar .logo{width:34px;height:34px;border-radius:9px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;flex:none;}
+  .topbar .logo-nav{width:34px;height:34px;border-radius:9px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;flex:none;}
   .topbar .brand{font-weight:800;font-size:16px;letter-spacing:-.01em;white-space:nowrap}
   .topbar .brand span{color:var(--muted);font-weight:400;font-size:12px;margin-left:6px}
   .nav-links{display:flex;align-items:center;gap:2px;margin-left:12px}
   .nav-links a{text-decoration:none;font-size:13px;font-weight:600;color:var(--muted);padding:6px 11px;border-radius:8px;transition:background .12s,color .12s;white-space:nowrap;}
-  .nav-links a:hover{background:var(--accent-soft);color:var(--accent)}
-  .nav-links a.active{background:var(--accent-soft);color:var(--accent)}
+  .nav-links a:hover,.nav-links a.active{background:var(--accent-soft);color:var(--accent)}
   .topbar .spacer{flex:1}
-  .gram-box-nav{display:flex;align-items:center;gap:7px;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:5px 10px;flex:none}
-  .gram-box-nav .lbl{font-size:11px;color:var(--muted);white-space:nowrap}
-  .gram-box-nav .opt{font-size:12px;font-weight:700;color:var(--muted)}
-  .gram-box-nav .opt.on{color:var(--ink)}
+  .nav-gram{display:flex;align-items:center;gap:7px;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:5px 10px;flex:none}
+  .nav-gram .opt{font-size:12px;font-weight:700;color:var(--muted)}
+  .nav-gram .opt.on{color:var(--ink)}
+  .nav-gram .lbl{font-size:11px;color:var(--muted);white-space:nowrap}
   .nav-burger{display:none;border:1px solid var(--line);background:var(--card);border-radius:8px;padding:7px 10px;font-size:16px;cursor:pointer;color:var(--ink)}
   .nav-drawer{display:none;position:absolute;top:var(--nav-h);right:0;left:0;background:var(--card);border-bottom:1px solid var(--line);padding:10px clamp(16px,4vw,48px);flex-direction:column;gap:4px;box-shadow:0 4px 12px rgba(11,18,32,.08);z-index:199}
   .nav-drawer a{text-decoration:none;font-size:14px;font-weight:600;color:var(--muted);padding:9px 12px;border-radius:9px;display:block}
   .nav-drawer a:hover{background:var(--accent-soft);color:var(--accent)}
   .nav-drawer .gram-row{display:flex;align-items:center;gap:8px;padding:9px 12px;border-top:1px solid var(--line);margin-top:4px}
-  @media(max-width:700px){.nav-links{display:none}.nav-burger{display:flex;align-items:center}.nav-drawer.open{display:flex}.gram-box-nav .lbl{display:none}}
+  @media(max-width:700px){.nav-links{display:none}.nav-burger{display:flex;align-items:center}.nav-drawer.open{display:flex}}
   .page-body{padding:24px clamp(16px,4vw,48px)}
 </style>
 </head>
 <body>
 <nav class="topbar" id="topbar">
-  <div class="logo">Q</div>
+  <div class="logo-nav">Q</div>
   <div class="brand">TON Quant <span id="liveBadge">Live</span></div>
   <div class="nav-links">
     <a href="index.html" class="active">Markets</a>
@@ -132,7 +130,7 @@
     <a href="portfolio.html">Portfolio</a>
   </div>
   <div class="spacer"></div>
-  <div class="gram-box-nav">
+  <div class="nav-gram">
     <span class="lbl" id="gramCountdown"></span>
     <span class="opt" id="optTon">TON</span>
     <button class="switch" id="gramSwitch" aria-label="Toggle TON/GRAM"></button>
@@ -242,18 +240,18 @@ function applyUnit(){
   const u=unit();
   document.querySelectorAll("[data-unit]").forEach(el=>el.textContent=u);
   document.getElementById("gramSwitch").classList.toggle("on", u==="GRAM");
-  const sw2=document.getElementById("gramSwitch2"); if(sw2) sw2.classList.toggle("on", u==="GRAM");
-  const ot2=document.getElementById("optTon2"); if(ot2) ot2.classList.toggle("on", u==="TON");
-  const og2=document.getElementById("optGram2"); if(og2) og2.classList.toggle("on", u==="GRAM");
+  const _s2=document.getElementById("gramSwitch2");if(_s2)_s2.classList.toggle("on",u==="GRAM");
+  const _o2=document.getElementById("optTon2");if(_o2)_o2.classList.toggle("on",u==="TON");
+  const _g2=document.getElementById("optGram2");if(_g2)_g2.classList.toggle("on",u==="GRAM");
+  const _gc2=document.getElementById("gramCountdown2");if(_gc2)_gc2.textContent=document.getElementById("gramCountdown").textContent;
   document.getElementById("optTon").classList.toggle("on", u==="TON");
   document.getElementById("optGram").classList.toggle("on", u==="GRAM");
 }
 document.getElementById("gramSwitch").addEventListener("click",()=>{
-  localStorage.setItem("tq_unit", unit()==="GRAM"?"TON":"GRAM"); applyUnit(); render(); });
-const _sw2=document.getElementById("gramSwitch2");
-if(_sw2) _sw2.addEventListener("click",()=>{
   localStorage.setItem("tq_unit", unit()==="GRAM" ? "TON":"GRAM"); applyUnit(); render();
 });
+const _sw2=document.getElementById("gramSwitch2");
+if(_sw2)_sw2.addEventListener("click",()=>{localStorage.setItem("tq_unit",unit()==="GRAM"?"TON":"GRAM");applyUnit();render();});
 (function(){
   const el=document.getElementById("gramCountdown");
   const ms=GRAM_TS-Date.now();
@@ -702,4 +700,14 @@ document.querySelectorAll("#catbar .fchip").forEach(c=>c.addEventListener("click
 document.getElementById("cntAll").textContent=TOKENS.length;
 
 render();
-refresh().then(()=>{summary();
+refresh().then(()=>{summary();treemap();whaleTape();});
+loadDex();
+matrix();
+setInterval(()=>{ if(!document.hidden){refresh().then(()=>{summary();treemap();});loadDex();} },60000);
+
+/* nav burger */
+const _nb=document.getElementById("navBurger"),_nd=document.getElementById("navDrawer");if(_nb&&_nd)_nb.addEventListener("click",()=>_nd.classList.toggle("open"));
+</script>
+</div><!-- /page-body -->
+</body>
+</html>
