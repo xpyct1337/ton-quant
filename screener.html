@@ -8,12 +8,7 @@
 <link rel="stylesheet" href="styles.css" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%230098ea'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3EQ%3C/text%3E%3C/svg%3E" />
 <style>
-  :root{color-scheme:light;
-    --bg:#f4f7fb;--card:#fff;--ink:#0b1220;--muted:#5b6573;--line:#e4e9f0;
-    --accent:#0098ea;--accent-soft:#e4f4fd;--good:#18a957;--good-soft:#e3f6e9;
-    --warn:#d59312;--bad:#d63b3b;
-    --shadow:0 1px 2px rgba(11,18,32,.04),0 8px 24px rgba(11,18,32,.05);
-    --nav-h:56px;}
+  :root{--nav-h:56px;}
   *{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
   .topbar{position:sticky;top:0;z-index:200;background:var(--card);border-bottom:1px solid var(--line);
@@ -65,8 +60,8 @@
   .up{color:var(--good)} .down{color:var(--bad)}
   .pill{display:inline-block;padding:2px 7px;font-size:11px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:600}
   .pill.good{background:var(--good-soft);color:var(--good)}
-  .pill.warn{background:#fef3df;color:#8a5d10}
-  .pill.bad{background:#fde8e8;color:#7a1a1a}
+  .pill.warn{background:var(--warn-soft,rgba(240,185,11,.14));color:var(--warn,#f0b90b)}
+  .pill.bad{background:var(--bad-soft,rgba(246,70,93,.14));color:var(--bad,#f6465d)}
   .empty-state{text-align:center;padding:40px;color:var(--muted);font-size:14px}
   /* arb section */
   .two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
@@ -81,11 +76,15 @@
   .ev .ev-head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}
   .ev .ev-tag{font-size:11px;padding:2px 8px;border-radius:999px;font-weight:600}
   .ev .ev-tag.momentum{background:var(--good-soft);color:var(--good)}
-  .ev .ev-tag.wash{background:#fde8e8;color:#7a1a1a}
-  .ev .ev-tag.absorption{background:#fef3df;color:#8a5d10}
+  .ev .ev-tag.wash{background:var(--bad-soft,rgba(246,70,93,.14));color:var(--bad,#f6465d)}
+  .ev .ev-tag.absorption{background:var(--warn-soft,rgba(240,185,11,.14));color:var(--warn,#f0b90b)}
   .ev .ev-tag.hidden-buyer{background:var(--good-soft);color:var(--good)}
   .ev .ev-tag.arb{background:var(--accent-soft);color:var(--accent)}
   .ev .ev-tag.turnover{background:#fef3df;color:#8a5d10}
+  .ev .ev-tag.rug_watch{background:var(--bad-soft,rgba(246,70,93,.14));color:var(--bad,#f6465d)}
+  .ev .ev-tag.accum{background:var(--good-soft,rgba(22,199,132,.14));color:var(--good,#16c784)}
+  .ev .ev-tag.distrib{background:var(--warn-soft,rgba(240,185,11,.14));color:var(--warn,#f0b90b)}
+  .ev .ev-tag.liq_inflow{background:var(--accent-soft,rgba(34,167,255,.13));color:var(--accent,#22a7ff)}
   .ev .ev-token{font-weight:700;color:var(--accent);cursor:pointer}
   .ev .ev-time{color:var(--muted);font-size:11px}
   .footer{text-align:center;color:var(--muted);font-size:12px;margin-top:28px;padding:16px 0;border-top:1px solid var(--line)}
@@ -164,6 +163,16 @@
         <option value="1">Profitable arb</option>
       </select>
     </label>
+    <label>
+      Snap signal
+      <select id="fSnap" onchange="applyFilters()">
+        <option value="all">Any</option>
+        <option value="accum">📥 Accum</option>
+        <option value="rug_watch">⚠️ Rug watch</option>
+        <option value="distrib">📤 Distrib</option>
+        <option value="liq_inflow">💧 Liq inflow</option>
+      </select>
+    </label>
     <button class="btn-reset" onclick="resetFilters()">Reset</button>
   </div>
 
@@ -186,8 +195,9 @@
         <th class="num hide-m" data-sort="vol">Vol 24h</th>
         <th class="num hide-m" data-sort="turnover">Vol/MCap</th>
         <th class="num hide-m" data-sort="arb">Arb</th>
+        <th class="num hide-m">Snap</th>
       </tr></thead>
-      <tbody id="screenerTbody"><tr><td colspan="10" class="empty-state">Loading data…</td></tr></tbody>
+      <tbody id="screenerTbody"><tr><td colspan="11" class="empty-state">Loading data…</td></tr></tbody>
     </table>
   </div>
 
@@ -237,6 +247,44 @@ function scoreToken(t,totLiq,ageDays,top10pct,v,isTaxable){
   return Math.max(0,Math.min(100,Math.round(F.reduce((s,f)=>s+f[1],0))));
 }
 
+
+/* ---------- Snapshot divergence signals ---------- */
+let snapMap={};
+function snapSignalFor(a,b){
+  const dh=(b.holders-a.holders)/Math.max(a.holders,1)*100;
+  const dp=(b.price-a.price)/Math.max(a.price,1e-18)*100;
+  const dtvl=a.tvl>0?(b.tvl-a.tvl)/a.tvl*100:null;
+  if(dtvl!==null&&dtvl<-20)return{kind:'rug_watch',dh,dp,dtvl};
+  if(dh>1.5&&dp<-2)return{kind:'accum',dh,dp,dtvl};
+  if(dh<-1&&dp>5)return{kind:'distrib',dh,dp,dtvl};
+  if(dtvl!==null&&dtvl>30)return{kind:'liq_inflow',dh,dp,dtvl};
+  return null;
+}
+async function loadSnapshots(){
+  const RAW='https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data';
+  try{
+    const idx=await fetch(RAW+'/index.json').then(r=>r.json());
+    const dates=(idx.dates||[]).slice().sort();
+    if(dates.length<2)return;
+    const[d1,d2]=dates.slice(-2);
+    const[s1,s2]=await Promise.all([
+      fetch(RAW+'/snapshots/'+d1+'.json').then(r=>r.json()),
+      fetch(RAW+'/snapshots/'+d2+'.json').then(r=>r.json())
+    ]);
+    const t1=s1.tokens||{},t2=s2.tokens||{};
+    snapMap={};
+    for(const addr of Object.keys(t2)){
+      const a=t1[addr],b=t2[addr];if(!a||!b)continue;
+      const sig=snapSignalFor(a,b);if(!sig)continue;
+      let tag='',desc='';
+      if(sig.kind==='rug_watch'){tag='⚠️ Rug watch';desc='TVL '+sig.dtvl.toFixed(1)+'% 24h — liq draining';}
+      else if(sig.kind==='accum'){tag='📥 Accum';desc='Holders +'+sig.dh.toFixed(1)+'% · price '+sig.dp.toFixed(1)+'%';}
+      else if(sig.kind==='distrib'){tag='📤 Distrib';desc='Holders '+sig.dh.toFixed(1)+'% · price +'+sig.dp.toFixed(1)+'%';}
+      else if(sig.kind==='liq_inflow'){tag='💧 Liq inflow';desc='TVL +'+sig.dtvl.toFixed(1)+'% 24h';}
+      snapMap[addr]={kind:sig.kind,tag,desc};
+    }
+  }catch(e){console.warn('snapshot load failed',e);}
+}
 /* live data */
 let live={},dex={},spreads={},tokenScores={};
 function d24Of(t){return parseFloat(String((live[t.address]||{}).d24||"").replace("−","-").replace("%",""));}
@@ -321,6 +369,7 @@ function applyFilters(){
   const minTO=+document.getElementById("fTurnover").value||0;
   const cat=document.getElementById("fCat").value;
   const arbOnly=+document.getElementById("fArb").value;
+  const snapFilter=document.getElementById("fSnap").value;
 
   const rows=TOKENS.map(t=>{
     const lv=live[t.address]||{};
@@ -333,13 +382,15 @@ function applyFilters(){
     const to=mc>0?vol/mc:0;
     const arb=spreads[t.address];
     const score=tokenScores[t.address]??0;
-    return{t,usd,d24,mc,liq,vol,to,arb,score};
+    const snap=snapMap[t.address]||null;
+    return{t,usd,d24,mc,liq,vol,to,arb,score,snap};
   }).filter(r=>{
     if(r.score<minScore)return false;
     if(r.liq<minLiq)return false;
     if(cat!=="all"&&r.t.cat!==cat)return false;
     if(minTO>0&&r.to<minTO)return false;
     if(arbOnly&&!(r.arb&&r.arb.netUsd>0))return false;
+    if(snapFilter!=="all"&&r.snap?.kind!==snapFilter)return false;
     if(move==="up5"&&!(isFinite(r.d24)&&r.d24>=5))return false;
     if(move==="up10"&&!(isFinite(r.d24)&&r.d24>=10))return false;
     if(move==="down5"&&!(isFinite(r.d24)&&r.d24<=-5))return false;
@@ -372,7 +423,8 @@ function applyFilters(){
       <td class="num hide-m">${fmtUsd(r.vol)}</td>
       <td class="num hide-m">${r.to>0?(r.to*100).toFixed(1)+"%":"—"}</td>
       <td class="num hide-m">${arb&&arb.netUsd>0?'<span class="pill good">+$'+arb.netUsd.toFixed(0)+"</span>":"—"}</td>
-    </tr>`;
+      <td class="num hide-m">${r.snap?`<span class="pill ${r.snap.kind==='accum'?'good':r.snap.kind==='rug_watch'?'bad':r.snap.kind==='distrib'?'warn':''}"><small>${r.snap.tag}</small></span>`:"—"}</td>
+    </tr>\`;
   }).join("");
 }
 
@@ -383,6 +435,7 @@ function resetFilters(){
   document.getElementById("fTurnover").value="0";
   document.getElementById("fCat").value="all";
   document.getElementById("fArb").value="0";
+  document.getElementById("fSnap").value="all";
   applyFilters();
 }
 
@@ -410,6 +463,13 @@ function alphaDigest(){
     if(dx.buys+dx.sells>50&&dx.sells>dx.buys*1.5&&flat)sigs.push([dx.sells/dx.buys,t,"good",`🤑 ${dx.sells}S/${dx.buys}B, price holds — hidden buy`,"hidden-buyer"]);
     if(sp&&sp.netUsd>0)sigs.push([sp.netUsd,t,"good",`⚖️ net +$${sp.netUsd.toFixed(0)} arb (${sp.spread.toFixed(1)}% gross)`,"arb"]);
     if(t.cat!=="stable"&&t.cat!=="staking"&&mc>0&&dx.vol/mc>0.5)sigs.push([dx.vol/mc,t,"warn",`🌡️ vol ${(dx.vol/mc*100).toFixed(0)}% of mcap — overheated`,"turnover"]);
+  }
+  // add snap signals
+  for(const[addr,s] of Object.entries(snapMap)){
+    const tok=TOKENS.find(t=>t.address===addr);if(!tok)continue;
+    const pri=s.kind==='rug_watch'?2e6:s.kind==='accum'?8e5:s.kind==='distrib'?6e5:4e5;
+    const cls2=s.kind==='rug_watch'?'bad':s.kind==='accum'?'good':'warn';
+    sigs.push([pri,tok,cls2,s.tag+' — '+s.desc,s.kind]);
   }
   sigs.sort((a,b)=>b[0]-a[0]);
   const el=document.getElementById("alphaList");
@@ -440,7 +500,7 @@ function arbTable(){
 async function boot(){
   document.getElementById("loadState").textContent="Loading…";
   try{
-    await Promise.all([loadPrices(), loadDex()]);
+    await Promise.all([loadPrices(), loadDex(), loadSnapshots()]);
     computeScores();
     applyFilters();
     alphaDigest();
