@@ -8,12 +8,7 @@
 <link rel="stylesheet" href="styles.css" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%230098ea'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3EQ%3C/text%3E%3C/svg%3E" />
 <style>
-  :root{color-scheme:light;
-    --bg:#f4f7fb;--card:#fff;--ink:#0b1220;--muted:#5b6573;--line:#e4e9f0;
-    --accent:#0098ea;--accent-soft:#e4f4fd;--good:#18a957;--good-soft:#e3f6e9;
-    --warn:#d59312;--bad:#d63b3b;
-    --shadow:0 1px 2px rgba(11,18,32,.04),0 8px 24px rgba(11,18,32,.05);
-    --nav-h:56px;}
+  :root{--nav-h:56px}
   *{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
   .topbar{position:sticky;top:0;z-index:200;background:var(--card);border-bottom:1px solid var(--line);
@@ -57,12 +52,12 @@
   .compare-table .token-head button{background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;margin-top:4px;padding:2px 6px;border-radius:6px}
   .compare-table .token-head button:hover{background:var(--bg);color:var(--bad)}
   .best{background:var(--good-soft)!important;font-weight:700;color:var(--good)}
-  .worst{background:#fde8e8!important;color:var(--bad)}
+  .worst{background:var(--bad-soft)!important;color:var(--bad)}
   .up{color:var(--good)} .down{color:var(--bad)}
   .pill{display:inline-block;padding:2px 7px;font-size:11px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:600}
   .pill.good{background:var(--good-soft);color:var(--good)}
-  .pill.warn{background:#fef3df;color:#8a5d10}
-  .pill.bad{background:#fde8e8;color:#7a1a1a}
+  .pill.warn{background:var(--warn-soft);color:var(--warn)}
+  .pill.bad{background:var(--bad-soft);color:var(--bad)}
   .empty-add{text-align:center;padding:48px;color:var(--muted);font-size:14px;background:var(--card);border:2px dashed var(--line);border-radius:14px;margin-bottom:24px}
   .footer{text-align:center;color:var(--muted);font-size:12px;margin-top:28px;padding:16px 0;border-top:1px solid var(--line)}
   .footer a{color:var(--accent);text-decoration:none}
@@ -73,10 +68,10 @@
 <body>
 
 <nav class="topbar" id="topbar">
-  <a class="logo" href="index.html">Q</a>
-  <a class="brand" href="index.html">TON Quant</a>
+  <a class="logo" href="main-page.html">Q</a>
+  <a class="brand" href="main-page.html">TON Quant</a>
   <div class="nav-links">
-    <a href="index.html">Markets</a>
+    <a href="main-page.html">Markets</a>
     <a href="screener.html">Screener</a>
     <a href="compare.html" class="active">Compare</a>
     <a href="portfolio.html">Portfolio</a>
@@ -85,7 +80,7 @@
   <button class="nav-burger" id="navBurger" aria-label="Menu">☰</button>
 </nav>
 <div class="nav-drawer" id="navDrawer">
-  <a href="index.html">📊 Markets</a>
+  <a href="main-page.html">📊 Markets</a>
   <a href="screener.html">🔍 Screener</a>
   <a href="compare.html">⚖️ Compare</a>
   <a href="portfolio.html">💼 Portfolio</a>
@@ -291,3 +286,4 @@ function renderTable(){
 </script>
 </body>
 </html>
+                                                                                                                                                                                                                                                              

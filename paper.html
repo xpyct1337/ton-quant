@@ -12,7 +12,6 @@
 <link rel="preconnect" href="https://raw.githubusercontent.com" crossorigin />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%230098ea'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'%3EQ%3C/text%3E%3C/svg%3E" />
 <style>
-  :root{color-scheme:light;--bg:#f4f7fb;--card:#fff;--ink:#0b1220;--muted:#5b6573;--line:#e4e9f0;--accent:#0098ea;--accent-soft:#e4f4fd;--good:#18a957;--good-soft:#e3f6e9;--warn:#d59312;--warn-soft:#fef3df;--bad:#d63b3b;--bad-soft:#fde8e8;--shadow:0 1px 2px rgba(11,18,32,.04),0 8px 24px rgba(11,18,32,.05)}
   *{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Arial,sans-serif}
   body{padding:28px clamp(16px,4vw,48px)}
   a{color:var(--accent)}
@@ -33,11 +32,11 @@
   td{padding:9px 10px;border-bottom:1px solid var(--line)}
   tr:last-child td{border-bottom:none}
   .pill{display:inline-block;padding:2px 8px;font-size:11px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:600}
-  .pill.good{background:var(--good-soft);color:var(--good)}.pill.bad{background:var(--bad-soft);color:#7a1a1a}.pill.warn{background:var(--warn-soft);color:#8a5d10}
+  .pill.good{background:var(--good-soft);color:var(--good)}.pill.bad{background:var(--bad-soft);color:var(--bad)}.pill.warn{background:var(--warn-soft);color:var(--warn)}
   .chart-wrap{position:relative;height:240px}
   .empty{color:var(--muted);font-size:13px;text-align:center;padding:18px 0}
   .num{text-align:right;font-variant-numeric:tabular-nums}
-  .banner{background:var(--warn-soft);border:1px solid #f3dfae;color:#6b4d10;border-radius:12px;padding:12px 16px;font-size:13px;margin-bottom:18px}
+  .banner{background:var(--warn-soft);border:1px solid var(--line);color:var(--warn);border-radius:12px;padding:12px 16px;font-size:13px;margin-bottom:18px}
   .footer{text-align:center;color:var(--muted);font-size:12px;margin-top:28px;padding-top:16px;border-top:1px solid var(--line)}
 </style>
 </head>
@@ -209,3 +208,4 @@ function drawEq(bots){
 </script>
 </body>
 </html>
+                                                                                                                                                                                                                                                                                                     
