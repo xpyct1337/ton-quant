@@ -423,8 +423,8 @@ function applyFilters(){
       <td class="num hide-m">${fmtUsd(r.vol)}</td>
       <td class="num hide-m">${r.to>0?(r.to*100).toFixed(1)+"%":"—"}</td>
       <td class="num hide-m">${arb&&arb.netUsd>0?'<span class="pill good">+$'+arb.netUsd.toFixed(0)+"</span>":"—"}</td>
-      <td class="num hide-m">${r.snap?`<span class="pill ${r.snap.kind==='accum'?'good':r.snap.kind==='rug_watch'?'bad':r.snap.kind==='distrib'?'warn':''}"><small>${r.snap.tag}</small></span>`:"—"}</td>
-    </tr>\`;
+      <td class="num hide-m">${r.snap?('<span class="pill '+(r.snap.kind==='accum'?'good':r.snap.kind==='rug_watch'?'bad':r.snap.kind==='distrib'?'warn':'')+'"><small>'+r.snap.tag+'</small></span>'):"—"}</td>
+    </tr>`;
   }).join("");
 }
 
