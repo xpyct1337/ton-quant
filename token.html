@@ -18,12 +18,7 @@
 <script defer src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
 <style>
-  :root { color-scheme: light;
-    --bg:#f4f7fb; --card:#fff; --ink:#0b1220; --muted:#5b6573; --line:#e4e9f0;
-    --accent:#0098ea; --accent-soft:#e4f4fd; --good:#18a957; --good-soft:#e3f6e9;
-    --warn:#d59312; --warn-soft:#fef3df; --bad:#d63b3b; --bad-soft:#fde8e8;
-    --shadow:0 1px 2px rgba(11,18,32,.04), 0 8px 24px rgba(11,18,32,.05);
-    --nav-h:56px; }
+  :root { --nav-h:56px; }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
@@ -61,14 +56,14 @@
   .gram-box{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:7px 12px}
   .gram-box .opt{font-size:12px;font-weight:700;color:var(--muted)}
   .gram-box .opt.on{color:var(--ink)}
-  .switch{position:relative;width:38px;height:21px;border-radius:999px;background:#d6ddea;cursor:pointer;transition:background .2s;border:none;padding:0}
+  .switch{position:relative;width:38px;height:21px;border-radius:999px;background:var(--line);cursor:pointer;transition:background .2s;border:none;padding:0}
   .switch.on{background:var(--accent)}
   .switch::after{content:"";position:absolute;top:3px;left:3px;width:15px;height:15px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
   .switch.on::after{left:20px}
   .banner{display:flex;gap:12px;border-radius:14px;padding:14px 18px;margin-bottom:18px;font-size:13px;border:1px solid}
-  .banner.warn{background:var(--warn-soft);border-color:#f3dfae;color:#6b4d10}
-  .banner.good{background:var(--good-soft);border-color:#bfe8cc;color:#115f33}
-  .banner.bad{background:var(--bad-soft);border-color:#f3bcbc;color:#7a1a1a}
+  .banner.warn{background:var(--warn-soft);border-color:var(--warn);color:var(--warn)}
+  .banner.good{background:var(--good-soft);border-color:var(--good);color:var(--good)}
+  .banner.bad{background:var(--bad-soft);border-color:var(--bad);color:var(--bad)}
   .banner .icon{font-size:16px}
   .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:18px}
   .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
@@ -83,7 +78,7 @@
   .pressure{height:6px;border-radius:3px;background:var(--bad-soft);overflow:hidden;margin-top:8px}
   .pressure>div{height:100%;background:var(--good)}
   .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
-  .chip{font-size:11px;padding:3px 9px;border-radius:999px;background:#eef0f3;color:var(--muted);font-weight:600}
+  .chip{font-size:11px;padding:3px 9px;border-radius:999px;background:var(--line);color:var(--muted);font-weight:600}
   .chip.up{background:var(--good-soft);color:var(--good)} .chip.down{background:var(--bad-soft);color:var(--bad)}
   .row{display:grid;gap:18px;margin-bottom:18px}
   .row.r-2{grid-template-columns:1.3fr 1fr}
@@ -102,13 +97,13 @@
   td a:hover{text-decoration:underline}
   .pill{display:inline-block;padding:2px 8px;font-size:11px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:600}
   .pill.good{background:var(--good-soft);color:var(--good)}
-  .pill.warn{background:var(--warn-soft);color:#8a5d10}
-  .pill.bad{background:var(--bad-soft);color:#7a1a1a}
-  .pill.muted{background:#eef0f3;color:var(--muted)}
-  .pill.exchange{background:#f4eafe;color:#6b3dd0}
-  .pill.bridge{background:#e6f7fd;color:#0876aa}
+  .pill.warn{background:var(--warn-soft);color:var(--warn)}
+  .pill.bad{background:var(--bad-soft);color:var(--bad)}
+  .pill.muted{background:var(--line);color:var(--muted)}
+  .pill.exchange{background:rgba(107,61,208,.15);color:#a78bfa}
+  .pill.bridge{background:rgba(8,118,170,.15);color:#60c4f7}
   .pill.dex{background:var(--good-soft);color:var(--good)}
-  .pill.burn{background:#eef0f3;color:var(--muted)}
+  .pill.burn{background:var(--line);color:var(--muted)}
   .chart-wrap{position:relative;height:280px}
   .chart-wrap.short{height:220px}
   .tf-tabs{display:inline-flex;gap:4px}
@@ -121,13 +116,13 @@
   .ev .ev-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
   .ev .ev-time{color:var(--muted);font-size:11px}
   .ev .ev-tag{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:600}
-  .ev .ev-tag.JettonTransfer{background:#e6f7fd;color:#0876aa}
+  .ev .ev-tag.JettonTransfer{background:rgba(8,118,170,.15);color:#60c4f7}
   .ev .ev-tag.JettonMint{background:var(--good-soft);color:var(--good)}
   .ev .ev-tag.JettonBurn{background:var(--bad-soft);color:var(--bad)}
-  .ev .ev-tag.TonTransfer{background:#f4eafe;color:#6b3dd0}
+  .ev .ev-tag.TonTransfer{background:rgba(107,61,208,.15);color:#a78bfa}
   .ev .ev-tag.JettonSwap{background:var(--good-soft);color:var(--good)}
-  .ev .ev-tag.SmartContractExec{background:var(--warn-soft);color:#8a5d10}
-  .ev .ev-tag.ContractDeploy{background:#f4eafe;color:#6b3dd0}
+  .ev .ev-tag.SmartContractExec{background:var(--warn-soft);color:var(--warn)}
+  .ev .ev-tag.ContractDeploy{background:rgba(107,61,208,.15);color:#a78bfa}
   .ev .ev-body{margin-top:6px;color:var(--muted)}
   .empty{color:var(--muted);font-size:13px;text-align:center;padding:20px 0}
   .loading{opacity:.5;pointer-events:none}

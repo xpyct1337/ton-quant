@@ -533,21 +533,77 @@ function snapSignalFor(a,b){
   if(dtvl!==null&&dtvl>30)return{kind:'liq_inflow',dh,dp,dtvl};
   return null;
 }
+/* Persistent multi-day trend (requires >=3 consecutive snapshots) */
+function persistentSignal(arr){
+  if(arr.length<3)return null;
+  const n=arr.length,s0=arr[n-3],s1=arr[n-2],s2=arr[n-1];
+  const tvl0=s0.tvl||0,tvl1=s1.tvl||0,tvl2=s2.tvl||0;
+  const tvlD1=tvl0>0?(tvl1-tvl0)/tvl0*100:null;
+  const tvlD2=tvl1>0?(tvl2-tvl1)/tvl1*100:null;
+  const tvlTot=tvl0>0?(tvl2-tvl0)/tvl0*100:null;
+  if(tvlD1!==null&&tvlD2!==null&&tvlD1<-10&&tvlD2<-10&&tvlTot<-20)
+    return{kind:'rug_confirmed',dtvl:tvlTot,d1:tvlD1,d2:tvlD2};
+  const h0=Math.max(s0.holders||1,1),h1=Math.max(s1.holders||1,1),h2=Math.max(s2.holders||1,1);
+  const hD1=(h1-h0)/h0*100,hD2=(h2-h1)/h1*100,hTot=(h2-h0)/h0*100;
+  if(hD1<-0.5&&hD2<-0.5&&hTot<-1)
+    return{kind:'holder_exodus',dh:hTot,d1:hD1,d2:hD2};
+  const p0=s0.price||0,p1=s1.price||0,p2=s2.price||0;
+  const pD1=p0>0?(p1-p0)/p0*100:null,pD2=p1>0?(p2-p1)/p1*100:null;
+  if(hD1>0.5&&hD2>0.5&&pD1!==null&&pD1<0&&pD2!==null&&pD2<0)
+    return{kind:'accum_confirmed',dh:hTot};
+  return null;
+}
 async function loadSnapshots(){
   const RAW='https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data';
   try{
     const idx=await fetch(RAW+'/index.json').then(r=>r.json());
     const dates=(idx.dates||[]).slice().sort();
     if(dates.length<2)return;
-    const[d1,d2]=dates.slice(-2);
-    const[s1,s2]=await Promise.all([
-      fetch(RAW+'/snapshots/'+d1+'.json').then(r=>r.json()),
-      fetch(RAW+'/snapshots/'+d2+'.json').then(r=>r.json())
-    ]);
-    const t1=s1.tokens||{},t2=s2.tokens||{};
-    const out=[];
-    for(const addr of Object.keys(t2)){
-      const a=t1[addr],b=t2[addr];if(!a||!b)continue;
+    // Fetch ALL snapshots for multi-day trend detection
+    const allSnaps=await Promise.all(
+      dates.map(d=>fetch(RAW+'/snapshots/'+d+'.json').then(r=>r.json()).catch(()=>null))
+    );
+    const valid=allSnaps.filter(Boolean);
+    if(valid.length<2)return;
+    // Build per-token history (oldest to newest)
+    const hist={};
+    for(const s of valid){
+      for(const[addr,t] of Object.entries(s.tokens||{})){
+        (hist[addr]=hist[addr]||[]).push(t);
+      }
+    }
+    const out=[],usedAddr=new Set();
+    // Multi-day persistent signals (need >=3 snapshots)
+    if(valid.length>=3){
+      for(const[addr,arr] of Object.entries(hist)){
+        if(arr.length<3)continue;
+        const tok=TOKENS.find(x=>x.address===addr);if(!tok)continue;
+        const psig=persistentSignal(arr);if(!psig)continue;
+        const vol=dex[addr]?.vol||0;
+        let tag='',desc='',priority=0;
+        if(psig.kind==='rug_confirmed'){
+          tag='🚨 Rug confirmed';
+          desc='TVL '+psig.dtvl.toFixed(0)+'% over 2d ('+psig.d1.toFixed(0)+'% then '+psig.d2.toFixed(0)+'%)';
+          priority=2e6+Math.abs(psig.dtvl)*1e4;
+        }else if(psig.kind==='holder_exodus'){
+          tag='📉 Holder exodus';
+          desc='Holders '+psig.dh.toFixed(1)+'% over 2d — persistent exit';
+          priority=1.5e6+Math.abs(psig.dh)*1e4;
+        }else if(psig.kind==='accum_confirmed'){
+          tag='📥 Accum confirmed';
+          desc='Holders +'+psig.dh.toFixed(1)+'% over 2d while price fell — stealth buy';
+          priority=1.2e6+psig.dh*1e4;
+        }
+        out.push({t:tok,tag,desc,vol,priority,isSnap:true,snapDays:'2d'});
+        usedAddr.add(addr);
+      }
+    }
+    // Single-day signals for tokens without a multi-day signal
+    const sA=valid[valid.length-2],sB=valid[valid.length-1];
+    const tA=sA.tokens||{},tB=sB.tokens||{};
+    for(const addr of Object.keys(tB)){
+      if(usedAddr.has(addr))continue;
+      const a=tA[addr],b=tB[addr];if(!a||!b)continue;
       const tok=TOKENS.find(x=>x.address===addr);if(!tok)continue;
       const sig=snapSignalFor(a,b);if(!sig)continue;
       const vol=dex[addr]?.vol||0;
@@ -561,7 +617,7 @@ async function loadSnapshots(){
       }else if(sig.kind==='liq_inflow'){
         tag='💧 Liq inflow';desc='TVL +'+sig.dtvl.toFixed(1)+'% 24h — liquidity growing';priority=sig.dtvl*1e3;
       }
-      out.push({t:tok,tag,desc,vol,priority,isSnap:true});
+      out.push({t:tok,tag,desc,vol,priority,isSnap:true,snapDays:'1d'});
     }
     snapSigs=out;
   }catch(e){console.warn('snapshot signals failed',e);}
@@ -600,7 +656,7 @@ function renderTape(){
     <span class="tk" onclick="location.href='token.html?a=${x.t.address}'">${x.t.symbol}</span>
     <span class="pill" style="font-size:12px">${x.tag}</span>
     <span style="color:var(--muted);font-size:12px">${x.desc}</span>
-    <span class="tm2">${x.isSnap?'1d snap':(fmtUsd(x.vol)+' vol')}</span>
+    <span class="tm2">${x.isSnap?(x.snapDays||'1d')+' snap':(fmtUsd(x.vol)+' vol')}</span>
   </div>`).join("");
   const more=document.getElementById("tapeMore");
   more.style.display=tapeItems.length>tapeShown?"":"none";
