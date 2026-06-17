@@ -68,6 +68,13 @@
 </div>
 
 <div class="card">
+  <h3>📋 Recent signal events — raw outcomes</h3>
+  <div class="h-sub">Each signal firing with price move after +1d/+3d/+7d (null = snapshot not yet available). Sorted newest-first. Reveals which signals fade vs persist.</div>
+  <table><thead><tr><th>Date</th><th>Token</th><th>Signal</th><th class="num">w</th><th class="num">1d Δ</th><th class="num">3d Δ</th><th class="num">7d Δ</th></tr></thead>
+  <tbody id="recentBody"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody></table>
+</div>
+
+<div class="card">
   <h3>Open positions</h3>
   <table><thead><tr><th>Bot</th><th>Token</th><th>Signal</th><th>Opened</th><th class="num">Entry (eff.)</th><th class="num">Day</th></tr></thead>
   <tbody id="posBody"><tr><td colspan="6" class="empty">None</td></tr></tbody></table>
@@ -204,6 +211,19 @@ function drawEq(bots){
       <td class="num ${cls(a.h7,"wr")}">${cell(a.h7,"wr")}</td><td class="num ${cls(a.h7,"avg")}">${cell(a.h7,"avg")}</td>
       <td class="num">${n}</td><td><span class="pill ${v[1]}">${v[0]}</span></td></tr>`;
   }).join("");
+  /* recent signal events */
+  const recent=(sc.recent||[]).slice().sort((a,b)=>a.date<b.date?1:-1);
+  const fmtR=v=>v==null?'<span style="color:var(--muted)">—</span>':`<span class="${v>0?"up":v<0?"down":""}">${v>0?"+":""}${v.toFixed(1)}%</span>`;
+  const fadeBadge=(r)=>{if(r.r1!=null&&r.r3!=null&&r.r1>2&&r.r3<-5)return' <span class="pill bad" title="signal faded by 3d" style="font-size:10px">fade</span>';return"";};
+  document.getElementById("recentBody").innerHTML=recent.length?recent.map(r=>`<tr>
+    <td style="color:var(--muted);font-size:12px">${esc(r.date)}</td>
+    <td><a href="token.html?a=${esc(r.addr)}">${esc(r.sym)}</a></td>
+    <td><span class="pill">${esc(r.sig)}</span>${fadeBadge(r)}</td>
+    <td class="num" style="color:var(--muted)">${r.w}</td>
+    <td class="num">${fmtR(r.r1)}</td>
+    <td class="num">${fmtR(r.r3)}</td>
+    <td class="num">${fmtR(r.r7)}</td></tr>`).join("")
+  :'<tr><td colspan="7" class="empty">No scored events yet.</td></tr>';
 })();
 </script>
 </body>
