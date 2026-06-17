@@ -521,6 +521,16 @@ window.addEventListener("resize",()=>{clearTimeout(window._tmr);window._tmr=setT
 /* ---------- Activity digest (DEX-based, 0 extra requests) ---------- */
 let tapeItems=[],tapeShown=8;
 let snapSigs=[];
+let paperSigs=[],sigScores={};
+const SIG_EMOJI={hidden_buyer:'🐋',momentum:'🚀',accum_div:'📊',flow_imbalance:'🌊',dip_reversal:'🔄',liq_inflow:'💧',holders_surge:'👥',breakout:'⚡',wash_suspect:'🚿'};
+function sigEdgeStr(sc){
+  const h1=(sc&&sc.h1)||{};
+  if(!h1.n)return'collecting';
+  if(h1.n<5)return'n='+h1.n+' WR '+h1.wr.toFixed(0)+'%';
+  if(h1.wr>=60&&h1.avg>0)return'edge WR='+h1.wr.toFixed(0)+'% avg=+'+h1.avg.toFixed(1)+'%';
+  if(h1.wr<=40)return'noise WR='+h1.wr.toFixed(0)+'%';
+  return'neutral WR='+h1.wr.toFixed(0)+'%';
+}
 
 /* ---------- Snapshot divergence signals (1 extra pair of fetches at boot) ---------- */
 function snapSignalFor(a,b){
@@ -622,6 +632,30 @@ async function loadSnapshots(){
     snapSigs=out;
   }catch(e){console.warn('snapshot signals failed',e);}
 }
+async function loadAlphaSignals(){
+  const RAW='https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data/signals';
+  try{
+    const sc=await fetch(RAW+'/scores.json').then(r=>r.ok?r.json():{}).catch(()=>({}));
+    sigScores=sc.per_sig||{};
+  }catch(e){}
+  try{
+    const today=new Date().toISOString().slice(0,10);
+    const d=await fetch(RAW+'/'+today+'.json').then(r=>r.ok?r.json():null).catch(()=>null);
+    if(!d||!Array.isArray(d.signals))return;
+    const out=[];
+    for(const s of d.signals){
+      const tok=TOKENS.find(x=>x.address===s.addr);if(!tok)continue;
+      const emoji=SIG_EMOJI[s.sig]||'📡';
+      const edgeStr=sigEdgeStr(sigScores[s.sig]);
+      const h1=(sigScores[s.sig]&&sigScores[s.sig].h1)||{};
+      const edgeBoost=h1.n>=3&&(h1.avg||0)>0?1.5:1;
+      const tag=emoji+' '+s.sig.replace(/_/g,' ');
+      const desc='w='+s.w+' · d1='+s.d1.toFixed(1)+'% · '+edgeStr;
+      out.push({t:tok,tag,desc,vol:0,priority:s.w*1e5*edgeBoost,isAlpha:true});
+    }
+    paperSigs=out;
+  }catch(e){console.warn('alpha signals failed',e);}
+}
 function activityDigest(){
   const items=[];
   for(const t of TOKENS){
@@ -644,6 +678,7 @@ function activityDigest(){
     }else continue;
     items.push({t,tag,desc,vol:dx.vol,priority});
   }
+  for(const s of paperSigs)items.push(s);
   for(const s of snapSigs)items.push(s);
   items.sort((a,b)=>b.priority-a.priority);
   tapeItems=items.slice(0,15);
@@ -656,7 +691,7 @@ function renderTape(){
     <span class="tk" onclick="location.href='token.html?a=${x.t.address}'">${x.t.symbol}</span>
     <span class="pill" style="font-size:12px">${x.tag}</span>
     <span style="color:var(--muted);font-size:12px">${x.desc}</span>
-    <span class="tm2">${x.isSnap?(x.snapDays||'1d')+' snap':(fmtUsd(x.vol)+' vol')}</span>
+    <span class="tm2">${x.isAlpha?'alpha bot':x.isSnap?(x.snapDays||'1d')+' snap':(fmtUsd(x.vol)+' vol')}</span>
   </div>`).join("");
   const more=document.getElementById("tapeMore");
   more.style.display=tapeItems.length>tapeShown?"":"none";
@@ -679,6 +714,7 @@ render();
 refresh().then(()=>{summary();treemap();});
 loadDex().then(()=>activityDigest());
 loadSnapshots().then(()=>activityDigest());
+loadAlphaSignals().then(()=>activityDigest());
 // prices: every 60s  |  DEX (liquidity/vol): every 3 min — saves ~120 DexScreener req/hr
 setInterval(()=>{ if(!document.hidden){refresh().then(()=>{summary();treemap();});} },60000);
 setInterval(()=>{ if(!document.hidden){loadDex().then(()=>activityDigest());} },180000);

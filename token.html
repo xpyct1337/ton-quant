@@ -315,6 +315,14 @@
 </div>
 
 <div class="row">
+  <div class="card" id="snapHistCard" style="display:none">
+    <h3>Price × Holder history <span class="pill muted" id="snapHistBadge" style="font-size:11px;vertical-align:middle"></span></h3>
+    <div class="h-sub">Daily snapshots — holder count and price changes per day. 🟡 Accum = holders ↑ price ↓ · 🟢 Momentum = both ↑ · 🔴 Distrib/Exit = holders ↓</div>
+    <div id="snapHistBody"></div>
+  </div>
+</div>
+
+<div class="row">
   <div class="card">
     <h3>Recent on-chain activity
       <span class="tf-tabs" id="whaleTabs">
@@ -977,7 +985,95 @@ document.getElementById("refreshBtn").addEventListener("click",async()=>{
 });
 setInterval(()=>{ if(!document.hidden){ load(); loadPriceChart(parseInt(document.querySelector("#tfTabs .active").dataset.tf)); } },60000);
 
-function start(){applyUnit();load();loadPriceChart(7);}
+/* ---- snapshot price×holder history ---- */
+function snapDivLabel(dh,dp){
+  if(dh==null||dp==null)return null;
+  const hUp=0.1,hDn=-0.1,pUp=0.1,pDn=-0.1;
+  if(dh>=hUp&&dp<=pDn)return{label:"🟡 Accum",cls:"warn"};
+  if(dh>=hUp&&dp>=pUp)return{label:"🟢 Momentum",cls:"good"};
+  if(dh<=hDn&&dp>=pUp)return{label:"🔴 Distrib",cls:"bad"};
+  if(dh<=hDn&&dp<=pDn)return{label:"🔴 Exit",cls:"bad"};
+  return{label:"⚪ Stable",cls:"muted"};
+}
+
+async function loadHolderHistory(){
+  try{
+    const SNAP_BASE="https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data";
+    const idxR=await fetch(SNAP_BASE+"/index.json");
+    if(!idxR.ok)return;
+    const idxD=await idxR.json();
+    const dates=(idxD.snapshots||[]).slice(-10);// last 10 days max
+    if(dates.length<2)return;
+    const snaps=await Promise.all(dates.map(d=>
+      fetch(`${SNAP_BASE}/snapshots/${d}.json`).then(r=>r.ok?r.json():null).catch(()=>null)
+    ));
+    const entries=[];
+    for(let i=0;i<dates.length;i++){
+      const j=snaps[i];
+      if(!j)continue;
+      const td=j.tokens&&j.tokens[MASTER];
+      if(!td)continue;
+      entries.push({date:dates[i],holders:td.holders,price:td.price,tvl:td.tvl||0});
+    }
+    if(entries.length<2)return;
+    const rows=[];
+    for(let i=1;i<entries.length;i++){
+      const prev=entries[i-1],cur=entries[i];
+      const dh=prev.holders>0?(cur.holders-prev.holders)/prev.holders*100:null;
+      const dp=prev.price>0?(cur.price-prev.price)/prev.price*100:null;
+      const sig=snapDivLabel(dh,dp);
+      rows.push({date:cur.date,holders:cur.holders,dh,price:cur.price,dp,sig});
+    }
+    if(!rows.length)return;
+    // build persistent multi-day verdict from last 3+ entries
+    let persistHtml="";
+    if(entries.length>=3){
+      const last3=entries.slice(-3);
+      const h0=last3[0].holders,h1=last3[1].holders,h2=last3[2].holders;
+      const p0=last3[0].price,p1=last3[1].price,p2=last3[2].price;
+      const t0=last3[0].tvl,t1=last3[1].tvl,t2=last3[2].tvl;
+      const hD1=h0>0?(h1-h0)/h0*100:null,hD2=h1>0?(h2-h1)/h1*100:null;
+      const pD1=p0>0?(p1-p0)/p0*100:null,pD2=p1>0?(p2-p1)/p1*100:null;
+      const tD1=t0>0?(t1-t0)/t0*100:null,tD2=t1>0?(t2-t1)/t1*100:null;
+      let pk=null,pcls="muted";
+      if(tD1!==null&&tD2!==null&&tD1<-10&&tD2<-10&&t0>0&&(t2-t0)/t0*100<-20){pk="🚨 Rug Confirmed";pcls="bad";}
+      else if(hD1!==null&&hD2!==null&&hD1<-0.5&&hD2<-0.5&&h0>0&&(h2-h0)/h0*100<-1){pk="📉 Holder Exodus";pcls="bad";}
+      else if(hD1!==null&&hD2!==null&&hD1>0.5&&hD2>0.5&&pD1!==null&&pD1<0&&pD2!==null&&pD2<0){pk="📈 Accum Confirmed";pcls="good";}
+      if(pk)persistHtml=`<div style="margin-bottom:10px"><span class="pill ${pcls}">${esc(pk)}</span> <span class="pill muted">2d trend</span></div>`;
+    }
+    const tbl=rows.map(r=>{
+      const dhStr=r.dh!=null?(r.dh>=0?"+":"")+r.dh.toFixed(2)+"%":"—";
+      const dpStr=r.dp!=null?(r.dp>=0?"+":"")+r.dp.toFixed(2)+"%":"—";
+      const dhCls=r.dh!=null?(r.dh>0.1?"good":r.dh<-0.1?"bad":"muted"):"muted";
+      const dpCls=r.dp!=null?(r.dp>0.1?"good":r.dp<-0.1?"bad":"muted"):"muted";
+      const sigHtml=r.sig?`<span class="pill ${r.sig.cls}">${r.sig.label}</span>`:`<span class="pill muted">⚪ Stable</span>`;
+      return`<tr>
+        <td style="color:var(--muted);font-size:12px">${esc(r.date)}</td>
+        <td style="text-align:right;font-variant-numeric:tabular-nums">${r.holders.toLocaleString()}</td>
+        <td style="text-align:right;color:var(--${dhCls})">${dhStr}</td>
+        <td style="text-align:right;color:var(--${dpCls})">${dpStr}</td>
+        <td>${sigHtml}</td>
+      </tr>`;
+    }).join("");
+    const badge=document.getElementById("snapHistBadge");
+    const body=document.getElementById("snapHistBody");
+    if(badge)badge.textContent=rows.length+"d";
+    if(body)body.innerHTML=persistHtml+`<table style="width:100%;border-collapse:collapse">
+      <thead><tr style="color:var(--muted);font-size:12px">
+        <th style="text-align:left;padding:4px 6px">Date</th>
+        <th style="text-align:right;padding:4px 6px">Holders</th>
+        <th style="text-align:right;padding:4px 6px">Δ Holders</th>
+        <th style="text-align:right;padding:4px 6px">Δ Price</th>
+        <th style="text-align:left;padding:4px 6px">Signal</th>
+      </tr></thead>
+      <tbody style="font-size:13px">${tbl}</tbody>
+    </table>`;
+    const card=document.getElementById("snapHistCard");
+    if(card)card.style.display="";
+  }catch(e){console.warn("snapHist error",e);}
+}
+
+function start(){applyUnit();load();loadPriceChart(7);loadHolderHistory();}
 if(typeof Chart==="undefined"){window.addEventListener("DOMContentLoaded",start);}else{start();}
 </script>
 </body>
