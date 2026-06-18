@@ -9,7 +9,7 @@ Run from repo root, stdlib only.
 import json, os, datetime, statistics
 
 HORIZONS = (1, 3, 7)
-MIN_N = 5          # verdicts need at least this many scored events
+MIN_N = 3          # verdicts need at least this many scored events
 WR_EDGE = 55.0     # win-rate >= this AND avg>0 -> "edge"
 WR_NOISE = 45.0    # win-rate < this OR avg<0 -> "noise"
 

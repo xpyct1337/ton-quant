@@ -39,6 +39,19 @@ def load(path, default):
     except Exception:
         return default
 
+# Multipliers applied to signal priority when verdict is known.
+# Journal always records raw w; multiplier only affects entry ranking.
+SCORE_MULTS = {"edge": 1.5, "neutral": 0.8, "noise": 0.3, "collecting": 1.0}
+
+def load_score_mults():
+    """Return {sig: mult} from data/signals/scores.json per_sig verdicts."""
+    sc = load("data/signals/scores.json", {})
+    out = {}
+    for sig, agg in sc.get("per_sig", {}).items():
+        verdict = agg.get("verdict", "collecting")
+        out[sig] = SCORE_MULTS.get(verdict, 1.0)
+    return out
+
 def pct(cur, prev):
     if prev is None or not prev:
         return None
@@ -83,7 +96,7 @@ def detect_signals(addr, t, hist, cats, wash_ban, today):
         out.append(("flow_imbalance", 1.2))
     return out
 
-def run_bot(name, cfg, bot, toks, sig_map, prev_map, today):
+def run_bot(name, cfg, bot, toks, sig_map, prev_map, today, score_mults=None):
     still = []
     for p in bot["positions"]:
         t = toks.get(p["addr"])
@@ -122,7 +135,8 @@ def run_bot(name, cfg, bot, toks, sig_map, prev_map, today):
         if cfg["min_liq_ratio"] > 0 and mcap > 0 and tvl / mcap < cfg["min_liq_ratio"]: continue
         for sig, w in sigs:
             if sig in cfg["signals"]:
-                cands.append((w, addr, t, sig))
+                mult = (score_mults or {}).get(sig, 1.0)
+                cands.append((w * mult, addr, t, sig))
     cands.sort(key=lambda x: -x[0])
     for w, addr, t, sig in cands:
         if len(bot["positions"]) >= cfg["max_open"]: break
@@ -156,6 +170,7 @@ def main():
     if not snap:
         print("snapshot missing"); return
     cats = load("data/cats.json", {})
+    score_mults = load_score_mults()
     state = load("data/paper/bots.json", None)
     if state is None:
         state = {"wash_ban": {}, "bots": {n: {"cash": START_CASH, "positions": [], "trades": [], "equity": []} for n in BOTS}}
@@ -178,7 +193,7 @@ def main():
                     "d1": round(d1, 2) if d1 is not None else None})
     summary = {}
     for name, cfg in BOTS.items():
-        mtm = run_bot(name, cfg, state["bots"][name], toks, sig_map, prev_map, today)
+        mtm = run_bot(name, cfg, state["bots"][name], toks, sig_map, prev_map, today, score_mults)
         summary[name] = round(mtm, 2)
     os.makedirs("data/signals", exist_ok=True)
     banned = sorted(a for a, d in state["wash_ban"].items()
@@ -195,8 +210,10 @@ def main():
     os.makedirs("data/paper", exist_ok=True)
     with open("data/paper/bots.json", "w") as f:
         json.dump(state, f, separators=(",", ":"))
+    noise = [s for s, m in score_mults.items() if m < 1.0]
     print("paper2:", today, "signals:", {a: [s[0] for s in v] for a, v in sig_map.items()},
-          "journal:", len(journal), "equity:", summary)
+          "journal:", len(journal), "equity:", summary,
+          "score_mults:", score_mults if score_mults else "none")
 
 if __name__ == "__main__":
     main()
