@@ -76,8 +76,8 @@
 
 <div class="card">
   <h3>Open positions</h3>
-  <table><thead><tr><th>Bot</th><th>Token</th><th>Signal</th><th>Opened</th><th class="num">Entry (eff.)</th><th class="num">Day</th></tr></thead>
-  <tbody id="posBody"><tr><td colspan="6" class="empty">None</td></tr></tbody></table>
+  <table><thead><tr><th>Bot</th><th>Token</th><th>Signal</th><th>Opened</th><th class="num">Entry (eff.)</th><th class="num">Day</th><th class="num">Live Δ</th><th class="num">Unr. PnL</th></tr></thead>
+  <tbody id="posBody"><tr><td colspan="8" class="empty">None</td></tr></tbody></table>
 </div>
 
 <div class="card">
@@ -94,6 +94,20 @@ const esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 const fmt$=n=>(n<0?"−$":"$")+Math.abs(n).toLocaleString(undefined,{maximumFractionDigits:2});
 const NAMES={cons:"\ud83d\udee1\ufe0f Conservative",aggr:"\u26a1 Aggressive"};
 const COLORS={cons:"#0098ea",aggr:"#d59312"};
+const TONAPI_KEY="AEUCH5S5SBNE64AAAAAMCL5S6MOL6AFR42PEXAR3OL2K2VJTQS77IQCN7I3O54EQK76ZIFA";
+async function fetchLivePrices(addrs){
+  if(!addrs.length)return{};
+  try{
+    const tok=encodeURIComponent(addrs.join(","));
+    const r=await fetch(`https://tonapi.io/v2/rates?tokens=${tok}&currencies=usd`,
+      {headers:{Authorization:`Bearer ${TONAPI_KEY}`}});
+    if(!r.ok)return{};
+    const d=await r.json();
+    const out={};
+    for(const[a,v]of Object.entries(d.rates||{}))out[a]=(v.prices||{}).USD;
+    return out;
+  }catch(e){return{};}
+}
 async function getState(){
   for(const u of ["data/paper/bots.json","https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data/paper/bots.json"]){
     try{const r=await fetch(u,{cache:"no-store"});if(r.ok)return await r.json();}catch(e){}
@@ -162,12 +176,31 @@ function drawEq(bots){
   const ps=[];
   for(const[n,b]of Object.entries(bots))for(const p of (b.positions||[]))ps.push({n,...p});
   if(ps.length){
-    document.getElementById("posBody").innerHTML=ps.map(p=>`<tr>
+    document.getElementById("posBody").innerHTML=ps.map((p,i)=>`<tr>
       <td style="color:${COLORS[p.n]};font-weight:700">${p.n}</td>
       <td><a href="token.html?a=${esc(p.addr)}">${esc(p.sym)}</a></td>
       <td><span class="pill">${esc(p.signal)}</span></td><td>${esc(p.opened)}</td>
       <td class="num">$${p.entry_eff<0.01?p.entry_eff.toExponential(2):p.entry_eff.toFixed(6)}</td>
-      <td class="num">${p.days}</td></tr>`).join("");
+      <td class="num">${p.days}</td>
+      <td class="num" id="pos-ret-${i}"><span style="color:var(--muted)">…</span></td>
+      <td class="num" id="pos-pnl-${i}"><span style="color:var(--muted)">…</span></td></tr>`).join("");
+    /* fetch live prices and fill unrealized P&L */
+    const addrs=[...new Set(ps.map(p=>p.addr))];
+    fetchLivePrices(addrs).then(prices=>{
+      ps.forEach((p,i)=>{
+        const cur=prices[p.addr];
+        const retEl=document.getElementById("pos-ret-"+i);
+        const pnlEl=document.getElementById("pos-pnl-"+i);
+        if(!retEl||!pnlEl)return;
+        if(cur==null||!p.entry_eff){retEl.innerHTML="<span style='color:var(--muted)'>n/a</span>";pnlEl.innerHTML="";return;}
+        const ret=(cur/p.entry_eff-1)*100;
+        const size=p.size||150;
+        const unrPnl=size*(cur/p.entry_eff-1);
+        const cls=ret>=0?"up":"down";
+        retEl.innerHTML=`<span class="${cls}">${ret>=0?"+":""}${ret.toFixed(1)}%</span>`;
+        pnlEl.innerHTML=`<span class="${cls}">${fmt$(unrPnl)}</span>`;
+      });
+    });
   }
   /* trade log */
   const tr=[];
