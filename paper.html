@@ -49,7 +49,7 @@
 
 <div class="card">
   <h3>Equity curves</h3>
-  <div class="h-sub"><span style="color:var(--accent);font-weight:700">&#9632; Conservative</span> &nbsp; <span style="color:var(--warn);font-weight:700">&#9632; Aggressive</span> &nbsp; daily mark-to-market.</div>
+  <div class="h-sub"><span style="color:var(--accent);font-weight:700">&#9632; Conservative</span> &nbsp; <span style="color:var(--warn);font-weight:700">&#9632; Aggressive</span> &nbsp; <span style="color:#888;font-weight:700">&#9135;&#9135; Buy&amp;Hold</span> &nbsp; equal-weight CORE, daily mark-to-market.</div>
   <div class="chart-wrap"><canvas id="eqChart" width="1200" height="240"></canvas></div>
 </div>
 
@@ -114,14 +114,25 @@ async function getState(){
   }
   return null;
 }
-function drawEq(bots){
+function drawEq(bots,bench){
   const c=document.getElementById("eqChart"),ctx=c.getContext("2d");
   const W=c.width=c.parentElement.clientWidth,H=c.height=240;
   const all=[].concat(...Object.values(bots).map(b=>b.equity.map(p=>p.v)));
   if(!all.length)return;
-  const mn=Math.min(...all,990),mx=Math.max(...all,1010),rng=mx-mn;
+  const benchVals=(bench||[]).map(p=>p.v);
+  const mn=Math.min(...all,...benchVals,990),mx=Math.max(...all,...benchVals,1010),rng=mx-mn||1;
   const y0=H-14-((1000-mn)/rng)*(H-28);
   ctx.strokeStyle="#2a3340";ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(0,y0);ctx.lineTo(W,y0);ctx.stroke();ctx.setLineDash([]);
+  /* draw benchmark as dashed grey line */
+  if(bench&&bench.length>1){
+    ctx.strokeStyle="#555c6e";ctx.lineWidth=1.5;ctx.setLineDash([6,4]);ctx.beginPath();
+    bench.forEach((p,i)=>{
+      const x=i/(bench.length-1)*(W-20)+10;
+      const y=H-14-((p.v-mn)/rng)*(H-28);
+      i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+    });
+    ctx.stroke();ctx.setLineDash([]);
+  }
   for(const[name,b]of Object.entries(bots)){
     const eq=b.equity;if(!eq.length)continue;
     ctx.strokeStyle=COLORS[name]||"#888";ctx.lineWidth=2;ctx.beginPath();
@@ -134,8 +145,38 @@ function drawEq(bots){
     ctx.stroke();
   }
 }
+async function loadBenchmark(){
+  try{
+    const idxUrls=["data/index.json","https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data/index.json"];
+    let idx=null;
+    for(const u of idxUrls){try{const r=await fetch(u,{cache:"no-store"});if(r.ok){idx=await r.json();break;}}catch(e){}}
+    if(!idx||!idx.dates||idx.dates.length<2)return null;
+    const catsUrls=["data/cats.json","https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data/cats.json"];
+    let cats={};
+    for(const u of catsUrls){try{const r=await fetch(u);if(r.ok){cats=await r.json();break;}}catch(e){}}
+    const coreAddrs=Object.entries(cats).filter(([,c])=>c!=="stable"&&c!=="staking").map(([a])=>a);
+    /* fetch all snapshots in parallel */
+    const snaps=await Promise.all(idx.dates.map(async d=>{
+      for(const base of ["data/snapshots/","https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data/snapshots/"]){
+        try{const r=await fetch(base+d+".json");if(r.ok){const j=await r.json();return{d,tokens:j.tokens||{}}};}catch(e){}
+      }
+      return{d,tokens:{}};
+    }));
+    /* compute equal-weight CORE return relative to day 0 */
+    const snap0=snaps[0];
+    const base0={};
+    for(const a of coreAddrs){const t=snap0.tokens[a];if(t&&t.price>0)base0[a]=t.price;}
+    const eligible=Object.keys(base0);
+    if(!eligible.length)return null;
+    return snaps.map(({d,tokens})=>{
+      const rets=eligible.map(a=>{const t=tokens[a];return(t&&t.price>0)?t.price/base0[a]:1;});
+      const mean=rets.reduce((s,r)=>s+r,0)/rets.length;
+      return{d,v:Math.round(1000*mean*100)/100};
+    });
+  }catch(e){return null;}
+}
 (async()=>{
-  const s=await getState();
+  const [s,bench]=await Promise.all([getState(),loadBenchmark()]);
   if(!s||!s.bots){document.getElementById("botKpis").innerHTML='<div class="kpi"><div class="label">Status</div><div class="value">no data yet</div><div class="delta">first run pending</div></div>';return;}
   const bots=s.bots;
   /* per-bot KPIs */
@@ -150,7 +191,15 @@ function drawEq(bots){
       <div class="delta">${d>=0?"+":""}${d.toFixed(2)}% &middot; ${tr.length} closed &middot; WR ${wr} &middot; ${(b.positions||[]).length} open</div>
     </div>`;
   }).join("");
-  drawEq(bots);
+  if(bench&&bench.length){
+    const bv=bench[bench.length-1].v,bd=(bv/1000-1)*100;
+    document.getElementById("botKpis").innerHTML+=`<div class="kpi" style="border-top:3px solid #555c6e">
+      <div class="label">Buy&amp;Hold (CORE)</div>
+      <div class="value ${bv>1000?"up":bv<1000?"down":""}">${fmt$(bv)}</div>
+      <div class="delta">${bd>=0?"+":""}${bd.toFixed(2)}% &middot; equal-weight CORE &middot; passive</div>
+    </div>`;
+  }
+  drawEq(bots,bench);
   /* edge by signal per bot */
   const rows=[];
   for(const[n,b]of Object.entries(bots)){
