@@ -6,6 +6,7 @@ IMPACT_CAP = 0.01
 TURN_REF = 0.5
 MIN_VSCALE = 0.3
 MIN_POS = 25.0
+MIN_EFF_W = 1.0  # skip entries if noise-adjusted priority drops below this
 
 BOTS = {
     "cons": {"pos": 100.0, "max_open": 3, "tp": 0.15, "sl": -0.07, "max_days": 5,
@@ -138,8 +139,9 @@ def run_bot(name, cfg, bot, toks, sig_map, prev_map, today, score_mults=None):
                 mult = (score_mults or {}).get(sig, 1.0)
                 cands.append((w * mult, addr, t, sig))
     cands.sort(key=lambda x: -x[0])
-    for w, addr, t, sig in cands:
+    for eff_w, addr, t, sig in cands:
         if len(bot["positions"]) >= cfg["max_open"]: break
+        if eff_w < MIN_EFF_W: break  # sorted desc — rest also below threshold
         if addr in open_addrs: continue
         size = position_size(cfg, t)
         if size <= 0 or bot["cash"] < size: continue
@@ -213,7 +215,8 @@ def main():
     noise = [s for s, m in score_mults.items() if m < 1.0]
     print("paper2:", today, "signals:", {a: [s[0] for s in v] for a, v in sig_map.items()},
           "journal:", len(journal), "equity:", summary,
-          "score_mults:", score_mults if score_mults else "none")
+          "score_mults:", score_mults if score_mults else "none",
+          "noise_blocked:", noise if noise else "none")
 
 if __name__ == "__main__":
     main()
