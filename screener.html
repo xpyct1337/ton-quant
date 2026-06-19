@@ -286,7 +286,7 @@ async function loadSnapshots(){
   }catch(e){console.warn('snapshot load failed',e);}
 }
 /* live data */
-let live={},dex={},spreads={},tokenScores={};
+let live={},dex={},spreads={},tokenScores={},meta={};
 function d24Of(t){return parseFloat(String((live[t.address]||{}).d24||"").replace("−","-").replace("%",""));}
 function mcapOf(t){const lv=live[t.address]||{};return (lv.usd??t.price)*Number(t.supply)/Math.pow(10,t.decimals);}
 
@@ -301,6 +301,10 @@ function jget(url){
   if(!isTon)return fetchRetry();
   return(async()=>{await acquire();try{return await fetchRetry();}finally{release();}})();
 }
+/* session cache (verification/holders/taxable change slowly) */
+function scGet(key,ttl){try{const c=JSON.parse(sessionStorage.getItem(key)||"null");if(c&&Date.now()-c.ts<ttl)return c.v;}catch(e){}return null;}
+function scSet(key,v){try{sessionStorage.setItem(key,JSON.stringify({ts:Date.now(),v}));}catch(e){}}
+async function jgetCached(url,key,ttl){const c=scGet(key,ttl);if(c!=null)return c;const r=await jget(url);scSet(key,r);return r;}
 
 async function loadPrices(){
   const addrs=TOKENS.map(t=>t.address);
@@ -352,12 +356,34 @@ async function loadDex(){
   }catch(e){console.warn("dex fail",e);}
 }
 
-/* simple scoring from static data + dex */
+/* scoring — same 7 factors as token.html.
+   liquidity from live dex, age from already-loaded dex pairs (free),
+   verification/top-10/taxable enriched per token by enrichScores() so the
+   screener score matches the token page (previously these were stubbed,
+   under-scoring verified tokens by up to ~27 pts). */
+function ageDaysOf(t){
+  const ps=dex[t.address]?.pairs||[];
+  const created=Math.min(...ps.map(p=>p.pairCreatedAt||Infinity));
+  return isFinite(created)?Math.floor((Date.now()-created)/86400000):null;
+}
 function computeScores(){
   for(const t of TOKENS){
-    const dx=dex[t.address];
-    tokenScores[t.address]=scoreToken(t,dx?.tvl||0,null,null,"none",false);
+    const dx=dex[t.address], m=meta[t.address]||{};
+    tokenScores[t.address]=scoreToken(t, dx?.tvl||0, m.age??ageDaysOf(t), m.top10??null, m.verif||"none", m.taxable||false);
   }
+}
+async function enrichScores(){
+  const ls=document.getElementById("loadState"); if(ls)ls.textContent="Refining scores…";
+  await Promise.all(TOKENS.map(async t=>{
+    const a=t.address, m=meta[a]||(meta[a]={});
+    try{const info=await jgetCached(`https://tonapi.io/v2/jettons/${a}`,`tq_sc_v_${a}`,6*3600e3);m.verif=info.verification||"none";}catch(e){}
+    try{const h=await jgetCached(`https://tonapi.io/v2/jettons/${a}/holders?limit=100`,`tq_sc_h_${a}`,6*3600e3);
+      const sup=Number(t.supply)||0;
+      if(sup>0&&h.addresses&&h.addresses.length)m.top10=h.addresses.slice(0,10).reduce((s,x)=>s+Number(x.balance),0)/sup*100;}catch(e){}
+    try{const sa=await jgetCached(`https://api.ston.fi/v1/assets/${a}`,`tq_sc_t_${a}`,24*3600e3);m.taxable=!!(sa&&sa.asset&&sa.asset.taxable);}catch(e){}
+  }));
+  computeScores(); applyFilters();
+  if(ls)ls.textContent="";
 }
 
 /* filter & render */
@@ -506,6 +532,7 @@ async function boot(){
     alphaDigest();
     arbTable();
     document.getElementById("loadState").textContent="";
+    enrichScores();  // background: real verification/top-10/taxable → re-render scores
   }catch(e){console.error("boot failed",e);document.getElementById("loadState").textContent="Error: "+e.message;}
 }
 document.addEventListener("DOMContentLoaded",boot);
