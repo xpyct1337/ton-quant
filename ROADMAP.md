@@ -134,9 +134,26 @@ Runs #11–14 задеплоены: index.html (alpha signals в Activity Digest
 
 Тесты: 87/87 unit (старые), 8/8 bench_unit (новые — computeBenchmark: stable цены=1000, stables excluded, one-doubles-one-halves, missing token=ratio-1, no core→null, structure+scale).
 
+## ✅ Готово 19.06.2026 (evolve-run #22, Opus, scheduled) — требует deploy.bat
+
+**Market-relative (excess) returns + walk-forward OOS + статзначимость в `scripts/score.py` (фича #3 бэклога — главное незакрытое).**
+
+Проблема, которую это решает: на АБСОЛЮТНЫХ доходностях весь рынок падает (TON + большинство джеттонов в красном) → каждый сигнал штампуется как "noise" (см. run #19: hidden_buyer и momentum оба noise). Но edge есть, только если сигнал бьёт корзину. Поэтому переписан `score.py`:
+- **Excess return** = доходность сигнала − средняя доходность торгуемой корзины (CORE, без stable/staking) на том же горизонте. Win-rate/avg/median считаются на excess, не на абсолюте.
+- **Wilson 95% нижняя граница** на excess win-rate + двусторонний **знаковый тест** (точный биномиальный p). Вердикт «edge» теперь требует Wilson lo > 50% (статзначимо выше монетки), а не просто точечную оценку — это убивает ложные edge на малом n.
+- **Walk-forward**: даты делятся пополам, вердикт формируется на in-sample, OOS подтверждение (`confirmed` флаг) отдельно. С n=15 это честно показывает, держится ли паттерн вне выборки.
+- Стат-хелперы (`wilson_lo`, `sign_test_p`, `agg_returns`, `classify`) вынесены чистыми и importable → `scripts/score_test.py` (22 проверки, все зелёные). Бэк-совместимость: абсолютные h1/h3/h7 и ключ `verdict` сохранены (paper.py читает только verdict; index.html — h1, есть legacy-fallback).
+- `index.html`: `sigEdgeStr` теперь показывает вердикт + excess avg + Wilson lo + ✓oos (с legacy-fallback на старый формат scores.json); ранжирование `loadAlphaSignals` буст ×2.0 для confirmed-edge, ×0.5 для noise.
+
+**💰 КЛЮЧЕВАЯ НАХОДКА (8 снапшотов, 15 событий):** `hidden_buyer` на excess-доходностях = **EDGE, walk-forward CONFIRMED**. Excess +7.7%/3д (n=4, WR=100%, Wilson lo 51%, sign-test p=0.125), in-sample +1.1% → out-of-sample +5.5%. То есть когда рынок падал ~6%, токены с hidden_buyer падали лишь ~0.4% → +7.7% относительной альфы, и это держалось вне выборки. Это первый сигнал с market-relative edge, переживший OOS. ⚠️ n=4, p=0.125 — многообещающе, но НЕ доказано (нужно p<0.05, т.е. ≥7-8 подряд excess-выигрышей). momentum остаётся noise (excess h3 −5.1%, OOS −1.26%, не confirmed). Это relative-value сетап под market-neutral бот: лонг hidden_buyer / шорт корзины.
+
+Тесты: 22/22 score_test.py, 57/57 unit (sigEdgeStr провалидирован в изоляции на реальном scores.json: edge+✓oos для hidden_buyer, noise для momentum, legacy-fallback, null). 3 фейла integration — блок NOT в token.html (живой fetch холдеров tonapi в песочнице вернул пусто), token.html не трогался, не регресс. scores.json в репо НЕ коммитим (origin уже имеет сегодняшний CI-коммит, избегаем rebase-конфликт) — новый формат сгенерит следующий daily Action (или ручной workflow_dispatch «Daily snapshot»).
+
+Следующее: добить hidden_buyer до p<0.05 (нужны дни), CVD/toxicity-фильтр (#10), динамические веса по excess-WR в paper.py.
+
 ## Техдолг / инфраструктура
 
 OG-картинки для шеринга карточек токенов.
 
 ---
-*Обновлено: 2026-06-18. Блокчейн остаётся «TON», монета с 15.06.2026 — GRAM (вотум 81% за).*
+*Обновлено: 2026-06-19. Блокчейн остаётся «TON», монета с 15.06.2026 — GRAM (вотум 81% за).*

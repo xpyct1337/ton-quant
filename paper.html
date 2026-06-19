@@ -92,9 +92,65 @@
 <script>
 const esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt$=n=>(n<0?"−$":"$")+Math.abs(n).toLocaleString(undefined,{maximumFractionDigits:2});
-const NAMES={cons:"\ud83d\udee1\ufe0f Conservative",aggr:"\u26a1 Aggressive"};
+const NAMES={cons:"Conservative",aggr:"Aggressive"};
 const COLORS={cons:"#0098ea",aggr:"#d59312"};
 const TONAPI_KEY="AEUCH5S5SBNE64AAAAAMCL5S6MOL6AFR42PEXAR3OL2K2VJTQS77IQCN7I3O54EQK76ZIFA";
+
+/* ── Market Regime ─────────────────────────────────────────────────────────
+   Pure function — takes sorted [{d, tokens:{addr:{price,...}}}] + cats map.
+   Returns {regime, breadth, above, total, med7} or null if insufficient data.
+   regime: 'BULL' (breadth>=60%) / 'BEAR' (<=40%) / 'NEUTRAL'.
+   breadth: % of CORE tokens whose current price is above their 7-day avg.
+   med7: median 7-day price change (%) across CORE tokens.           */
+function computeMarketRegime(snaps, cats) {
+  if (!snaps || snaps.length < 2) return null;
+  const coreA = Object.entries(cats||{}).filter(([,c])=>c!=="stable"&&c!=="staking").map(([a])=>a);
+  if (!coreA.length) return null;
+  const now = (snaps[snaps.length-1].tokens) || {};
+  const window7 = snaps.slice(-7);
+  const avg7 = {};
+  for (const a of coreA) {
+    const pp = window7.map(s=>((s.tokens||{})[a]||{}).price).filter(Boolean);
+    if (pp.length) avg7[a] = pp.reduce((s,p)=>s+p,0) / pp.length;
+  }
+  let above=0, total=0;
+  for (const a of coreA) {
+    const cur=(now[a]||{}).price, avg=avg7[a];
+    if (cur && avg) { total++; if (cur > avg) above++; }
+  }
+  if (!total) return null;
+  const breadth = Math.round(above / total * 100);
+  const regime = breadth >= 60 ? 'BULL' : breadth <= 40 ? 'BEAR' : 'NEUTRAL';
+  const snap7 = snaps.length >= 7 ? snaps[snaps.length-7] : snaps[0];
+  const chg = coreA.map(a=>{
+    const p0=((snap7.tokens||{})[a]||{}).price, p1=(now[a]||{}).price;
+    return (p0 && p1) ? (p1/p0-1)*100 : null;
+  }).filter(v=>v!==null).sort((a,b)=>a-b);
+  const med7 = chg.length ? chg[Math.floor(chg.length/2)] : null;
+  return {regime, breadth, above, total, med7};
+}
+
+async function loadMarketRegime() {
+  try {
+    let idx=null;
+    for(const u of ["data/index.json","https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data/index.json"]){
+      try{const r=await fetch(u);if(r.ok){idx=await r.json();break;}}catch(e){}
+    }
+    if(!idx||!idx.dates||idx.dates.length<2) return null;
+    let cats={};
+    for(const u of ["data/cats.json","https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data/cats.json"]){
+      try{const r=await fetch(u);if(r.ok){cats=await r.json();break;}}catch(e){}
+    }
+    const snaps = await Promise.all(idx.dates.map(async d=>{
+      for(const base of ["data/snapshots/","https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data/snapshots/"]){
+        try{const r=await fetch(base+d+".json");if(r.ok){const j=await r.json();return{d,tokens:j.tokens||{}};};}catch(e){}
+      }
+      return{d,tokens:{}};
+    }));
+    return computeMarketRegime(snaps, cats);
+  } catch(e) { return null; }
+}
+
 async function fetchLivePrices(addrs){
   if(!addrs.length)return{};
   try{
@@ -123,7 +179,6 @@ function drawEq(bots,bench){
   const mn=Math.min(...all,...benchVals,990),mx=Math.max(...all,...benchVals,1010),rng=mx-mn||1;
   const y0=H-14-((1000-mn)/rng)*(H-28);
   ctx.strokeStyle="#2a3340";ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(0,y0);ctx.lineTo(W,y0);ctx.stroke();ctx.setLineDash([]);
-  /* draw benchmark as dashed grey line */
   if(bench&&bench.length>1){
     ctx.strokeStyle="#555c6e";ctx.lineWidth=1.5;ctx.setLineDash([6,4]);ctx.beginPath();
     bench.forEach((p,i)=>{
@@ -155,14 +210,12 @@ async function loadBenchmark(){
     let cats={};
     for(const u of catsUrls){try{const r=await fetch(u);if(r.ok){cats=await r.json();break;}}catch(e){}}
     const coreAddrs=Object.entries(cats).filter(([,c])=>c!=="stable"&&c!=="staking").map(([a])=>a);
-    /* fetch all snapshots in parallel */
     const snaps=await Promise.all(idx.dates.map(async d=>{
       for(const base of ["data/snapshots/","https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data/snapshots/"]){
         try{const r=await fetch(base+d+".json");if(r.ok){const j=await r.json();return{d,tokens:j.tokens||{}}};}catch(e){}
       }
       return{d,tokens:{}};
     }));
-    /* compute equal-weight CORE return relative to day 0 */
     const snap0=snaps[0];
     const base0={};
     for(const a of coreAddrs){const t=snap0.tokens[a];if(t&&t.price>0)base0[a]=t.price;}
@@ -176,14 +229,13 @@ async function loadBenchmark(){
   }catch(e){return null;}
 }
 (async()=>{
-  const [s,bench]=await Promise.all([getState(),loadBenchmark()]);
+  const [s,bench,regime]=await Promise.all([getState(),loadBenchmark(),loadMarketRegime()]);
   if(!s||!s.bots){document.getElementById("botKpis").innerHTML='<div class="kpi"><div class="label">Status</div><div class="value">no data yet</div><div class="delta">first run pending</div></div>';return;}
   const bots=s.bots;
-  /* per-bot KPIs */
   document.getElementById("botKpis").innerHTML=Object.entries(bots).map(([n,b])=>{
     const eq=b.equity||[],cur=eq.length?eq[eq.length-1].v:1000;
     const tr=b.trades||[],pnl=tr.reduce((a,t)=>a+t.pnl,0);
-    const wr=tr.length?Math.round(tr.filter(t=>t.pnl>0).length/tr.length*100)+"%":"\u2014";
+    const wr=tr.length?Math.round(tr.filter(t=>t.pnl>0).length/tr.length*100)+"%":"—";
     const d=(cur/1000-1)*100;
     return `<div class="kpi" style="border-top:3px solid ${COLORS[n]}">
       <div class="label">${NAMES[n]}</div>
@@ -199,8 +251,18 @@ async function loadBenchmark(){
       <div class="delta">${bd>=0?"+":""}${bd.toFixed(2)}% &middot; equal-weight CORE &middot; passive</div>
     </div>`;
   }
+  /* Market Regime KPI — computed from 7-day snapshot window */
+  if(regime){
+    const clrStr=regime.regime==='BULL'?'var(--good)':regime.regime==='BEAR'?'var(--bad)':'var(--warn)';
+    const cls=regime.regime==='BULL'?'up':regime.regime==='BEAR'?'down':'';
+    const med=regime.med7!=null?`${regime.med7>=0?'+':''}${regime.med7.toFixed(1)}%`:'—';
+    document.getElementById("botKpis").innerHTML+=`<div class="kpi" style="border-top:3px solid ${clrStr}">
+      <div class="label">Market Regime</div>
+      <div class="value ${cls}">${regime.regime}</div>
+      <div class="delta">${regime.breadth}% CORE above 7d avg &middot; med 7d ${med}</div>
+    </div>`;
+  }
   drawEq(bots,bench);
-  /* edge by signal per bot */
   const rows=[];
   for(const[n,b]of Object.entries(bots)){
     const by={};
@@ -215,13 +277,12 @@ async function loadBenchmark(){
   if(rows.length){
     rows.sort((a,b)=>b.tot-a.tot);
     document.getElementById("sigBody").innerHTML=rows.map(r=>`<tr>
-      <td style="color:${COLORS[r.n]};font-weight:700">${NAMES[r.n].split(" ")[1]||r.n}</td>
+      <td style="color:${COLORS[r.n]};font-weight:700">${NAMES[r.n]}</td>
       <td><span class="pill">${esc(r.sig)}</span></td><td class="num">${r.c}</td>
       <td class="num ${r.wr>=55?"up":r.wr<45?"down":""}">${r.wr.toFixed(0)}%</td>
       <td class="num ${r.avg>0?"up":"down"}">${r.avg>0?"+":""}${r.avg.toFixed(1)}%</td>
       <td class="num ${r.tot>0?"up":"down"}">${fmt$(r.tot)}</td></tr>`).join("");
   }
-  /* open positions */
   const ps=[];
   for(const[n,b]of Object.entries(bots))for(const p of (b.positions||[]))ps.push({n,...p});
   if(ps.length){
@@ -231,9 +292,8 @@ async function loadBenchmark(){
       <td><span class="pill">${esc(p.signal)}</span></td><td>${esc(p.opened)}</td>
       <td class="num">$${p.entry_eff<0.01?p.entry_eff.toExponential(2):p.entry_eff.toFixed(6)}</td>
       <td class="num">${p.days}</td>
-      <td class="num" id="pos-ret-${i}"><span style="color:var(--muted)">…</span></td>
-      <td class="num" id="pos-pnl-${i}"><span style="color:var(--muted)">…</span></td></tr>`).join("");
-    /* fetch live prices and fill unrealized P&L */
+      <td class="num" id="pos-ret-${i}"><span style="color:var(--muted)">...</span></td>
+      <td class="num" id="pos-pnl-${i}"><span style="color:var(--muted)">...</span></td></tr>`).join("");
     const addrs=[...new Set(ps.map(p=>p.addr))];
     fetchLivePrices(addrs).then(prices=>{
       ps.forEach((p,i)=>{
@@ -251,7 +311,6 @@ async function loadBenchmark(){
       });
     });
   }
-  /* trade log */
   const tr=[];
   for(const[n,b]of Object.entries(bots))for(const t of (b.trades||[]))tr.push({n,...t});
   tr.sort((a,b)=>a.closed<b.closed?1:-1);
@@ -263,7 +322,7 @@ async function loadBenchmark(){
       <td style="color:${COLORS[t.n]};font-weight:700">${t.n}</td>
       <td><a href="token.html?a=${esc(t.addr)}">${esc(t.sym)}</a></td>
       <td><span class="pill">${esc(t.signal)}</span></td>
-      <td>${esc(t.opened)} \u2192 ${esc(t.closed)}</td>
+      <td>${esc(t.opened)} to ${esc(t.closed)}</td>
       <td class="num ${t.ret>0?"up":"down"}">${t.ret>0?"+":""}${t.ret}%</td>
       <td class="num ${t.pnl>0?"up":"down"}">${fmt$(t.pnl)}</td>
       <td><span class="pill ${t.reason==="tp"?"good":t.reason==="sl"||t.reason==="rug_exit"?"bad":"warn"}">${esc(t.reason)}</span></td></tr>`).join("");
@@ -280,8 +339,8 @@ async function loadBenchmark(){
     try{const r=await fetch(u,{cache:"no-store"});if(r.ok){sc=await r.json();break;}}catch(e){}
   }
   if(!sc||!Object.keys(sc.per_sig||{}).length)return;
-  const V={edge:["edge","good"],noise:["noise","bad"],neutral:["neutral","warn"],collecting:["collecting\u2026",""]};
-  const cell=(h,k)=>{const x=h&&h[k];return x==null?"\u2014":(k==="wr"?x.toFixed(0)+"%":(x>0?"+":"")+x.toFixed(1)+"%");};
+  const V={edge:["edge","good"],noise:["noise","bad"],neutral:["neutral","warn"],collecting:["collecting",""]};
+  const cell=(h,k)=>{const x=h&&h[k];return x==null?"n/a":(k==="wr"?x.toFixed(0)+"%":(x>0?"+":"")+x.toFixed(1)+"%");};
   const cls=(h,k)=>h&&h[k]!=null?(k==="wr"?(h[k]>=55?"up":h[k]<45?"down":""):(h[k]>0?"up":"down")):"";
   const rows=Object.entries(sc.per_sig).sort((a,b)=>((b[1].h3.avg??b[1].h1.avg??-999))-((a[1].h3.avg??a[1].h1.avg??-999)));
   document.getElementById("scoreBody").innerHTML=rows.map(([sig,a])=>{
@@ -293,9 +352,8 @@ async function loadBenchmark(){
       <td class="num ${cls(a.h7,"wr")}">${cell(a.h7,"wr")}</td><td class="num ${cls(a.h7,"avg")}">${cell(a.h7,"avg")}</td>
       <td class="num">${n}</td><td><span class="pill ${v[1]}">${v[0]}</span></td></tr>`;
   }).join("");
-  /* recent signal events */
   const recent=(sc.recent||[]).slice().sort((a,b)=>a.date<b.date?1:-1);
-  const fmtR=v=>v==null?'<span style="color:var(--muted)">—</span>':`<span class="${v>0?"up":v<0?"down":""}">${v>0?"+":""}${v.toFixed(1)}%</span>`;
+  const fmtR=v=>v==null?'<span style="color:var(--muted)">n/a</span>':`<span class="${v>0?"up":v<0?"down":""}">${v>0?"+":""}${v.toFixed(1)}%</span>`;
   const fadeBadge=(r)=>{if(r.r1!=null&&r.r3!=null&&r.r1>2&&r.r3<-5)return' <span class="pill bad" title="signal faded by 3d" style="font-size:10px">fade</span>';return"";};
   document.getElementById("recentBody").innerHTML=recent.length?recent.map(r=>`<tr>
     <td style="color:var(--muted);font-size:12px">${esc(r.date)}</td>
@@ -310,4 +368,3 @@ async function loadBenchmark(){
 </script>
 </body>
 </html>
-                                                                                                                                                                                                                                                                                                     

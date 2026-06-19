@@ -524,6 +524,17 @@ let snapSigs=[];
 let paperSigs=[],sigScores={};
 const SIG_EMOJI={hidden_buyer:'🐋',momentum:'🚀',accum_div:'📊',flow_imbalance:'🌊',dip_reversal:'🔄',liq_inflow:'💧',holders_surge:'👥',breakout:'⚡',wash_suspect:'🚿'};
 function sigEdgeStr(sc){
+  if(!sc)return'collecting';
+  // market-relative verdict (excess return vs basket) + walk-forward confirmation
+  if(sc.verdict&&sc.x){
+    const bh=sc.base_h||1, xh=sc.x['h'+bh]||{};
+    if(!xh.n)return'collecting';
+    const conf=(sc.wf&&sc.wf.confirmed)?' ✓oos':'';
+    const xavg=(xh.avg>=0?'+':'')+(xh.avg||0).toFixed(1);
+    const lo=sc.sig_lo!=null?' lo'+sc.sig_lo.toFixed(0)+'%':'';
+    return sc.verdict+' xR'+bh+'d='+xavg+'%(n'+xh.n+')'+lo+conf;
+  }
+  // legacy fallback (old scores.json without excess fields)
   const h1=(sc&&sc.h1)||{};
   if(!h1.n)return'collecting';
   if(h1.n<5)return'n='+h1.n+' WR '+h1.wr.toFixed(0)+'%';
@@ -646,9 +657,11 @@ async function loadAlphaSignals(){
     for(const s of d.signals){
       const tok=TOKENS.find(x=>x.address===s.addr);if(!tok)continue;
       const emoji=SIG_EMOJI[s.sig]||'📡';
-      const edgeStr=sigEdgeStr(sigScores[s.sig]);
-      const h1=(sigScores[s.sig]&&sigScores[s.sig].h1)||{};
-      const edgeBoost=h1.n>=3&&(h1.avg||0)>0?1.5:1;
+      const sc=sigScores[s.sig]||{};
+      const edgeStr=sigEdgeStr(sc);
+      // rank confirmed-edge signals highest, demote noise (uses market-relative verdict)
+      const edgeBoost=sc.verdict==='edge'?((sc.wf&&sc.wf.confirmed)?2.0:1.5)
+                      :sc.verdict==='noise'?0.5:1;
       const tag=emoji+' '+s.sig.replace(/_/g,' ');
       const desc='w='+s.w+' · d1='+s.d1.toFixed(1)+'% · '+edgeStr;
       out.push({t:tok,tag,desc,vol:0,priority:s.w*1e5*edgeBoost,isAlpha:true});
