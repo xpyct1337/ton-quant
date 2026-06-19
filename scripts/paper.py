@@ -1,4 +1,5 @@
 import json, os, datetime
+from score import load
 
 START_CASH = 1000.0
 FEE = 0.003
@@ -32,13 +33,6 @@ def position_size(cfg, t):
     vscale = 1.0 if turn <= TURN_REF else max(MIN_VSCALE, TURN_REF / turn)
     size = min(base, impact_cap) * vscale
     return round(size, 2) if size >= MIN_POS else 0.0
-
-def load(path, default):
-    try:
-        with open(path) as f:
-            return json.load(f)
-    except Exception:
-        return default
 
 # Multipliers applied to signal priority when verdict is known.
 # Journal always records raw w; multiplier only affects entry ranking.

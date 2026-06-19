@@ -302,9 +302,12 @@ function jget(url){
   return(async()=>{await acquire();try{return await fetchRetry();}finally{release();}})();
 }
 /* session cache (verification/holders/taxable change slowly) */
-function scGet(key,ttl){try{const c=JSON.parse(sessionStorage.getItem(key)||"null");if(c&&Date.now()-c.ts<ttl)return c.v;}catch(e){}return null;}
-function scSet(key,v){try{sessionStorage.setItem(key,JSON.stringify({ts:Date.now(),v}));}catch(e){}}
-async function jgetCached(url,key,ttl){const c=scGet(key,ttl);if(c!=null)return c;const r=await jget(url);scSet(key,r);return r;}
+async function jgetCached(url,key,ttl){
+  try{const c=JSON.parse(sessionStorage.getItem(key)||"null");if(c&&Date.now()-c.ts<ttl)return c.v;}catch(e){}
+  const r=await jget(url);
+  try{sessionStorage.setItem(key,JSON.stringify({ts:Date.now(),v:r}));}catch(e){}
+  return r;
+}
 
 async function loadPrices(){
   const addrs=TOKENS.map(t=>t.address);
