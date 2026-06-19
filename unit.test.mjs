@@ -112,6 +112,27 @@ const pts=[1,2,3,4,5,6,7,8,9,10];
 const cur=7.5; const below=pts.filter(x=>x<cur).length/pts.length*100;
 t('pctBelow manual', below===70);
 
+// --- volatility / beta helpers (extracted from token.html) ---
+{
+  const grabLine=re=>tok.match(re)[0];
+  const src=[/^const logRets=.*$/m,/^const stdev=.*$/m,/^const betaCorr=.*$/m].map(grabLine).join('\n');
+  const {logRets,stdev,betaCorr}=new Function(src+'\nreturn {logRets,stdev,betaCorr};')();
+  t('logRets length n-1', logRets([1,2,4,8]).length===3);
+  t('logRets value=ln2', Math.abs(logRets([1,2])[0]-Math.log(2))<1e-12);
+  t('logRets skips nonpositive', logRets([1,0,2,4]).length===1);
+  t('stdev flat=0', stdev(logRets([5,5,5,5]))===0);
+  t('stdev symmetric=a', Math.abs(stdev([0.1,-0.1])-0.1)<1e-12);
+  const r=[0.02,-0.01,0.03,-0.02,0.01];
+  const bc=betaCorr(r,r);
+  t('beta self=1', Math.abs(bc.beta-1)<1e-9);
+  t('corr self=1', Math.abs(bc.corr-1)<1e-9);
+  const bc2=betaCorr(r.map(x=>2*x),r);
+  t('beta 2x=2', Math.abs(bc2.beta-2)<1e-9);
+  t('corr 2x=1', Math.abs(bc2.corr-1)<1e-9);
+  t('corr anti=-1', Math.abs(betaCorr(r.map(x=>-x),r).corr+1)<1e-9);
+  t('betaCorr too short->null', betaCorr([0.1],[0.2]).beta===null);
+}
+
 // --- netArb: realizable cross-DEX arb after costs ---
 // independent reference implementation (gas = 0.05 TON, tonUsd fallback 3 => $0.15)
 function refNetArb(spreadFrac,cheapLiq,expLiq){

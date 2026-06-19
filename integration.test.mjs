@@ -3,7 +3,11 @@ import { JSDOM } from 'jsdom';
 import fs from 'fs';
 let pass=0,fail=0;
 const t=(name,cond,info="")=>{ if(cond){pass++;} else {fail++; console.log("FAIL:",name,info);} };
-const ctxStub={createLinearGradient:()=>({addColorStop(){}}),beginPath(){},moveTo(){},lineTo(){},stroke(){},set strokeStyle(v){},set lineWidth(v){}};
+// Complete canvas-2d stub: any method is a no-op, any property is settable.
+// (Incomplete stubs make viz fns like renderBubbleMap throw on ctx.scale/arc/fill,
+//  which aborts load() and silently breaks downstream holder-table assertions.)
+const _grad={addColorStop(){}};
+const ctxStub=new Proxy({},{get(o,k){if(k==='createLinearGradient'||k==='createRadialGradient')return ()=>_grad;if(k==='measureText')return ()=>({width:0});if(k==='getImageData')return ()=>({data:[]});return ()=>{};},set(){return true;}});
 function boot(file,url,stripRe){
   const html=fs.readFileSync(file,'utf8');
   const dom=new JSDOM(html,{url});
@@ -52,6 +56,9 @@ const parse$=s=>{ // "$1.43B" -> number
   t('NOT top10 sane', parseFloat(q('kTop10'))>30&&parseFloat(q('kTop10'))<70, q('kTop10'));
   t('NOT score 0-100', /^\d+ \/ 100$/.test(q('kScore'))&&parseInt(q('kScore'))<=100);
   t('NOT live mode', q('modePill').includes('Live'));
+  t('NOT vol30 renders %', /^\d+\.\d%$/.test(q('kVol30')), q('kVol30'));
+  { const vsub=dom.window.document.getElementById('kVol30Sub').textContent;
+    t('NOT vol30 sub has beta+risk', /vs TON/.test(vsub)&&/(low|moderate|high|extreme) risk/.test(vsub), vsub); }
   // holders collapsed to 10
   const visible=[...dom.window.document.querySelectorAll('#holderTbody tr')].filter(r=>r.style.display!=='none'&&!r.id);
   t('holders collapsed to 10', visible.length===10, visible.length);

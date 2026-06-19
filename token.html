@@ -218,6 +218,7 @@
   <div class="kpi"><div class="label">Top-10 Hold</div><div class="value" id="kTop10">&mdash;</div><div class="delta">share of supply</div></div>
   <div class="kpi"><div class="label">Mcap / Holder</div><div class="value" id="kPH">&mdash;</div><div class="delta" id="kPHSub">vs top-20 median $220</div></div>
   <div class="kpi"><div class="label">In Profit (90d est.)</div><div class="value" id="kProfit">&mdash;</div><div class="delta" id="kProfitSub">days below current price</div></div>
+  <div class="kpi"><div class="label">Volatility 30d</div><div class="value" id="kVol30">&mdash;</div><div class="delta" id="kVol30Sub">daily &sigma; &middot; &beta; vs TON</div></div>
 </div>
 
 <!-- holder structure stacked bar -->
@@ -399,6 +400,10 @@ const setDelta=(el,str)=>{
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const safeUrl=u=>/^https?:\/\//.test(u||"")?u:"#";
+/* ---------- volatility / beta helpers (pure, unit-tested) ---------- */
+const logRets=a=>{const r=[];for(let i=1;i<a.length;i++){if(a[i-1]>0&&a[i]>0)r.push(Math.log(a[i]/a[i-1]));}return r;};
+const stdev=a=>{if(!a.length)return 0;const m=a.reduce((s,x)=>s+x,0)/a.length;return Math.sqrt(a.reduce((s,x)=>s+(x-m)*(x-m),0)/a.length);};
+const betaCorr=(rt,rn)=>{const n=Math.min(rt.length,rn.length);if(n<2)return{beta:null,corr:null};const xt=rt.slice(-n),xn=rn.slice(-n);const mt=xt.reduce((s,x)=>s+x,0)/n,mn=xn.reduce((s,x)=>s+x,0)/n;let cov=0,vn=0,vt=0;for(let i=0;i<n;i++){cov+=(xt[i]-mt)*(xn[i]-mn);vn+=(xn[i]-mn)*(xn[i]-mn);vt+=(xt[i]-mt)*(xt[i]-mt);}return{beta:vn>0?cov/vn:null,corr:(vn>0&&vt>0)?cov/Math.sqrt(vn*vt):null};};
 const TONAPI_KEY="AEUCH5S5SBNE64AAAAAMCL5S6MOL6AFR42PEXAR3OL2K2VJTQS77IQCN7I3O54EQK76ZIFA";
 const POOL=4; let poolActive=0; const poolWait=[];
 async function acquire(){ if(poolActive<POOL){poolActive++;return;} await new Promise(r=>poolWait.push(r)); poolActive++; }
@@ -735,7 +740,7 @@ async function load(){
     }else slipBody.innerHTML='<tr><td colspan="6" class="empty">No pools with liquidity.</td></tr>';
 
     /* In-Profit (90d) — 15-min session cache (data shifts by 1/90 per day, no need to refetch every 60s) */
-    let pctBelow=null;
+    let pctBelow=null, vol30Pct=null;
     try{
       const now90=Math.floor(Date.now()/1000);
       const ch90Key=`tq_inprofit_${MASTER}`;
@@ -748,6 +753,24 @@ async function load(){
         if(pctBelow>=85){ps.textContent="profit-taking zone";ps.className="delta down";}
         else if(pctBelow<=15){ps.textContent="capitulation zone";ps.className="delta down";}
         else{ps.textContent="days below current price";ps.className="delta";}
+      }
+    }catch(e){}
+
+    /* 30d realized volatility + beta vs TON (ROADMAP Tier-2; token series cache-shared with In-Profit) */
+    try{
+      const nowV=Math.floor(Date.now()/1000);
+      const tokCh=await jgetCached(`https://tonapi.io/v2/rates/chart?token=${MASTER}&currency=usd&start_date=${nowV-90*86400}&end_date=${nowV}&points_count=180`,`tq_inprofit_${MASTER}`,15*60*1000);
+      const tonCh=await jgetCached(`https://tonapi.io/v2/rates/chart?token=ton&currency=usd&start_date=${nowV-90*86400}&end_date=${nowV}&points_count=180`,`tq_tonchart90`,15*60*1000);
+      const ser=d=>(d.points||[]).map(p=>[p[0],p[1]]).filter(p=>p[1]>0).sort((a,b)=>a[0]-b[0]).slice(-31).map(p=>p[1]);
+      const rt=logRets(ser(tokCh)), rn=logRets(ser(tonCh));
+      if(rt.length>=10){
+        vol30Pct=stdev(rt)*100;
+        const {beta}=betaCorr(rt,rn);
+        document.getElementById("kVol30").textContent=vol30Pct.toFixed(1)+"%";
+        const risk=vol30Pct<4?"low":vol30Pct<9?"moderate":vol30Pct<18?"high":"extreme";
+        const sub=document.getElementById("kVol30Sub");
+        sub.textContent=(beta!=null?`\u03b2 ${beta.toFixed(2)} vs TON \u00b7 `:"")+risk+" risk";
+        sub.className="delta "+(vol30Pct>=18?"down":vol30Pct<4?"up":"");
       }
     }catch(e){}
 
@@ -775,6 +798,7 @@ async function load(){
     const mc=supplyTokens*usd;
     if(mc>0&&totVol/mc>0.5)sigs.push(["warn","Overheated turnover",`24h volume is ${(totVol/mc*100).toFixed(0)}% of market cap — extreme churn, expect volatility.`]);
     if(mc>0&&totVol>0&&totVol/mc<0.001)sigs.push(["info","Dormant",`24h volume is ${(totVol/mc*100).toFixed(2)}% of market cap — market interest is minimal.`]);
+    if(vol30Pct!=null&&vol30Pct>=20)sigs.push(["warn","High volatility",`30-day realized volatility is ${vol30Pct.toFixed(0)}% daily — expect large swings; size positions accordingly.`]);
     if(pctBelow!=null&&pctBelow>=85)sigs.push(["warn","Profit-taking zone",`Price is above ${pctBelow.toFixed(0)}% of the last 90 days — most positions are in profit, selling pressure risk is elevated.`]);
     if(pctBelow!=null&&pctBelow<=15)sigs.push(["info","Capitulation zone",`Price is below ${(100-pctBelow).toFixed(0)}% of the last 90 days — late-stage bear territory in Glassnode terms.`]);
     if(liqPairs.length>=2){
@@ -860,6 +884,7 @@ async function load(){
       document.getElementById("riskList").innerHTML=risks.map(x=>"• "+x).join("<br>");
     }else rb.style.display="none";
 
+    try{ /* Holder charts — a viz error must never block the holder table / modePill */
     /* Holder donut */
     const top=addresses.slice(0,10);
     const others=addresses.slice(10).reduce((s,h)=>s+Number(h.balance),0);
@@ -879,6 +904,7 @@ async function load(){
 
     /* Bubble map */
     renderBubbleMap(addresses,supplyRaw,usd);
+    }catch(vizErr){console.warn("Holder viz render failed (non-fatal):",vizErr);}
 
     /* Holder table with smart-money labels */
     const tbody=document.getElementById("holderTbody");
