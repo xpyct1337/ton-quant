@@ -16,6 +16,8 @@ jobs:
       - run: python scripts/snapshot.py
       - run: python scripts/paper.py
       - run: python scripts/score.py
+      - run: python scripts/altsnapshot.py
+      - run: python scripts/altpaper.py
       - run: |
           git config user.name "snapshot-bot"
           git config user.email "actions@users.noreply.github.com"

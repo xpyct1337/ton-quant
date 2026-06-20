@@ -43,7 +43,7 @@
 <body>
 <div class="top-nav"><a href="index.html">&larr; TON Quant</a></div>
 <h1>📄 Paper Bot</h1>
-<div class="sub">Two virtual $1,000 portfolios trade our signals once a day (03:10 UTC, GitHub Actions). <strong>Conservative</strong>: accumulation signals only (hidden buyer, holder surge, accumulation divergence, liquidity inflow) + quality filters (TVL&ge;$50K, holders&ge;5K, liq/mcap&ge;2%), +15%/&minus;7%/5d. <strong>Aggressive</strong>: adds momentum, breakout, dip-reversal, flow imbalance; looser filters, +30%/&minus;12%/3d. Both pay real costs (CPMM slippage + 0.3%/leg) and force-exit on rug (TVL &minus;25%/day). The edge table decides what a real bot would trade.</div>
+<div class="sub">Two virtual $1,000 portfolios trade our signals once a day (03:10 UTC, GitHub Actions). <strong>Conservative</strong>: accumulation signals only (hidden buyer, holder surge, accumulation divergence, liquidity inflow) + quality filters (TVL&ge;$50K, holders&ge;5K, liq/mcap&ge;2%), +15%/&minus;7%/5d. <strong>Aggressive</strong>: adds momentum, breakout, dip-reversal, flow imbalance; looser filters, +30%/&minus;12%/3d. Both pay real costs (CPMM slippage + 0.3%/leg) and force-exit on rug (TVL &minus;25%/day). The edge table decides what a real bot would trade. <strong>Alt (CEX)</strong>: a separate $1,000 portfolio on non-TON majors (HYPE, ZEC) via CoinGecko &mdash; price/volume signals only (breakout, vol spike, momentum, dip reversal), 0.1%/leg, +20%/&minus;10%/5d; no on-chain signals since CEX coins have no DEX metrics.</div>
 
 <div class="kpi-grid" id="botKpis"></div>
 
@@ -92,8 +92,10 @@
 <script>
 const esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt$=n=>(n<0?"−$":"$")+Math.abs(n).toLocaleString(undefined,{maximumFractionDigits:2});
-const NAMES={cons:"Conservative",aggr:"Aggressive"};
-const COLORS={cons:"#0098ea",aggr:"#d59312"};
+const NAMES={cons:"Conservative",aggr:"Aggressive",alt:"Alt (CEX)"};
+const COLORS={cons:"#0098ea",aggr:"#d59312",alt:"#9b6dff"};
+/* token.html is TON-only; non-TON (alt) coins have no jetton page, so link only TON addrs */
+const tokLink=(addr,sym)=>/^[EU]Q/.test(addr)?`<a href="token.html?a=${esc(addr)}">${esc(sym)}</a>`:esc(sym);
 const TONAPI_KEY="AEUCH5S5SBNE64AAAAAMCL5S6MOL6AFR42PEXAR3OL2K2VJTQS77IQCN7I3O54EQK76ZIFA";
 
 /* ── Market Regime ─────────────────────────────────────────────────────────
@@ -164,8 +166,29 @@ async function fetchLivePrices(addrs){
     return out;
   }catch(e){return{};}
 }
+async function fetchAltLive(ids){
+  if(!ids.length)return{};
+  try{
+    const r=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(ids.join(","))}&vs_currencies=usd`);
+    if(!r.ok)return{};
+    const d=await r.json();const out={};
+    for(const[id,v]of Object.entries(d))out[id]=v.usd;
+    return out;
+  }catch(e){return{};}
+}
+async function fetchAllLive(addrs){
+  const ton=addrs.filter(a=>/^[EU]Q/.test(a)),alt=addrs.filter(a=>!/^[EU]Q/.test(a));
+  const [tp,ap]=await Promise.all([fetchLivePrices(ton),fetchAltLive(alt)]);
+  return {...tp,...ap};
+}
 async function getState(){
   for(const u of ["data/paper/bots.json","https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data/paper/bots.json"]){
+    try{const r=await fetch(u,{cache:"no-store"});if(r.ok)return await r.json();}catch(e){}
+  }
+  return null;
+}
+async function getAltState(){
+  for(const u of ["data/paper/altbots.json","https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data/paper/altbots.json"]){
     try{const r=await fetch(u,{cache:"no-store"});if(r.ok)return await r.json();}catch(e){}
   }
   return null;
@@ -229,9 +252,9 @@ async function loadBenchmark(){
   }catch(e){return null;}
 }
 (async()=>{
-  const [s,bench,regime]=await Promise.all([getState(),loadBenchmark(),loadMarketRegime()]);
-  if(!s||!s.bots){document.getElementById("botKpis").innerHTML='<div class="kpi"><div class="label">Status</div><div class="value">no data yet</div><div class="delta">first run pending</div></div>';return;}
-  const bots=s.bots;
+  const [s,alt,bench,regime]=await Promise.all([getState(),getAltState(),loadBenchmark(),loadMarketRegime()]);
+  const bots={...((s&&s.bots)||{}),...((alt&&alt.bots)||{})};
+  if(!Object.keys(bots).length){document.getElementById("botKpis").innerHTML='<div class="kpi"><div class="label">Status</div><div class="value">no data yet</div><div class="delta">first run pending</div></div>';return;}
   document.getElementById("botKpis").innerHTML=Object.entries(bots).map(([n,b])=>{
     const eq=b.equity||[],cur=eq.length?eq[eq.length-1].v:1000;
     const tr=b.trades||[],pnl=tr.reduce((a,t)=>a+t.pnl,0);
@@ -288,14 +311,14 @@ async function loadBenchmark(){
   if(ps.length){
     document.getElementById("posBody").innerHTML=ps.map((p,i)=>`<tr>
       <td style="color:${COLORS[p.n]};font-weight:700">${p.n}</td>
-      <td><a href="token.html?a=${esc(p.addr)}">${esc(p.sym)}</a></td>
+      <td>${tokLink(p.addr,p.sym)}</td>
       <td><span class="pill">${esc(p.signal)}</span></td><td>${esc(p.opened)}</td>
       <td class="num">$${p.entry_eff<0.01?p.entry_eff.toExponential(2):p.entry_eff.toFixed(6)}</td>
       <td class="num">${p.days}</td>
       <td class="num" id="pos-ret-${i}"><span style="color:var(--muted)">...</span></td>
       <td class="num" id="pos-pnl-${i}"><span style="color:var(--muted)">...</span></td></tr>`).join("");
     const addrs=[...new Set(ps.map(p=>p.addr))];
-    fetchLivePrices(addrs).then(prices=>{
+    fetchAllLive(addrs).then(prices=>{
       ps.forEach((p,i)=>{
         const cur=prices[p.addr];
         const retEl=document.getElementById("pos-ret-"+i);
@@ -320,7 +343,7 @@ async function loadBenchmark(){
     if(!rows2.length)return;
     logB.innerHTML=rows2.map(t=>`<tr>
       <td style="color:${COLORS[t.n]};font-weight:700">${t.n}</td>
-      <td><a href="token.html?a=${esc(t.addr)}">${esc(t.sym)}</a></td>
+      <td>${tokLink(t.addr,t.sym)}</td>
       <td><span class="pill">${esc(t.signal)}</span></td>
       <td>${esc(t.opened)} to ${esc(t.closed)}</td>
       <td class="num ${t.ret>0?"up":"down"}">${t.ret>0?"+":""}${t.ret}%</td>
