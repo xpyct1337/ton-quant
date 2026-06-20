@@ -242,6 +242,18 @@ t('snapHist computes per-day TVL delta', /const dt=prev\.tvl>0\?/.test(tok));
   t('laggedCorr is directional (fwd>rev)', laggedCorr(lead,follow,1)>laggedCorr(follow,lead,1)+0.1);
   t('leadLag defined', /function leadLag\(\)/.test(idx));
   t('leadLag called at boot', /correlMatrix\(\);\s*leadLag\(\)/.test(idx));
+  // risk-return map (Sharpe)
+  const dstats=r=>{const n=r.length;if(n<2)return null;let m=0;for(const x of r)m+=x;m/=n;let v=0;for(const x of r)v+=(x-m)*(x-m);v/=n;return{mean:m,std:Math.sqrt(v)};};
+  const sharpe=r=>{const s=dstats(r);return s&&s.std>0?s.mean/s.std*Math.sqrt(365):null;};
+  const ds=dstats([1,2,3,4,5]);
+  t('dstats mean', Math.abs(ds.mean-3)<1e-9);
+  t('dstats pop std = sqrt(2)', Math.abs(ds.std-Math.SQRT2)<1e-9);
+  t('dstats null when n<2', dstats([1])===null);
+  t('sharpe positive on rising returns', sharpe([0.01,0.02,0.03,0.015,0.025])>0);
+  t('sharpe null when std=0', sharpe([0.01,0.01,0.01])===null);
+  t('riskReturn defined', /function riskReturn\(\)/.test(idx));
+  t('riskReturn called at boot', /leadLag\(\);\s*riskReturn\(\)/.test(idx));
+  t('riskReturn uses CORE non-stable tokens', /TOKENS\.filter\(t=>CORE\(t\)&&t\.spark/.test(idx));
 }
 
 console.log(`\nUNIT: ${pass} passed, ${fail} failed`);

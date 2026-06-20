@@ -225,6 +225,14 @@
   <div class="h-sub" id="llNote" style="margin:10px 0 0"></div>
 </div>
 
+<div class="cardbox" id="rrCard" style="margin-bottom:18px;display:none">
+  <h3>Risk&ndash;return map <span style="font-size:11px;font-weight:400;color:var(--muted)">Sharpe ranking</span></h3>
+  <div class="h-sub">Each non-stable token's ~40 daily closes &rarr; daily log returns &rarr; annualized return (&times;365) and volatility (&times;&radic;365, risk-free 0). Up &amp; left = more reward per unit of risk. Color = Sharpe (green good, red bad). Pure client-side math &mdash; no extra API calls. Daily data over a short window, so treat as a snapshot, not a forecast.</div>
+  <div style="overflow-x:auto" id="rrPlot"></div>
+  <div style="overflow-x:auto"><table class="corr" id="rrTable"></table></div>
+  <div class="h-sub" id="rrNote" style="margin:10px 0 0"></div>
+</div>
+
 <div class="card">
 <table>
   <thead><tr>
@@ -467,7 +475,7 @@ async function loadDex(){
       d.buys+=p.txns?.h24?.buys||0; d.sells+=p.txns?.h24?.sells||0; d.pools++;
     }
   }catch(e){console.warn("dex batch failed",e);}
-  render(); summary(); treemap(); correlMatrix(); leadLag();
+  render(); summary(); treemap(); correlMatrix(); leadLag(); riskReturn();
 }
 
 /* ---------- summary bar ---------- */
@@ -614,6 +622,53 @@ function leadLag(){
   document.getElementById("llNote").innerHTML=
     `Strongest leader: <strong>${esc(sel[lead].symbol)}</strong> (net ${net[lead]>=0?'+':''}${net[lead].toFixed(1)}) &mdash; its moves tend to precede the basket. `+
     `Biggest follower: <strong>${esc(sel[follow].symbol)}</strong> (net ${net[follow].toFixed(1)}). Lag = 1 day, ${L} daily closes.`;
+  card.style.display="";
+}
+
+/* ---------- Risk-return map (client-side, 0 extra requests; reuses baked spark series) ----------
+   Per non-stable token: ~40 daily closes -> daily log returns -> mean & population std.
+   Annualized (rf=0): return = mean*365, vol = std*sqrt(365), Sharpe = mean/std*sqrt(365).
+   Plotted as vol (x) vs return (y), colored by Sharpe. Up & left = best reward per risk. */
+function dstats(r){const n=r.length;if(n<2)return null;let m=0;for(const x of r)m+=x;m/=n;let v=0;for(const x of r)v+=(x-m)*(x-m);v/=n;return{mean:m,std:Math.sqrt(v)};}
+function sharpe(r){const s=dstats(r);return s&&s.std>0?s.mean/s.std*Math.sqrt(365):null;}
+function riskReturn(){
+  const card=document.getElementById("rrCard"); if(!card)return;
+  const rows=TOKENS.filter(t=>CORE(t)&&t.spark&&t.spark.length>=12).map(t=>{
+    const s=dstats(lrets(t.spark)); if(!s)return null;
+    return {t,ann:s.mean*365*100,vol:s.std*Math.sqrt(365)*100,sh:s.std>0?s.mean/s.std*Math.sqrt(365):0};
+  }).filter(Boolean);
+  if(rows.length<3)return;
+  const W=640,H=360,pl=58,pr=14,pt=14,pb=42,iw=W-pl-pr,ih=H-pt-pb;
+  const vmax=Math.max(...rows.map(r=>r.vol))*1.08||1;
+  let amin=Math.min(0,...rows.map(r=>r.ann)),amax=Math.max(0,...rows.map(r=>r.ann));
+  const padv=(amax-amin)*0.08||1; amin-=padv; amax+=padv;
+  const X=v=>pl+(v/vmax)*iw, Y=a=>pt+ih-((a-amin)/(amax-amin))*ih;
+  const cc=v=>corrColor(Math.max(-1,Math.min(1,v)));
+  let svg=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;height:auto;font-family:inherit">`;
+  if(amin<0&&amax>0){const y0=Y(0);svg+=`<line x1="${pl}" y1="${y0}" x2="${W-pr}" y2="${y0}" stroke="#cfd6df" stroke-dasharray="4 3"/>`;}
+  svg+=`<line x1="${pl}" y1="${pt}" x2="${pl}" y2="${pt+ih}" stroke="#cfd6df"/><line x1="${pl}" y1="${pt+ih}" x2="${W-pr}" y2="${pt+ih}" stroke="#cfd6df"/>`;
+  for(let k=0;k<=4;k++){const a=amin+(amax-amin)*k/4,y=Y(a);svg+=`<text x="${pl-6}" y="${y+3}" text-anchor="end" font-size="9" fill="var(--muted)">${a>=0?'+':''}${a.toFixed(0)}%</text>`;}
+  for(let k=0;k<=4;k++){const v=vmax*k/4,x=X(v);svg+=`<text x="${x}" y="${pt+ih+14}" text-anchor="middle" font-size="9" fill="var(--muted)">${v.toFixed(0)}%</text>`;}
+  svg+=`<text x="${pl+iw/2}" y="${H-4}" text-anchor="middle" font-size="10" fill="var(--muted)">annualized volatility</text>`;
+  svg+=`<text x="14" y="${pt+ih/2}" text-anchor="middle" font-size="10" fill="var(--muted)" transform="rotate(-90 14 ${pt+ih/2})">annualized return</text>`;
+  for(const r of rows){const x=X(r.vol),y=Y(r.ann);
+    svg+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="5" fill="${cc(r.sh)}" stroke="#5a6472" stroke-width="0.6"><title>${esc(r.t.symbol)} — return ${r.ann.toFixed(0)}% / vol ${r.vol.toFixed(0)}% / Sharpe ${r.sh.toFixed(2)}</title></circle>`;
+    svg+=`<text x="${(x+7).toFixed(1)}" y="${(y+3).toFixed(1)}" font-size="9" fill="#444">${esc(r.t.symbol)}</text>`;}
+  svg+=`</svg>`;
+  document.getElementById("rrPlot").innerHTML=svg;
+  const link=t=>`<a href="token.html?a=${t.address}" style="color:inherit;text-decoration:none">${esc(t.symbol)}</a>`;
+  const rk=rows.slice().sort((a,b)=>b.sh-a.sh);
+  const trs=rk.slice(0,8).map(r=>
+    `<tr><th class="rowh">${link(r.t)}</th>`+
+    `<td class="cell" style="background:${cc(r.ann>0?0.5:-0.5)}">${r.ann>=0?'+':''}${r.ann.toFixed(0)}%</td>`+
+    `<td style="color:var(--muted)">${r.vol.toFixed(0)}%</td>`+
+    `<td class="cell" style="background:${cc(r.sh)}">${r.sh.toFixed(2)}</td></tr>`).join("");
+  document.getElementById("rrTable").innerHTML=
+    `<tr><th></th><th class="beta">ann. return</th><th>ann. vol</th><th>Sharpe</th></tr>`+trs;
+  const best=rk[0],worst=rk[rk.length-1];
+  document.getElementById("rrNote").innerHTML=
+    `Best risk-adjusted: <strong>${esc(best.t.symbol)}</strong> (Sharpe ${best.sh.toFixed(2)}, ${best.ann>=0?'+':''}${best.ann.toFixed(0)}% at ${best.vol.toFixed(0)}% vol). `+
+    `Worst: <strong>${esc(worst.t.symbol)}</strong> (Sharpe ${worst.sh.toFixed(2)}). ${rows.length} tokens, ~40 daily closes, rf=0.`;
   card.style.display="";
 }
 
