@@ -212,5 +212,11 @@ t('holderGrowth uses first&last only', (()=>{const g=F.holderGrowth([{holders:10
 t('holderGrowth null when <2 snapshots', F.holderGrowth([{holders:1000}])===null && F.holderGrowth([])===null && F.holderGrowth(null)===null);
 t('holderGrowth null on zero/invalid holders', F.holderGrowth([{holders:0},{holders:1000}])===null && F.holderGrowth([{holders:1000},{holders:0}])===null);
 
+// --- regression guards: holder/liq history card wiring (snapshot index key is "dates") ---
+t('snapHist reads idxD.dates (not dead .snapshots-only)', /idxD\.dates/.test(tok));
+t('snapHist renders liquidity column', tok.includes('\u0394 Liq'));
+t('snapHist has liquidity-trend verdict pills', /Liq draining/.test(tok)&&/Liq inflow/.test(tok));
+t('snapHist computes per-day TVL delta', /const dt=prev\.tvl>0\?/.test(tok));
+
 console.log(`\nUNIT: ${pass} passed, ${fail} failed`);
 process.exit(fail?1:0);

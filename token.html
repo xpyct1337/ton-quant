@@ -317,8 +317,8 @@
 
 <div class="row">
   <div class="card" id="snapHistCard" style="display:none">
-    <h3>Price × Holder history <span class="pill muted" id="snapHistBadge" style="font-size:11px;vertical-align:middle"></span></h3>
-    <div class="h-sub">Daily snapshots — holder count and price changes per day. 🟡 Accum = holders ↑ price ↓ · 🟢 Momentum = both ↑ · 🔴 Distrib/Exit = holders ↓</div>
+    <h3>Holders · Price · Liquidity history <span class="pill muted" id="snapHistBadge" style="font-size:11px;vertical-align:middle"></span></h3>
+    <div class="h-sub">Daily snapshots — holder, price and DEX-liquidity changes per day. 🟡 Accum = holders ↑ price ↓ · 🟢 Momentum = both ↑ · 🔴 Distrib/Exit = holders ↓ · 💧 multi-day liquidity inflow/draining flagged above (draining = early rug signal).</div>
     <div id="snapHistBody"></div>
   </div>
 </div>
@@ -1028,7 +1028,7 @@ async function loadHolderHistory(){
     const idxR=await fetch(SNAP_BASE+"/index.json");
     if(!idxR.ok)return;
     const idxD=await idxR.json();
-    const dates=(idxD.snapshots||[]).slice(-10);// last 10 days max
+    const dates=(idxD.dates||idxD.snapshots||[]).slice(-10);// last 10 days max (index.json key is "dates"; ponytail: keep legacy fallback)
     if(dates.length<2)return;
     const snaps=await Promise.all(dates.map(d=>
       fetch(`${SNAP_BASE}/snapshots/${d}.json`).then(r=>r.ok?r.json():null).catch(()=>null)
@@ -1047,8 +1047,9 @@ async function loadHolderHistory(){
       const prev=entries[i-1],cur=entries[i];
       const dh=prev.holders>0?(cur.holders-prev.holders)/prev.holders*100:null;
       const dp=prev.price>0?(cur.price-prev.price)/prev.price*100:null;
+      const dt=prev.tvl>0?(cur.tvl-prev.tvl)/prev.tvl*100:null;
       const sig=snapDivLabel(dh,dp);
-      rows.push({date:cur.date,holders:cur.holders,dh,price:cur.price,dp,sig});
+      rows.push({date:cur.date,holders:cur.holders,dh,price:cur.price,dp,dt,sig});
     }
     if(!rows.length)return;
     // build persistent multi-day verdict from last 3+ entries
@@ -1065,19 +1066,31 @@ async function loadHolderHistory(){
       if(tD1!==null&&tD2!==null&&tD1<-10&&tD2<-10&&t0>0&&(t2-t0)/t0*100<-20){pk="🚨 Rug Confirmed";pcls="bad";}
       else if(hD1!==null&&hD2!==null&&hD1<-0.5&&hD2<-0.5&&h0>0&&(h2-h0)/h0*100<-1){pk="📉 Holder Exodus";pcls="bad";}
       else if(hD1!==null&&hD2!==null&&hD1>0.5&&hD2>0.5&&pD1!==null&&pD1<0&&pD2!==null&&pD2<0){pk="📈 Accum Confirmed";pcls="good";}
-      if(pk)persistHtml=`<div style="margin-bottom:10px"><span class="pill ${pcls}">${esc(pk)}</span> <span class="pill muted">2d trend</span></div>`;
+      // multi-day liquidity trend pill (independent of holder/price verdict)
+      let liqPill="";
+      if(t0>0){
+        const dT=(t2-t0)/t0*100;
+        if(dT<=-15)liqPill=`<span class="pill bad">💧 Liq draining ${dT.toFixed(0)}%</span>`;
+        else if(dT>=15)liqPill=`<span class="pill good">💧 Liq inflow +${dT.toFixed(0)}%</span>`;
+      }
+      if(pk&&pk.includes("Rug"))liqPill="";// rug verdict already implies draining
+      const pills=[pk?`<span class="pill ${pcls}">${esc(pk)}</span>`:"",liqPill].filter(Boolean);
+      if(pills.length)persistHtml=`<div style="margin-bottom:10px">${pills.join(" ")} <span class="pill muted">2d trend</span></div>`;
     }
     const tbl=rows.map(r=>{
       const dhStr=r.dh!=null?(r.dh>=0?"+":"")+r.dh.toFixed(2)+"%":"—";
       const dpStr=r.dp!=null?(r.dp>=0?"+":"")+r.dp.toFixed(2)+"%":"—";
+      const dtStr=r.dt!=null?(r.dt>=0?"+":"")+r.dt.toFixed(1)+"%":"—";
       const dhCls=r.dh!=null?(r.dh>0.1?"good":r.dh<-0.1?"bad":"muted"):"muted";
       const dpCls=r.dp!=null?(r.dp>0.1?"good":r.dp<-0.1?"bad":"muted"):"muted";
+      const dtCls=r.dt!=null?(r.dt>1?"good":r.dt<-1?"bad":"muted"):"muted";
       const sigHtml=r.sig?`<span class="pill ${r.sig.cls}">${r.sig.label}</span>`:`<span class="pill muted">⚪ Stable</span>`;
       return`<tr>
         <td style="color:var(--muted);font-size:12px">${esc(r.date)}</td>
         <td style="text-align:right;font-variant-numeric:tabular-nums">${r.holders.toLocaleString()}</td>
         <td style="text-align:right;color:var(--${dhCls})">${dhStr}</td>
         <td style="text-align:right;color:var(--${dpCls})">${dpStr}</td>
+        <td style="text-align:right;color:var(--${dtCls})">${dtStr}</td>
         <td>${sigHtml}</td>
       </tr>`;
     }).join("");
@@ -1090,6 +1103,7 @@ async function loadHolderHistory(){
         <th style="text-align:right;padding:4px 6px">Holders</th>
         <th style="text-align:right;padding:4px 6px">Δ Holders</th>
         <th style="text-align:right;padding:4px 6px">Δ Price</th>
+        <th style="text-align:right;padding:4px 6px">Δ Liq</th>
         <th style="text-align:left;padding:4px 6px">Signal</th>
       </tr></thead>
       <tbody style="font-size:13px">${tbl}</tbody>

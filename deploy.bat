@@ -10,9 +10,11 @@ echo   TON Quant - Deploy
 echo ===================================
 echo.
 
-if exist ".git\index.lock" (
-    echo Removing stale .git\index.lock ...
-    del /f /q ".git\index.lock"
+for %%L in ("index.lock" "HEAD.lock" "refs\heads\main.lock") do (
+    if exist ".git\%%~L" (
+        echo Removing stale .git\%%~L ...
+        del /f /q ".git\%%~L"
+    )
 )
 
 %GIT% status --short
