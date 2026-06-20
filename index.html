@@ -76,6 +76,8 @@
   .pill.good{background:var(--good-soft);color:var(--good)}
   .pill.bad{background:#fde8e8;color:#7a1a1a}
   .pill.warn{background:#fef3df;color:#8a5d10}
+  .htrend{display:block;font-size:10px;font-weight:600;line-height:1.1;margin-top:1px}
+  .htrend.up{color:var(--good)} .htrend.dn{color:var(--bad)} .htrend.flat{color:var(--muted)}
   .searchbar{display:flex;gap:10px;margin:0 0 22px;flex-wrap:wrap}
   .searchbar input{flex:1;min-width:260px;padding:12px 16px;border:1px solid var(--line);border-radius:12px;font-size:14px;background:var(--card);box-shadow:var(--shadow);outline:none;font-family:inherit}
   .searchbar input:focus{border-color:var(--accent)}
@@ -349,13 +351,14 @@ function render(){
       <td class="num">${fmtUsd(mcap)}</td>
       <td class="num hide-m">${dx?fmtUsd(dx.vol):"—"}</td>
       <td class="num hide-m">${dx?fmtUsd(dx.tvl):"—"}</td>
-      <td class="num hide-m">${vt!=null?(vt>=3&&Math.abs(dnum||0)<2?'<span class="pill" style="background:#fde8e8;color:#7a1a1a" title="Vol/TVL high + flat price">'+vt.toFixed(1)+"x 🚿</span>":vt.toFixed(2)+"x"):"—"}</td>
-      <td class="num hide-m">${fmtInt(t.holders)}</td>`;
+      <td class="num hide-m">${vt!=null?(vt>=3&&Math.abs(dnum||0)<2?'<span class="pill bad" title="Vol/TVL high + flat price">'+vt.toFixed(1)+"x 🚿</span>":vt.toFixed(2)+"x"):"—"}</td>
+      <td class="num hide-m">${fmtInt(t.holders)}<span class="htrend" data-a="${t.address}"></span></td>`;
     tr.addEventListener("click",()=>location.href="token.html?a="+t.address);
     tb.appendChild(tr);
     const up=t.spark.length>1?t.spark[t.spark.length-1]>=t.spark[0]:true;
     spark(tr.querySelector("canvas"),t.spark,up);
   });
+  paintHolderTrends();
   applyUnit();
 }
 
@@ -521,6 +524,7 @@ window.addEventListener("resize",()=>{clearTimeout(window._tmr);window._tmr=setT
 /* ---------- Activity digest (DEX-based, 0 extra requests) ---------- */
 let tapeItems=[],tapeShown=8;
 let snapSigs=[];
+let holderTrends={};
 let paperSigs=[],sigScores={};
 const SIG_EMOJI={hidden_buyer:'🐋',momentum:'🚀',accum_div:'📊',flow_imbalance:'🌊',dip_reversal:'🔄',liq_inflow:'💧',holders_surge:'👥',breakout:'⚡',wash_suspect:'🚿'};
 function sigEdgeStr(sc){
@@ -574,6 +578,25 @@ function persistentSignal(arr){
     return{kind:'accum_confirmed',dh:hTot};
   return null;
 }
+/* Holder growth over the full snapshot window (oldest→newest). Adoption signal,
+   independent of price. arr = per-token snapshot history (each has .holders). */
+function holderGrowth(arr){
+  if(!arr||arr.length<2)return null;
+  const h0=Number(arr[0]&&arr[0].holders)||0,h1=Number(arr[arr.length-1]&&arr[arr.length-1].holders)||0;
+  if(h0<=0||h1<=0)return null;
+  return {pct:(h1-h0)/h0*100,days:arr.length-1,from:h0,to:h1};
+}
+/* Fill the per-row .htrend spans from holderTrends (survives re-renders). */
+function paintHolderTrends(){
+  document.querySelectorAll('.htrend').forEach(el=>{
+    const g=holderTrends[el.dataset.a];
+    if(!g){el.className='htrend';el.textContent='';return;}
+    const dir=g.pct>0.05?'up':g.pct<-0.05?'dn':'flat';
+    el.className='htrend '+dir;
+    el.textContent=(dir==='up'?'▲':dir==='dn'?'▼':'·')+Math.abs(g.pct).toFixed(Math.abs(g.pct)>=10?0:1)+'%';
+    el.title='Holders '+g.from.toLocaleString()+'→'+g.to.toLocaleString()+' over '+g.days+'d';
+  });
+}
 async function loadSnapshots(){
   const RAW='https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data';
   try{
@@ -593,6 +616,12 @@ async function loadSnapshots(){
         (hist[addr]=hist[addr]||[]).push(t);
       }
     }
+    // Holder growth trend for the main table (full window)
+    holderTrends={};
+    for(const[addr,arr] of Object.entries(hist)){
+      const g=holderGrowth(arr);if(g)holderTrends[addr]=g;
+    }
+    paintHolderTrends();
     const out=[],usedAddr=new Set();
     // Multi-day persistent signals (need >=3 snapshots)
     if(valid.length>=3){

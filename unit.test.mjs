@@ -19,7 +19,7 @@ const grab=(src,names)=>{
 const IDXdef=IDX.replace(/render\(\);\s*refresh\(\)\.then[\s\S]*$/,'');
 // Stubs for functions moved to token/screener pages (skip if not in index.html)
 // These tests still run to validate reference implementations match expected behaviour
-const F=grab(IDXdef,['fmtUsd','fmtInt','squarify','tmColor','snapSignalFor']);
+const F=grab(IDXdef,['fmtUsd','fmtInt','squarify','tmColor','snapSignalFor','holderGrowth']);
 // Stubs for functions moved out of index.html (pearson/rets/mxColor/esc2 → token.html, netArb → screener.html)
 F.pearson=(a,b)=>{if(!a||a.length<3)return null;const n=a.length,ma=a.reduce((s,x)=>s+x,0)/n,mb=b.reduce((s,x)=>s+x,0)/n;let num=0,da=0,db=0;for(let i=0;i<n;i++){const ea=a[i]-ma,eb=b[i]-mb;num+=ea*eb;da+=ea*ea;db+=eb*eb;}return da&&db?num/Math.sqrt(da*db):0;};
 F.esc2=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -204,6 +204,13 @@ t('snapSig liq_inflow: TVL +40%', snapSignalFor({holders:1000,price:1,tvl:50000}
 t('snapSig null for flat data', snapSignalFor({holders:1000,price:1,tvl:50000},{holders:1001,price:1.001,tvl:50100})===null);
 t('snapSig no TVL=>no rug/inflow, accum check', (()=>{const s=snapSignalFor({holders:1000,price:1,tvl:0},{holders:1021,price:0.96,tvl:0});return s&&s.kind==='accum';})());
 t('snapSig priority: rug_watch beats accum threshold', (()=>{const s=snapSignalFor({holders:1000,price:1,tvl:100000},{holders:1021,price:0.96,tvl:70000});return s&&s.kind==='rug_watch';})());
+
+// --- holderGrowth: full-window holder trend for main table ---
+t('holderGrowth up +10%', (()=>{const g=F.holderGrowth([{holders:1000},{holders:1100}]);return g&&Math.abs(g.pct-10)<1e-9&&g.days===1;})());
+t('holderGrowth down -10%', (()=>{const g=F.holderGrowth([{holders:1000},{holders:900}]);return g&&Math.abs(g.pct+10)<1e-9;})());
+t('holderGrowth uses first&last only', (()=>{const g=F.holderGrowth([{holders:1000},{holders:5},{holders:1200}]);return g&&Math.abs(g.pct-20)<1e-9&&g.days===2&&g.from===1000&&g.to===1200;})());
+t('holderGrowth null when <2 snapshots', F.holderGrowth([{holders:1000}])===null && F.holderGrowth([])===null && F.holderGrowth(null)===null);
+t('holderGrowth null on zero/invalid holders', F.holderGrowth([{holders:0},{holders:1000}])===null && F.holderGrowth([{holders:1000},{holders:0}])===null);
 
 console.log(`\nUNIT: ${pass} passed, ${fail} failed`);
 process.exit(fail?1:0);
