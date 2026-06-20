@@ -218,6 +218,13 @@
   <div class="h-sub" id="corrNote" style="margin:10px 0 0"></div>
 </div>
 
+<div class="cardbox" id="llCard" style="margin-bottom:18px;display:none">
+  <h3>Lead&ndash;lag radar <span style="font-size:11px;font-weight:400;color:var(--muted)">who moves first</span></h3>
+  <div class="h-sub">For each pair we correlate one token's daily return with another's <em>next-day</em> return (lag 1). A token &ldquo;leads&rdquo; when that forward correlation is strong and beats the reverse direction &mdash; an informal direction test on daily closes. Pure client-side math &mdash; no extra API calls. Daily data is coarse, so treat this as a hint, not proof.</div>
+  <div style="overflow-x:auto"><table class="corr" id="llTable"></table></div>
+  <div class="h-sub" id="llNote" style="margin:10px 0 0"></div>
+</div>
+
 <div class="card">
 <table>
   <thead><tr>
@@ -460,7 +467,7 @@ async function loadDex(){
       d.buys+=p.txns?.h24?.buys||0; d.sells+=p.txns?.h24?.sells||0; d.pools++;
     }
   }catch(e){console.warn("dex batch failed",e);}
-  render(); summary(); treemap(); correlMatrix();
+  render(); summary(); treemap(); correlMatrix(); leadLag();
 }
 
 /* ---------- summary bar ---------- */
@@ -568,6 +575,45 @@ function correlMatrix(){
   let mi=-1,mv=2;avg.forEach((v,i)=>{if(v!=null&&v<mv){mv=v;mi=i;}});
   const note=document.getElementById("corrNote");
   if(pa>=0&&mi>=0)note.innerHTML=`Most coupled: <strong>${esc(sel[pa].symbol)}–${esc(sel[pb].symbol)}</strong> (r ${pv.toFixed(2)}). Best diversifier: <strong>${esc(sel[mi].symbol)}</strong> (avg r ${mv.toFixed(2)}). ${steps+1} daily closes.`;
+  card.style.display="";
+}
+
+/* ---------- Lead-lag radar (client-side, 0 extra requests; reuses baked spark series) ----------
+   Who moves first? For ordered pair X->Y we correlate X's return at day t with Y's return at
+   day t+1 (lag 1). X "leads" Y when that forward correlation is strong AND beats the reverse
+   direction Y->X - an informal Granger-style direction test on daily closes. */
+function laggedCorr(a,b,k){return pcorr(a.slice(0,a.length-k),b.slice(k));}
+function leadLag(){
+  const card=document.getElementById("llCard"); if(!card)return;
+  const sel=TOKENS.filter(t=>CORE(t)&&t.spark&&t.spark.length>=12).sort((a,b)=>mcapOf(b)-mcapOf(a)).slice(0,12);
+  if(sel.length<3)return;
+  const L=Math.min(...sel.map(t=>t.spark.length));
+  if(L<9)return;
+  const series=sel.map(t=>lrets(t.spark.slice(-L)));
+  const pairs=[],net=sel.map(()=>0);
+  for(let i=0;i<sel.length;i++)for(let j=0;j<sel.length;j++){
+    if(i===j)continue;
+    const fwd=laggedCorr(series[i],series[j],1);
+    const rev=laggedCorr(series[j],series[i],1);
+    if(fwd==null||rev==null)continue;
+    net[i]+=fwd-rev;
+    if(fwd>=0.3&&fwd>rev+0.1)pairs.push({i,j,fwd,rev});
+  }
+  pairs.sort((a,b)=>b.fwd-a.fwd);
+  const link=t=>`<a href="token.html?a=${t.address}" style="color:inherit;text-decoration:none">${esc(t.symbol)}</a>`;
+  const rows=pairs.slice(0,6).map(p=>
+    `<tr><th class="rowh">${link(sel[p.i])}</th><td style="color:var(--muted)">leads &rarr;</td>`+
+    `<th class="rowh">${link(sel[p.j])}</th>`+
+    `<td class="cell" style="background:${corrColor(p.fwd)}">${p.fwd.toFixed(2)}</td>`+
+    `<td style="color:var(--muted)">${p.rev.toFixed(2)}</td></tr>`).join("");
+  document.getElementById("llTable").innerHTML=
+    `<tr><th></th><th></th><th></th><th class="beta">lead r</th><th>rev r</th></tr>`+
+    (rows||`<tr><td colspan="5" style="color:var(--muted);text-align:left">No directional lead-lag above threshold &mdash; the basket moves in lockstep.</td></tr>`);
+  const order=sel.map((t,i)=>i).sort((a,b)=>net[b]-net[a]);
+  const lead=order[0],follow=order[order.length-1];
+  document.getElementById("llNote").innerHTML=
+    `Strongest leader: <strong>${esc(sel[lead].symbol)}</strong> (net ${net[lead]>=0?'+':''}${net[lead].toFixed(1)}) &mdash; its moves tend to precede the basket. `+
+    `Biggest follower: <strong>${esc(sel[follow].symbol)}</strong> (net ${net[follow].toFixed(1)}). Lag = 1 day, ${L} daily closes.`;
   card.style.display="";
 }
 

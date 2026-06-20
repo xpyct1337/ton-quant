@@ -234,6 +234,14 @@ t('snapHist computes per-day TVL delta', /const dt=prev\.tvl>0\?/.test(tok));
   t('correlMatrix defined', /function correlMatrix\(\)/.test(idx));
   t('correlMatrix called at boot', /treemap\(\);\s*correlMatrix\(\)/.test(idx));
   t('corr uses non-stable CORE tokens', /CORE\(t\)&&t\.spark/.test(idx));
+  // lead-lag radar
+  const laggedCorr=(a,b,k)=>pcorr(a.slice(0,a.length-k),b.slice(k));
+  const lead=[1,2,3,4,5,6,7,8,9,10];
+  const follow=[99].concat(lead.slice(0,9));
+  t('laggedCorr perfect 1d lead = 1', Math.abs(laggedCorr(lead,follow,1)-1)<1e-9);
+  t('laggedCorr is directional (fwd>rev)', laggedCorr(lead,follow,1)>laggedCorr(follow,lead,1)+0.1);
+  t('leadLag defined', /function leadLag\(\)/.test(idx));
+  t('leadLag called at boot', /correlMatrix\(\);\s*leadLag\(\)/.test(idx));
 }
 
 console.log(`\nUNIT: ${pass} passed, ${fail} failed`);

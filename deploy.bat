@@ -45,7 +45,7 @@ if %ERRORLEVEL%==0 (
     echo.
     echo ===================================
     echo   SUCCESS - site will update in ~1min
-    echo   https://xpyct1337.github.io
+    echo   https://xpyct1337.github.io/ton-quant/
     echo ===================================
 ) else (
     echo.
