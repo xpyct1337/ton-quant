@@ -127,6 +127,12 @@
   .two-col{display:grid;grid-template-columns:1fr 1.4fr;gap:18px;margin-top:18px}
   @media(max-width:920px){.two-col{grid-template-columns:1fr} .hide-m{display:none} }
   @media(max-width:680px){.hide-s{display:none}}
+  table.corr{border-collapse:collapse;font-size:11px}
+  table.corr th,table.corr td{padding:4px 6px;text-align:center;white-space:nowrap}
+  table.corr th{color:var(--muted);font-weight:600}
+  table.corr th.rowh{text-align:right}
+  table.corr td.cell{color:#0b1220;font-weight:600;border-radius:4px;min-width:34px}
+  table.corr td.beta{font-weight:700;border-left:2px solid var(--line)}
 </style>
 </head>
 <body>
@@ -203,6 +209,13 @@
   <h3>Market map</h3>
   <div class="h-sub">Tile size = market cap &middot; color = 24h change &middot; stables &amp; staking excluded. Click to open the dashboard.</div>
   <div id="tmap"></div>
+</div>
+
+<div class="cardbox" id="corrCard" style="margin-bottom:18px;display:none">
+  <h3>Correlation matrix <span style="font-size:11px;font-weight:400;color:var(--muted)">β vs basket</span></h3>
+  <div class="h-sub">Pairwise correlation of daily returns (~40d) for the largest non-stable tokens. Green = move together, red = move opposite. The last column is β to the equal-weight basket (&gt;1 = amplifies the market, &lt;0.5 = muted, negative = hedge). Pure client-side math &mdash; no extra API calls.</div>
+  <div style="overflow-x:auto"><table class="corr" id="corrTable"></table></div>
+  <div class="h-sub" id="corrNote" style="margin:10px 0 0"></div>
 </div>
 
 <div class="card">
@@ -447,7 +460,7 @@ async function loadDex(){
       d.buys+=p.txns?.h24?.buys||0; d.sells+=p.txns?.h24?.sells||0; d.pools++;
     }
   }catch(e){console.warn("dex batch failed",e);}
-  render(); summary(); treemap();
+  render(); summary(); treemap(); correlMatrix();
 }
 
 /* ---------- summary bar ---------- */
@@ -520,6 +533,43 @@ function treemap(){
   }).join("");
 }
 window.addEventListener("resize",()=>{clearTimeout(window._tmr);window._tmr=setTimeout(treemap,200);});
+
+/* ---------- correlation matrix + beta (client-side, 0 extra requests; uses baked spark series) ---------- */
+function lrets(p){const r=[];for(let i=1;i<p.length;i++){const a=p[i-1],b=p[i];r.push(a>0&&b>0?Math.log(b/a):0);}return r;}
+function pcorr(a,b){const n=Math.min(a.length,b.length);if(n<5)return null;let ma=0,mb=0;for(let i=0;i<n;i++){ma+=a[i];mb+=b[i];}ma/=n;mb/=n;let num=0,da=0,db=0;for(let i=0;i<n;i++){const ea=a[i]-ma,eb=b[i]-mb;num+=ea*eb;da+=ea*ea;db+=eb*eb;}return da&&db?num/Math.sqrt(da*db):null;}
+function betaVs(a,m){const n=Math.min(a.length,m.length);if(n<5)return null;let ma=0,mm=0;for(let i=0;i<n;i++){ma+=a[i];mm+=m[i];}ma/=n;mm/=n;let cov=0,vm=0;for(let i=0;i<n;i++){cov+=(a[i]-ma)*(m[i]-mm);vm+=(m[i]-mm)**2;}return vm?cov/vm:null;}
+function corrColor(v){if(v==null||!isFinite(v))return"#e9ecf1";const x=Math.max(-1,Math.min(1,v)),t=Math.abs(x);
+  return x>=0?`rgb(${Math.round(238-t*214)},${Math.round(240-t*80)},${Math.round(243-t*153)})`
+             :`rgb(${Math.round(238-t*38)},${Math.round(240-t*170)},${Math.round(243-t*183)})`;}
+function correlMatrix(){
+  const card=document.getElementById("corrCard"); if(!card)return;
+  const sel=TOKENS.filter(t=>CORE(t)&&t.spark&&t.spark.length>=12).sort((a,b)=>mcapOf(b)-mcapOf(a)).slice(0,12);
+  if(sel.length<3)return;
+  const L=Math.min(...sel.map(t=>t.spark.length));
+  const series=sel.map(t=>lrets(t.spark.slice(-L)));            // each length L-1, time-aligned
+  const steps=L-1;
+  const market=[];for(let i=0;i<steps;i++){let s=0;for(const r of series)s+=r[i];market.push(s/series.length);}
+  const C=series.map(a=>series.map(b=>pcorr(a,b)));
+  const betas=series.map(a=>betaVs(a,market));
+  const head="<tr><th></th>"+sel.map(t=>`<th>${esc(t.symbol)}</th>`).join("")+`<th class="beta">β</th></tr>`;
+  const rows=sel.map((t,i)=>{
+    const cells=C[i].map((v,j)=>{
+      const txt=v==null?"—":(i===j?"1.00":v.toFixed(2));
+      return `<td class="cell" style="background:${corrColor(v)}" title="${esc(sel[i].symbol)} vs ${esc(sel[j].symbol)}: r=${txt}">${txt}</td>`;
+    }).join("");
+    const b=betas[i];
+    const bcol=b==null?"#e9ecf1":(b>=1?corrColor(0.7):b<0?corrColor(-0.7):"#eef0f3");
+    return `<tr><th class="rowh"><a href="token.html?a=${t.address}" style="color:inherit;text-decoration:none">${esc(t.symbol)}</a></th>${cells}<td class="beta" style="background:${bcol};color:#0b1220">${b==null?"—":b.toFixed(2)}</td></tr>`;
+  }).join("");
+  document.getElementById("corrTable").innerHTML=head+rows;
+  // readout: most-coupled pair + best diversifier (lowest average off-diagonal correlation)
+  let pa=-1,pb=-1,pv=-2;for(let i=0;i<C.length;i++)for(let j=i+1;j<C.length;j++){const v=C[i][j];if(v!=null&&v>pv){pv=v;pa=i;pb=j;}}
+  const avg=C.map((row,i)=>{let s=0,c=0;row.forEach((v,j)=>{if(i!==j&&v!=null){s+=v;c++;}});return c?s/c:null;});
+  let mi=-1,mv=2;avg.forEach((v,i)=>{if(v!=null&&v<mv){mv=v;mi=i;}});
+  const note=document.getElementById("corrNote");
+  if(pa>=0&&mi>=0)note.innerHTML=`Most coupled: <strong>${esc(sel[pa].symbol)}–${esc(sel[pb].symbol)}</strong> (r ${pv.toFixed(2)}). Best diversifier: <strong>${esc(sel[mi].symbol)}</strong> (avg r ${mv.toFixed(2)}). ${steps+1} daily closes.`;
+  card.style.display="";
+}
 
 /* ---------- Activity digest (DEX-based, 0 extra requests) ---------- */
 let tapeItems=[],tapeShown=8;

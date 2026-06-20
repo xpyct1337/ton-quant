@@ -49,7 +49,10 @@ const parse$=s=>{ // "$1.43B" -> number
   const rates=await (await fetch(`https://tonapi.io/v2/rates?tokens=${NOT}%2CTON&currencies=usd`,{headers:H})).json();
   const price=rates.rates[NOT].prices.USD;
   const mcap=price*Number(info.total_supply)/1e9;
-  t('NOT holders match', parseInt(q('kHolders').replace(/,/g,''))===info.holders_count, q('kHolders')+' vs '+info.holders_count);
+  // ponytail: page and this assertion fetch holders_count in two separate live calls; the real count
+  // ticks between them, so exact-equality flaked (2,848,072 vs 2,848,070). Tolerance, not equality.
+  { const pageH=parseInt(q('kHolders').replace(/,/g,'')); const apiH=info.holders_count;
+    t('NOT holders match (±tol)', Math.abs(pageH-apiH)<=Math.max(200,apiH*1e-4), pageH+' vs '+apiH); }
   t('NOT mcap within 2%', Math.abs(parse$(q('kMcap'))-mcap)/mcap<0.02, q('kMcap')+' vs '+mcap.toExponential(3));
   t('NOT price within 2%', Math.abs(parse$(q('kPrice'))-price)/price<0.02);
   t('NOT supply 102.45B', q('kSupply')==='102.45B', q('kSupply'));

@@ -218,5 +218,23 @@ t('snapHist renders liquidity column', tok.includes('\u0394 Liq'));
 t('snapHist has liquidity-trend verdict pills', /Liq draining/.test(tok)&&/Liq inflow/.test(tok));
 t('snapHist computes per-day TVL delta', /const dt=prev\.tvl>0\?/.test(tok));
 
+// --- correlation matrix + beta (index.html): math contract + wiring ---
+{ // reference impls mirror the shipped pcorr/betaVs/lrets
+  const lrets=p=>{const r=[];for(let i=1;i<p.length;i++){const a=p[i-1],b=p[i];r.push(a>0&&b>0?Math.log(b/a):0);}return r;};
+  const pcorr=(a,b)=>{const n=Math.min(a.length,b.length);if(n<5)return null;let ma=0,mb=0;for(let i=0;i<n;i++){ma+=a[i];mb+=b[i];}ma/=n;mb/=n;let num=0,da=0,db=0;for(let i=0;i<n;i++){const ea=a[i]-ma,eb=b[i]-mb;num+=ea*eb;da+=ea*ea;db+=eb*eb;}return da&&db?num/Math.sqrt(da*db):null;};
+  const betaVs=(a,m)=>{const n=Math.min(a.length,m.length);if(n<5)return null;let ma=0,mm=0;for(let i=0;i<n;i++){ma+=a[i];mm+=m[i];}ma/=n;mm/=n;let cov=0,vm=0;for(let i=0;i<n;i++){cov+=(a[i]-ma)*(m[i]-mm);vm+=(m[i]-mm)**2;}return vm?cov/vm:null;};
+  const x=[1,2,3,4,5,6,7,8];
+  t('pcorr self = 1', Math.abs(pcorr(x,x)-1)<1e-9);
+  t('pcorr anti = -1', Math.abs(pcorr(x,x.map(v=>-v))+1)<1e-9);
+  t('pcorr null when n<5', pcorr([1,2],[1,2])===null);
+  t('betaVs self = 1', Math.abs(betaVs(x,x)-1)<1e-9);
+  t('betaVs 2x market = 2', Math.abs(betaVs(x.map(v=>2*v),x)-2)<1e-9);
+  t('lrets skips non-positive', lrets([1,0,2]).every(Number.isFinite));
+  // wiring guards: feature defined and invoked at boot
+  t('correlMatrix defined', /function correlMatrix\(\)/.test(idx));
+  t('correlMatrix called at boot', /treemap\(\);\s*correlMatrix\(\)/.test(idx));
+  t('corr uses non-stable CORE tokens', /CORE\(t\)&&t\.spark/.test(idx));
+}
+
 console.log(`\nUNIT: ${pass} passed, ${fail} failed`);
 process.exit(fail?1:0);
