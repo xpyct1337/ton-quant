@@ -253,7 +253,15 @@ t('snapHist computes per-day TVL delta', /const dt=prev\.tvl>0\?/.test(tok));
   t('sharpe null when std=0', sharpe([0.01,0.01,0.01])===null);
   t('riskReturn defined', /function riskReturn\(\)/.test(idx));
   t('riskReturn called at boot', /leadLag\(\);\s*riskReturn\(\)/.test(idx));
-  t('riskReturn uses CORE non-stable tokens', /TOKENS\.filter\(t=>CORE\(t\)&&t\.spark/.test(idx));
+  // drawdown radar
+  const dd=(arr)=>{const a=arr.filter(x=>x>0),last=a[a.length-1],hi=Math.max(...a),lo=Math.min(...a);return{dd:(last-hi)/hi*100,pos:hi>lo?(last-lo)/(hi-lo)*100:50};};
+  const ddlo=dd([10,8,6,5]); t('drawdown at low = -50%', Math.abs(ddlo.dd+50)<1e-9, ddlo.dd);
+  t('range pos 0 at low', Math.abs(ddlo.pos)<1e-9, ddlo.pos);
+  const ddhi=dd([5,6,8,10]); t('drawdown 0 at new high', Math.abs(ddhi.dd)<1e-9, ddhi.dd);
+  t('range pos 100 at high', Math.abs(ddhi.pos-100)<1e-9, ddhi.pos);
+  t('drawdowns defined', /function drawdowns\(\)/.test(idx));
+  t('drawdowns called at boot', /riskReturn\(\);\s*drawdowns\(\)/.test(idx));
+  t('drawdowns uses CORE non-stable tokens', /function drawdowns[\s\S]{0,260}TOKENS\.filter\(t=>CORE\(t\)/.test(idx));
 }
 
 console.log(`\nUNIT: ${pass} passed, ${fail} failed`);

@@ -233,6 +233,20 @@
   <div class="h-sub" id="rrNote" style="margin:10px 0 0"></div>
 </div>
 
+<div class="cardbox" id="ddCard" style="margin-bottom:18px;display:none">
+  <h3>Drawdown radar <span style="font-size:11px;font-weight:400;color:var(--muted)">distance from high</span></h3>
+  <div class="h-sub">Each non-stable token's ~40 daily closes. <b>Drawdown</b> = how far the last price sits below its 40-day peak (0% = at a new high). The bar shows where the last price sits in the 40-day low&ndash;high range (left = at the low, right = at the high). Deep drawdown near the low = beaten down (mean-reversion watch); near the high = momentum/breakout. Pure client-side math &mdash; no extra API calls.</div>
+  <div style="overflow-x:auto"><table class="corr" id="ddTable"></table></div>
+  <div class="h-sub" id="ddNote" style="margin:10px 0 0"></div>
+</div>
+
+<div class="cardbox" id="momCard" style="margin-bottom:18px;display:none">
+  <h3>Momentum leaderboard <span style="font-size:11px;font-weight:400;color:var(--muted)">relative strength</span></h3>
+  <div class="h-sub">Each non-stable token's % price change over the trailing 7 / 14 / 30 days (from baked daily closes). <b>RS</b> = average percentile rank across the three windows (100 = strongest in the basket, 0 = weakest) &mdash; rewards tokens that lead on multiple horizons, not just one lucky day. Cells colored by return. Pure client-side math &mdash; no extra API calls. Short daily window, so a snapshot of trend, not a forecast.</div>
+  <div style="overflow-x:auto"><table class="corr" id="momTable"></table></div>
+  <div class="h-sub" id="momNote" style="margin:10px 0 0"></div>
+</div>
+
 <div class="card">
 <table>
   <thead><tr>
@@ -475,7 +489,7 @@ async function loadDex(){
       d.buys+=p.txns?.h24?.buys||0; d.sells+=p.txns?.h24?.sells||0; d.pools++;
     }
   }catch(e){console.warn("dex batch failed",e);}
-  render(); summary(); treemap(); correlMatrix(); leadLag(); riskReturn();
+  render(); summary(); treemap(); correlMatrix(); leadLag(); riskReturn(); drawdowns(); momentum();
 }
 
 /* ---------- summary bar ---------- */
@@ -669,6 +683,67 @@ function riskReturn(){
   document.getElementById("rrNote").innerHTML=
     `Best risk-adjusted: <strong>${esc(best.t.symbol)}</strong> (Sharpe ${best.sh.toFixed(2)}, ${best.ann>=0?'+':''}${best.ann.toFixed(0)}% at ${best.vol.toFixed(0)}% vol). `+
     `Worst: <strong>${esc(worst.t.symbol)}</strong> (Sharpe ${worst.sh.toFixed(2)}). ${rows.length} tokens, ~40 daily closes, rf=0.`;
+  card.style.display="";
+}
+
+/* ---------- Drawdown radar (client-side, 0 extra requests; reuses baked spark series) ----------
+   Per non-stable token: last close vs its ~40d peak (drawdown) and position in the 40d low-high range. */
+function drawdowns(){
+  const card=document.getElementById("ddCard"); if(!card)return;
+  const rows=TOKENS.filter(t=>CORE(t)&&t.spark&&t.spark.length>=12).map(t=>{
+    const a=t.spark.filter(x=>x>0); if(a.length<5)return null;
+    const last=a[a.length-1],hi=Math.max(...a),lo=Math.min(...a);
+    return {t,dd:(last-hi)/hi*100,pos:hi>lo?(last-lo)/(hi-lo)*100:50};
+  }).filter(Boolean);
+  if(rows.length<3)return;
+  rows.sort((x,y)=>x.dd-y.dd);                          // deepest drawdown first
+  const link=t=>`<a href="token.html?a=${t.address}" style="color:inherit;text-decoration:none">${esc(t.symbol)}</a>`;
+  const bar=p=>{const x=Math.max(0,Math.min(100,p));
+    return `<div style="position:relative;height:10px;background:#eef0f3;border-radius:5px;min-width:120px">`+
+      `<div style="position:absolute;left:calc(${x.toFixed(0)}% - 4px);top:-1px;width:8px;height:12px;border-radius:2px;background:${corrColor(x/50-1)};border:1px solid #5a6472"></div></div>`;};
+  const trs=rows.map(r=>
+    `<tr><th class="rowh">${link(r.t)}</th>`+
+    `<td class="cell" style="background:${corrColor(Math.max(-1,r.dd/40))}">${r.dd>=-0.05?'0%':r.dd.toFixed(0)+'%'}</td>`+
+    `<td style="min-width:130px">${bar(r.pos)}</td>`+
+    `<td style="color:var(--muted)">${r.pos.toFixed(0)}%</td></tr>`).join("");
+  document.getElementById("ddTable").innerHTML=
+    `<tr><th></th><th class="beta">drawdown</th><th>40d range (low&rarr;high)</th><th>pos</th></tr>`+trs;
+  const worst=rows[0],best=rows[rows.length-1];
+  document.getElementById("ddNote").innerHTML=
+    `Deepest drawdown: <strong>${esc(worst.t.symbol)}</strong> (${worst.dd.toFixed(0)}% off its 40d high). `+
+    `Closest to its high: <strong>${esc(best.t.symbol)}</strong> (${best.dd>=-0.05?'at a new high':best.dd.toFixed(0)+'% off'}, range pos ${best.pos.toFixed(0)}%). ${rows.length} tokens.`;
+  card.style.display="";
+}
+
+/* ---------- Momentum leaderboard (client-side, 0 extra requests; reuses baked spark series) ----------
+   Relative-strength rank across 7/14/30d windows. Per CORE token: % change over each lookback from
+   baked daily closes; rank within each window; composite RS = mean percentile across available windows. */
+function winRet(s,n){if(!s||s.length<n+1)return null;const a=s[s.length-1-n],b=s[s.length-1];return a>0&&b>0?(b/a-1)*100:null;}
+function momentum(){
+  const card=document.getElementById("momCard"); if(!card)return;
+  const wins=[7,14,30];
+  let rows=TOKENS.filter(t=>CORE(t)&&t.spark&&t.spark.length>=8)
+    .map(t=>({t,r:wins.map(n=>winRet(t.spark,n))})).filter(x=>x.r.some(v=>v!=null));
+  if(rows.length<3)return;
+  wins.forEach((n,wi)=>{                                         // percentile rank within each window
+    const valid=rows.filter(x=>x.r[wi]!=null).sort((a,b)=>a.r[wi]-b.r[wi]);
+    valid.forEach((x,i)=>{x.pct=x.pct||[];x.pct[wi]=valid.length>1?i/(valid.length-1)*100:50;});
+  });
+  rows.forEach(x=>{const p=(x.pct||[]).filter(v=>v!=null);x.rs=p.length?p.reduce((a,b)=>a+b,0)/p.length:0;});
+  rows.sort((a,b)=>b.rs-a.rs);
+  const link=t=>`<a href="token.html?a=${t.address}" style="color:inherit;text-decoration:none">${esc(t.symbol)}</a>`;
+  const cell=v=>v==null?`<td class="cell" style="color:var(--muted)">&mdash;</td>`
+    :`<td class="cell" style="background:${corrColor(Math.max(-1,Math.min(1,v/30)))}">${v>=0?'+':''}${v.toFixed(0)}%</td>`;
+  const trs=rows.map((x,i)=>
+    `<tr><th class="rowh">${i+1}. ${link(x.t)}</th>`+x.r.map(cell).join("")+
+    `<td class="beta" style="font-weight:600">${x.rs.toFixed(0)}</td></tr>`).join("");
+  document.getElementById("momTable").innerHTML=
+    `<tr><th></th><th>7d</th><th>14d</th><th>30d</th><th class="beta">RS</th></tr>`+trs;
+  const top=rows[0],bot=rows[rows.length-1],r30=v=>v!=null?(v>=0?'+':'')+v.toFixed(0)+'%':'n/a';
+  document.getElementById("momNote").innerHTML=
+    `Strongest momentum: <strong>${esc(top.t.symbol)}</strong> (RS ${top.rs.toFixed(0)}/100, 30d ${r30(top.r[2])}). `+
+    `Weakest: <strong>${esc(bot.t.symbol)}</strong> (RS ${bot.rs.toFixed(0)}/100, 30d ${r30(bot.r[2])}). `+
+    `RS = mean percentile rank across 7/14/30d. ${rows.length} tokens.`;
   card.style.display="";
 }
 
