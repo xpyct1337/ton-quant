@@ -247,6 +247,20 @@
   <div class="h-sub" id="momNote" style="margin:10px 0 0"></div>
 </div>
 
+<div class="cardbox" id="brCard" style="margin-bottom:18px;display:none">
+  <h3>Market breadth <span style="font-size:11px;font-weight:400;color:var(--muted)">basket internals</span></h3>
+  <div class="h-sub">How broad is the move? Across all non-stable tokens, the share <b>advancing</b> (price up) over the trailing 1 / 7 / 30 days, plus the basket <b>median</b> return. The per-token cards above show winners and losers; this is the one market-wide gauge &mdash; is TON risk-on or risk-off right now? A rally on narrow breadth (few names carrying it) is weaker than one where most tokens advance. Pure client-side math &mdash; no extra API calls.</div>
+  <div style="overflow-x:auto"><table class="corr" id="brTable"></table></div>
+  <div class="h-sub" id="brNote" style="margin:10px 0 0"></div>
+</div>
+
+<div class="cardbox" id="rsiCard" style="margin-bottom:18px;display:none">
+  <h3>Momentum oscillator <span style="font-size:11px;font-weight:400;color:var(--muted)">overbought / oversold</span></h3>
+  <div class="h-sub">Wilder's <b>RSI(14)</b> on each non-stable token's daily closes &mdash; a bounded 0&ndash;100 gauge of how stretched recent gains are versus losses. Below <b>30</b> = oversold (selling exhausted, mean-reversion watch); above <b>70</b> = overbought (rally extended). Unlike the momentum leaderboard (which ranks raw % change), RSI measures the <i>quality</i> of a move &mdash; a token can lead on return yet be running hot. Pure client-side math &mdash; no extra API calls. Short daily window, so a snapshot, not a forecast.</div>
+  <div style="overflow-x:auto"><table class="corr" id="rsiTable"></table></div>
+  <div class="h-sub" id="rsiNote" style="margin:10px 0 0"></div>
+</div>
+
 <div class="card">
 <table>
   <thead><tr>
@@ -489,7 +503,7 @@ async function loadDex(){
       d.buys+=p.txns?.h24?.buys||0; d.sells+=p.txns?.h24?.sells||0; d.pools++;
     }
   }catch(e){console.warn("dex batch failed",e);}
-  render(); summary(); treemap(); correlMatrix(); leadLag(); riskReturn(); drawdowns(); momentum();
+  render(); summary(); treemap(); correlMatrix(); leadLag(); riskReturn(); drawdowns(); momentum(); breadth(); rsiGauge();
 }
 
 /* ---------- summary bar ---------- */
@@ -744,6 +758,78 @@ function momentum(){
     `Strongest momentum: <strong>${esc(top.t.symbol)}</strong> (RS ${top.rs.toFixed(0)}/100, 30d ${r30(top.r[2])}). `+
     `Weakest: <strong>${esc(bot.t.symbol)}</strong> (RS ${bot.rs.toFixed(0)}/100, 30d ${r30(bot.r[2])}). `+
     `RS = mean percentile rank across 7/14/30d. ${rows.length} tokens.`;
+  card.style.display="";
+}
+
+/* ---------- Momentum oscillator: Wilder RSI(14) (client-side, 0 extra requests; reuses baked spark series) ----------
+   Bounded 0-100 overbought/oversold gauge. <30 oversold (mean-reversion watch), >70 overbought (extended). */
+function rsi(s,n){
+  const a=s.filter(x=>x>0); if(a.length<n+1)return null;
+  let g=0,l=0;
+  for(let i=1;i<=n;i++){const d=a[i]-a[i-1];if(d>=0)g+=d;else l-=d;}
+  let ag=g/n,al=l/n;
+  for(let i=n+1;i<a.length;i++){const d=a[i]-a[i-1];ag=(ag*(n-1)+(d>0?d:0))/n;al=(al*(n-1)+(d<0?-d:0))/n;}
+  if(al===0)return ag===0?50:100;
+  return 100-100/(1+ag/al);
+}
+function rsiGauge(){
+  const card=document.getElementById("rsiCard"); if(!card)return;
+  const rows=TOKENS.filter(t=>CORE(t)&&t.spark&&t.spark.length>=15)
+    .map(t=>{const v=rsi(t.spark,14);return v==null?null:{t,v};}).filter(Boolean);
+  if(rows.length<3)return;
+  rows.sort((x,y)=>x.v-y.v);                                   // most oversold first
+  const link=t=>`<a href="token.html?a=${t.address}" style="color:inherit;text-decoration:none">${esc(t.symbol)}</a>`;
+  const gauge=v=>{const x=Math.max(0,Math.min(100,v));
+    return `<div style="position:relative;height:10px;border-radius:5px;min-width:140px;background:linear-gradient(90deg,#bfe3c6 0%,#bfe3c6 30%,#eef0f3 30%,#eef0f3 70%,#f3c9cf 70%,#f3c9cf 100%)">`+
+      `<div style="position:absolute;left:calc(${x.toFixed(0)}% - 4px);top:-1px;width:8px;height:12px;border-radius:2px;background:#0b1220;border:1px solid #5a6472"></div></div>`;};
+  const zone=v=>v>=70?'overbought':v<=30?'oversold':'neutral';
+  const trs=rows.map(r=>
+    `<tr><th class="rowh">${link(r.t)}</th>`+
+    `<td class="cell" style="background:${corrColor((50-r.v)/50)}">${r.v.toFixed(0)}</td>`+
+    `<td style="min-width:150px">${gauge(r.v)}</td>`+
+    `<td style="color:var(--muted)">${zone(r.v)}</td></tr>`).join("");
+  document.getElementById("rsiTable").innerHTML=
+    `<tr><th></th><th class="beta">RSI(14)</th><th>0&mdash;30 oversold&nbsp;/&nbsp;70&mdash;100 overbought</th><th>zone</th></tr>`+trs;
+  const os=rows[0],ob=rows[rows.length-1];
+  document.getElementById("rsiNote").innerHTML=
+    `Most oversold: <strong>${esc(os.t.symbol)}</strong> (RSI ${os.v.toFixed(0)}${os.v<=30?' &mdash; stretched, mean-reversion watch':''}). `+
+    `Most overbought: <strong>${esc(ob.t.symbol)}</strong> (RSI ${ob.v.toFixed(0)}${ob.v>=70?' &mdash; extended':''}). Wilder RSI on 14 daily closes, ${rows.length} tokens.`;
+  card.style.display="";
+}
+
+/* ---------- Market breadth (client-side, 0 extra requests; reuses baked spark series) ----------
+   Across CORE tokens: share advancing and median return over 1/7/30d windows. The market-wide
+   gauge the per-token cards don't give - is the basket risk-on or risk-off right now? */
+function breadth(){
+  const card=document.getElementById("brCard"); if(!card)return;
+  const wins=[[1,"1d"],[7,"7d"],[30,"30d"]];
+  const toks=TOKENS.filter(t=>CORE(t)&&t.spark&&t.spark.length>=2);
+  if(toks.length<3)return;
+  const med=a=>{const s=a.slice().sort((x,y)=>x-y),n=s.length;return n?(n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2):null;};
+  const rows=wins.map(([n,lbl])=>{
+    const rs=toks.map(t=>winRet(t.spark,n)).filter(v=>v!=null);
+    if(rs.length<3)return null;
+    const up=rs.filter(v=>v>0).length,dn=rs.filter(v=>v<0).length;
+    return {lbl,up,dn,n:rs.length,pct:up/rs.length*100,m:med(rs)};
+  }).filter(Boolean);
+  if(!rows.length)return;
+  const bar=p=>{const x=Math.max(0,Math.min(100,p));
+    return `<div style="position:relative;height:12px;background:#f3d9dd;border-radius:6px;min-width:140px;overflow:hidden">`+
+      `<div style="position:absolute;left:0;top:0;height:100%;width:${x.toFixed(0)}%;background:#bfe3c6"></div>`+
+      `<div style="position:absolute;left:50%;top:0;width:1px;height:100%;background:#5a6472"></div></div>`;};
+  const trs=rows.map(r=>
+    `<tr><th class="rowh">${r.lbl}</th>`+
+    `<td style="min-width:150px">${bar(r.pct)}</td>`+
+    `<td class="cell" style="background:${corrColor(r.pct/50-1)}">${r.pct.toFixed(0)}%</td>`+
+    `<td style="color:var(--muted)">${r.up}&uarr; / ${r.dn}&darr;</td>`+
+    `<td class="cell" style="background:${corrColor(Math.max(-1,Math.min(1,r.m/15)))}">${r.m>=0?'+':''}${r.m.toFixed(1)}%</td></tr>`).join("");
+  document.getElementById("brTable").innerHTML=
+    `<tr><th></th><th>advancers</th><th class="beta">% up</th><th>up/down</th><th>median</th></tr>`+trs;
+  const w=rows.find(r=>r.lbl==="7d")||rows[0];
+  const tone=w.pct>=60?"risk-on":w.pct<=40?"risk-off":"mixed";
+  document.getElementById("brNote").innerHTML=
+    `Basket is <strong>${tone}</strong> &mdash; ${w.pct.toFixed(0)}% of ${w.n} tokens advancing over ${w.lbl} (median ${w.m>=0?'+':''}${w.m.toFixed(1)}%). `+
+    `Breadth gauges how broad a move is: a rally carried by few names is weaker than one where most advance.`;
   card.style.display="";
 }
 
