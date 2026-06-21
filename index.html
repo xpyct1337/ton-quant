@@ -276,6 +276,11 @@
     <div style="overflow-x:auto"><table class="corr" id="brTable"></table></div>
     <div class="h-sub" id="brNote" style="margin:10px 0 0"></div>
   </div>
+  <div class="cardbox" id="tqCard" style="display:none">
+    <h3>TON Quant Index <span style="font-size:11px;font-weight:400;color:var(--muted)">equal-weight basket</span><span class="info" data-tip="Equal-weighted, daily-rebalanced index of the non-stable basket, normalized to 100 at the window start (~40 daily closes). Each day every token gets equal weight, so it tracks the typical token's path rather than the mega-caps. The single market-level trajectory the per-token cards don't show. A snapshot, not a forecast.">?</span></h3>
+    <div id="tqPlot" style="margin:6px 0 2px"></div>
+    <div class="h-sub" id="tqNote" style="margin:10px 0 0"></div>
+  </div>
 </div></div>
 
 <div class="tabpane" id="paneRisk"><div class="bento">
@@ -532,7 +537,7 @@ async function loadDex(){
       d.buys+=p.txns?.h24?.buys||0; d.sells+=p.txns?.h24?.sells||0; d.pools++;
     }
   }catch(e){console.warn("dex batch failed",e);}
-  render(); summary(); treemap(); correlMatrix(); leadLag(); riskReturn(); drawdowns(); momentum(); breadth(); rsiGauge();
+  render(); summary(); treemap(); correlMatrix(); leadLag(); riskReturn(); drawdowns(); momentum(); breadth(); rsiGauge(); tqIndex();
 }
 
 /* ---------- summary bar ---------- */
@@ -859,6 +864,42 @@ function breadth(){
   document.getElementById("brNote").innerHTML=
     `Basket is <strong>${tone}</strong> &mdash; ${w.pct.toFixed(0)}% of ${w.n} tokens advancing over ${w.lbl} (median ${w.m>=0?'+':''}${w.m.toFixed(1)}%). `+
     `Breadth gauges how broad a move is: a rally carried by few names is weaker than one where most advance.`;
+  card.style.display="";
+}
+
+/* ---------- TON Quant Index (client-side, 0 extra requests; reuses baked spark series) ----------
+   Equal-weighted, daily-rebalanced basket index of CORE tokens, normalized to 100 at window start.
+   The single market-level trajectory the per-token cards don't give: how has the typical token moved? */
+function tqIndex(){
+  const card=document.getElementById("tqCard"); if(!card)return;
+  const toks=TOKENS.filter(t=>CORE(t)&&t.spark&&t.spark.filter(x=>x>0).length>=8);
+  if(toks.length<3)return;
+  const W=Math.min(40,Math.max(...toks.map(t=>t.spark.length)));   // window = longest available, capped 40
+  const st=[];                                                     // basket mean daily return per transition (oldest->newest)
+  for(let i=0;i<W-1;i++){
+    let sum=0,n=0;
+    toks.forEach(t=>{const s=t.spark,o=s.length-W+i;                // older index for this step
+      if(o>=0){const a=s[o],b=s[o+1];if(a>0&&b>0){sum+=b/a-1;n++;}}});
+    st.push(n?sum/n:0);
+  }
+  const idx=[100];
+  st.forEach(r=>idx.push(idx[idx.length-1]*(1+r)));
+  const last=idx[idx.length-1], chg=n=>idx.length>n?(last/idx[idx.length-1-n]-1)*100:null, tot=last-100;
+  const lo=Math.min(...idx),hi=Math.max(...idx),pad=(hi-lo)*0.08||1,Y0=lo-pad,Y1=hi+pad;
+  const w=600,h=140,X=i=>i/(idx.length-1)*w,Yp=v=>h-(v-Y0)/(Y1-Y0)*h;
+  const pts=idx.map((v,i)=>`${X(i).toFixed(1)},${Yp(v).toFixed(1)}`).join(" ");
+  const col=tot>=0?"#2e9e5b":"#cf4f5f", base=Yp(100).toFixed(1);
+  const svg=`<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="width:100%;height:140px;display:block">`+
+    `<polygon points="0,${h} ${pts} ${w},${h}" fill="${col}" opacity="0.08"/>`+
+    `<line x1="0" y1="${base}" x2="${w}" y2="${base}" stroke="#9aa3af" stroke-width="1" stroke-dasharray="4 4"/>`+
+    `<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round"/>`+
+    `<circle cx="${X(idx.length-1).toFixed(1)}" cy="${Yp(last).toFixed(1)}" r="3.5" fill="${col}"/></svg>`;
+  document.getElementById("tqPlot").innerHTML=svg;
+  const f=v=>v==null?'n/a':(v>=0?'+':'')+v.toFixed(1)+'%';
+  document.getElementById("tqNote").innerHTML=
+    `Equal-weighted basket, daily-rebalanced, base 100 = ${W} days ago &rarr; <strong style="color:${col}">${last.toFixed(1)}</strong>. `+
+    `7d ${f(chg(7))} &middot; 30d ${f(chg(30))} &middot; full window ${f(tot)}. ${toks.length} CORE tokens. `+
+    `Dashed line = base 100. The typical token's path, not the mega-caps'.`;
   card.style.display="";
 }
 

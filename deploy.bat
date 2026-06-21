@@ -20,6 +20,28 @@ for %%L in ("index.lock" "HEAD.lock" "refs\heads\main.lock") do (
 %GIT% status --short
 echo.
 
+echo === Integrity check (no truncated HTML) ===
+set BAD=0
+for %%F in (*.html) do (
+    findstr /c:"</html>" "%%F" >nul
+    if errorlevel 1 (
+        echo   TRUNCATED: %%F  ^(missing ^</html^>^) - deploy aborted
+        set BAD=1
+    )
+)
+if %BAD%==1 (
+    echo.
+    echo ===================================
+    echo   ERROR - truncated file^(s^) detected, deploy aborted
+    echo   Re-save the file^(s^) and run deploy again
+    echo ===================================
+    echo.
+    pause
+    exit /b 1
+)
+echo   All HTML files OK
+echo.
+
 echo === Staging and committing local changes ===
 %GIT% add -A
 %GIT% commit -m "update"
