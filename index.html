@@ -281,6 +281,11 @@
     <div id="tqPlot" style="margin:6px 0 2px"></div>
     <div class="h-sub" id="tqNote" style="margin:10px 0 0"></div>
   </div>
+  <div class="cardbox" id="macdCard" style="display:none">
+    <h3>MACD trend <span style="font-size:11px;font-weight:400;color:var(--muted)">trend &amp; turns</span><span class="info" data-tip="MACD on daily closes: EMA(12) minus EMA(26), with a 9-day signal line. The histogram (MACD minus signal) is positive when momentum is building, negative when fading; a sign flip is a fresh bullish or bearish crossover. Rising/falling shows whether momentum is accelerating. Computed on a base-100 series so it compares across tokens. Trend-following — complements the bounded RSI. A snapshot, not a forecast.">?</span></h3>
+    <div style="overflow-x:auto"><table class="corr" id="macdTable"></table></div>
+    <div class="h-sub" id="macdNote" style="margin:10px 0 0"></div>
+  </div>
 </div></div>
 
 <div class="tabpane" id="paneRisk"><div class="bento">
@@ -537,7 +542,7 @@ async function loadDex(){
       d.buys+=p.txns?.h24?.buys||0; d.sells+=p.txns?.h24?.sells||0; d.pools++;
     }
   }catch(e){console.warn("dex batch failed",e);}
-  render(); summary(); treemap(); correlMatrix(); leadLag(); riskReturn(); drawdowns(); momentum(); breadth(); rsiGauge(); tqIndex();
+  render(); summary(); treemap(); correlMatrix(); leadLag(); riskReturn(); drawdowns(); momentum(); breadth(); rsiGauge(); tqIndex(); macd();
 }
 
 /* ---------- summary bar ---------- */
@@ -900,6 +905,43 @@ function tqIndex(){
     `Equal-weighted basket, daily-rebalanced, base 100 = ${W} days ago &rarr; <strong style="color:${col}">${last.toFixed(1)}</strong>. `+
     `7d ${f(chg(7))} &middot; 30d ${f(chg(30))} &middot; full window ${f(tot)}. ${toks.length} CORE tokens. `+
     `Dashed line = base 100. The typical token's path, not the mega-caps'.`;
+  card.style.display="";
+}
+
+/* ---------- MACD trend (client-side, 0 extra requests; reuses baked spark series) ----------
+   EMA(12)-EMA(26) with 9-day signal. Histogram>0 = momentum building, sign flip = fresh crossover,
+   rising/falling = accelerating/fading. Computed on a base-100 series so the histogram compares
+   across tokens regardless of price magnitude. Trend-following complement to the bounded RSI. */
+function ema(a,n){const k=2/(n+1);let e=a[0];const o=[e];for(let i=1;i<a.length;i++){e=a[i]*k+e*(1-k);o.push(e);}return o;}
+function macdHist(s){
+  const raw=(s||[]).filter(x=>x>0); if(raw.length<35)return null;     // need slow EMA(26)+signal(9) to settle
+  const a=raw.map(x=>x/raw[0]*100);                                   // base-100 normalize -> cross-token comparable
+  const f=ema(a,12),sl=ema(a,26),line=a.map((_,i)=>f[i]-sl[i]);
+  const sig=ema(line,9),h=line.map((v,i)=>v-sig[i]),n=h.length;
+  return {h:h[n-1],prev:h[n-2],cross:(h[n-1]>0)!==(h[n-2]>0)};        // latest hist, prior hist, sign-flip flag
+}
+function macd(){
+  const card=document.getElementById("macdCard"); if(!card)return;
+  const rows=TOKENS.filter(t=>CORE(t)&&t.spark).map(t=>{const m=macdHist(t.spark);return m?{t,...m}:null;}).filter(Boolean);
+  if(rows.length<3)return;
+  rows.sort((x,y)=>y.h-x.h);                                          // strongest momentum first
+  const link=t=>`<a href="token.html?a=${t.address}" style="color:inherit;text-decoration:none">${esc(t.symbol)}</a>`;
+  const trs=rows.map(r=>{
+    const accel=r.h>r.prev?'&uarr; rising':'&darr; falling';
+    const state=r.cross?(r.h>0?'bullish cross':'bearish cross'):(r.h>0?'positive':'negative');
+    return `<tr><th class="rowh">${link(r.t)}</th>`+
+      `<td class="cell" style="background:${corrColor(Math.max(-1,Math.min(1,r.h/2)))}">${r.h>=0?'+':''}${r.h.toFixed(2)}</td>`+
+      `<td style="color:var(--muted)">${accel}</td>`+
+      `<td style="font-weight:${r.cross?600:400};color:${r.cross?(r.h>0?'#2e9e5b':'#cf4f5f'):'var(--muted)'}">${state}</td></tr>`;
+  }).join("");
+  document.getElementById("macdTable").innerHTML=
+    `<tr><th></th><th class="beta">histogram</th><th>momentum</th><th>state</th></tr>`+trs;
+  const top=rows[0],bot=rows[rows.length-1],crosses=rows.filter(r=>r.cross);
+  document.getElementById("macdNote").innerHTML=
+    `Strongest trend: <strong>${esc(top.t.symbol)}</strong> (hist ${top.h>=0?'+':''}${top.h.toFixed(2)}, ${top.h>top.prev?'rising':'fading'}). `+
+    `Weakest: <strong>${esc(bot.t.symbol)}</strong> (hist ${bot.h.toFixed(2)}). `+
+    (crosses.length?`Fresh crossover: ${crosses.map(r=>esc(r.t.symbol)+(r.h>0?' &uarr;':' &darr;')).join(', ')}. `:'No fresh crossovers. ')+
+    `MACD(12,26,9) on a base-100 series. ${rows.length} tokens.`;
   card.style.display="";
 }
 
