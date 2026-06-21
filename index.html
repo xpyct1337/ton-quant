@@ -133,6 +133,21 @@
   table.corr th.rowh{text-align:right}
   table.corr td.cell{color:#0b1220;font-weight:600;border-radius:4px;min-width:34px}
   table.corr td.beta{font-weight:700;border-left:2px solid var(--line)}
+  /* ---- analytics tabs + bento + info tooltip ---- */
+  .tabbar{display:flex;gap:6px;flex-wrap:wrap;margin:26px 0 14px;align-items:center}
+  .tabbar .tlbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-right:6px}
+  .tab{font-size:13px;font-weight:700;padding:8px 16px;border-radius:999px;background:var(--card);border:1px solid var(--line);color:var(--muted);cursor:pointer;box-shadow:var(--shadow);transition:background .12s,color .12s}
+  .tab:hover{border-color:var(--accent)}
+  .tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .tabpane{display:none}
+  .tabpane.active{display:block}
+  .bento{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:18px;align-items:start}
+  .bento .cardbox{margin-bottom:0}
+  @media(max-width:680px){.bento{grid-template-columns:1fr}}
+  .info{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:var(--line);color:var(--muted);font-size:11px;font-weight:700;cursor:help;margin-left:6px;vertical-align:middle;position:relative}
+  .info:hover{background:var(--accent);color:#fff}
+  .info:hover::after{content:attr(data-tip);position:absolute;left:50%;top:150%;transform:translateX(-50%);width:270px;max-width:72vw;background:var(--ink);color:#fff;font-size:11px;font-weight:400;line-height:1.5;text-align:left;padding:9px 11px;border-radius:8px;z-index:60;box-shadow:0 6px 22px rgba(0,0,0,.28);white-space:normal}
+  .info:hover::before{content:"";position:absolute;left:50%;top:138%;transform:translateX(-50%);border:5px solid transparent;border-bottom-color:var(--ink);z-index:60}
 </style>
 </head>
 <body>
@@ -205,62 +220,7 @@
 </div>
 <div class="hint">Click a row to open the full dashboard: price history, holders, DEX liquidity, on-chain activity.</div>
 
-<div class="cardbox" style="margin-bottom:18px">
-  <h3>Market map</h3>
-  <div class="h-sub">Tile size = market cap &middot; color = 24h change &middot; stables &amp; staking excluded. Click to open the dashboard.</div>
-  <div id="tmap"></div>
-</div>
-
-<div class="cardbox" id="corrCard" style="margin-bottom:18px;display:none">
-  <h3>Correlation matrix <span style="font-size:11px;font-weight:400;color:var(--muted)">β vs basket</span></h3>
-  <div class="h-sub">Pairwise correlation of daily returns (~40d) for the largest non-stable tokens. Green = move together, red = move opposite. The last column is β to the equal-weight basket (&gt;1 = amplifies the market, &lt;0.5 = muted, negative = hedge). Pure client-side math &mdash; no extra API calls.</div>
-  <div style="overflow-x:auto"><table class="corr" id="corrTable"></table></div>
-  <div class="h-sub" id="corrNote" style="margin:10px 0 0"></div>
-</div>
-
-<div class="cardbox" id="llCard" style="margin-bottom:18px;display:none">
-  <h3>Lead&ndash;lag radar <span style="font-size:11px;font-weight:400;color:var(--muted)">who moves first</span></h3>
-  <div class="h-sub">For each pair we correlate one token's daily return with another's <em>next-day</em> return (lag 1). A token &ldquo;leads&rdquo; when that forward correlation is strong and beats the reverse direction &mdash; an informal direction test on daily closes. Pure client-side math &mdash; no extra API calls. Daily data is coarse, so treat this as a hint, not proof.</div>
-  <div style="overflow-x:auto"><table class="corr" id="llTable"></table></div>
-  <div class="h-sub" id="llNote" style="margin:10px 0 0"></div>
-</div>
-
-<div class="cardbox" id="rrCard" style="margin-bottom:18px;display:none">
-  <h3>Risk&ndash;return map <span style="font-size:11px;font-weight:400;color:var(--muted)">Sharpe ranking</span></h3>
-  <div class="h-sub">Each non-stable token's ~40 daily closes &rarr; daily log returns &rarr; annualized return (&times;365) and volatility (&times;&radic;365, risk-free 0). Up &amp; left = more reward per unit of risk. Color = Sharpe (green good, red bad). Pure client-side math &mdash; no extra API calls. Daily data over a short window, so treat as a snapshot, not a forecast.</div>
-  <div style="overflow-x:auto" id="rrPlot"></div>
-  <div style="overflow-x:auto"><table class="corr" id="rrTable"></table></div>
-  <div class="h-sub" id="rrNote" style="margin:10px 0 0"></div>
-</div>
-
-<div class="cardbox" id="ddCard" style="margin-bottom:18px;display:none">
-  <h3>Drawdown radar <span style="font-size:11px;font-weight:400;color:var(--muted)">distance from high</span></h3>
-  <div class="h-sub">Each non-stable token's ~40 daily closes. <b>Drawdown</b> = how far the last price sits below its 40-day peak (0% = at a new high). The bar shows where the last price sits in the 40-day low&ndash;high range (left = at the low, right = at the high). Deep drawdown near the low = beaten down (mean-reversion watch); near the high = momentum/breakout. Pure client-side math &mdash; no extra API calls.</div>
-  <div style="overflow-x:auto"><table class="corr" id="ddTable"></table></div>
-  <div class="h-sub" id="ddNote" style="margin:10px 0 0"></div>
-</div>
-
-<div class="cardbox" id="momCard" style="margin-bottom:18px;display:none">
-  <h3>Momentum leaderboard <span style="font-size:11px;font-weight:400;color:var(--muted)">relative strength</span></h3>
-  <div class="h-sub">Each non-stable token's % price change over the trailing 7 / 14 / 30 days (from baked daily closes). <b>RS</b> = average percentile rank across the three windows (100 = strongest in the basket, 0 = weakest) &mdash; rewards tokens that lead on multiple horizons, not just one lucky day. Cells colored by return. Pure client-side math &mdash; no extra API calls. Short daily window, so a snapshot of trend, not a forecast.</div>
-  <div style="overflow-x:auto"><table class="corr" id="momTable"></table></div>
-  <div class="h-sub" id="momNote" style="margin:10px 0 0"></div>
-</div>
-
-<div class="cardbox" id="brCard" style="margin-bottom:18px;display:none">
-  <h3>Market breadth <span style="font-size:11px;font-weight:400;color:var(--muted)">basket internals</span></h3>
-  <div class="h-sub">How broad is the move? Across all non-stable tokens, the share <b>advancing</b> (price up) over the trailing 1 / 7 / 30 days, plus the basket <b>median</b> return. The per-token cards above show winners and losers; this is the one market-wide gauge &mdash; is TON risk-on or risk-off right now? A rally on narrow breadth (few names carrying it) is weaker than one where most tokens advance. Pure client-side math &mdash; no extra API calls.</div>
-  <div style="overflow-x:auto"><table class="corr" id="brTable"></table></div>
-  <div class="h-sub" id="brNote" style="margin:10px 0 0"></div>
-</div>
-
-<div class="cardbox" id="rsiCard" style="margin-bottom:18px;display:none">
-  <h3>Momentum oscillator <span style="font-size:11px;font-weight:400;color:var(--muted)">overbought / oversold</span></h3>
-  <div class="h-sub">Wilder's <b>RSI(14)</b> on each non-stable token's daily closes &mdash; a bounded 0&ndash;100 gauge of how stretched recent gains are versus losses. Below <b>30</b> = oversold (selling exhausted, mean-reversion watch); above <b>70</b> = overbought (rally extended). Unlike the momentum leaderboard (which ranks raw % change), RSI measures the <i>quality</i> of a move &mdash; a token can lead on return yet be running hot. Pure client-side math &mdash; no extra API calls. Short daily window, so a snapshot, not a forecast.</div>
-  <div style="overflow-x:auto"><table class="corr" id="rsiTable"></table></div>
-  <div class="h-sub" id="rsiNote" style="margin:10px 0 0"></div>
-</div>
-
+<!-- ===== TOKEN TABLE (hero) ===== -->
 <div class="card">
 <table>
   <thead><tr>
@@ -272,6 +232,65 @@
   <tbody id="tbody"></tbody>
 </table>
 </div>
+
+<!-- ===== MARKET MAP ===== -->
+<div class="cardbox" style="margin:18px 0">
+  <h3>Market map <span class="info" data-tip="Tile size is market cap, color is 24h change. Stables and staking excluded. Click a tile to open its dashboard.">?</span></h3>
+  <div id="tmap"></div>
+</div>
+
+<!-- ===== ANALYTICS TABS ===== -->
+<div class="tabbar" id="anaTabs">
+  <span class="tlbl">Analytics</span>
+  <span class="tab active" data-pane="paneCorr">Correlation</span>
+  <span class="tab" data-pane="paneMom">Momentum</span>
+  <span class="tab" data-pane="paneRisk">Risk</span>
+</div>
+
+<div class="tabpane active" id="paneCorr"><div class="bento">
+  <div class="cardbox" id="corrCard" style="display:none">
+    <h3>Correlation matrix <span style="font-size:11px;font-weight:400;color:var(--muted)">β vs basket</span><span class="info" data-tip="Pairwise correlation of ~40d daily returns for the largest non-stable tokens. Green moves together, red moves opposite. Last column is beta vs the equal-weight basket (over 1 amplifies, under 0.5 muted, negative hedges). Client-side, no extra API calls.">?</span></h3>
+    <div style="overflow-x:auto"><table class="corr" id="corrTable"></table></div>
+    <div class="h-sub" id="corrNote" style="margin:10px 0 0"></div>
+  </div>
+  <div class="cardbox" id="llCard" style="display:none">
+    <h3>Lead&ndash;lag radar <span style="font-size:11px;font-weight:400;color:var(--muted)">who moves first</span><span class="info" data-tip="Correlates each token's return with another's next-day return (lag 1). A token leads when that forward correlation is strong and beats the reverse direction. Daily data is coarse, so treat as a hint, not proof.">?</span></h3>
+    <div style="overflow-x:auto"><table class="corr" id="llTable"></table></div>
+    <div class="h-sub" id="llNote" style="margin:10px 0 0"></div>
+  </div>
+</div></div>
+
+<div class="tabpane" id="paneMom"><div class="bento">
+  <div class="cardbox" id="momCard" style="display:none">
+    <h3>Momentum leaderboard <span style="font-size:11px;font-weight:400;color:var(--muted)">relative strength</span><span class="info" data-tip="Percent change over the trailing 7, 14 and 30 days from baked daily closes. RS is the average percentile rank across the three windows (100 strongest, 0 weakest) — rewards tokens that lead on multiple horizons. A snapshot of trend, not a forecast.">?</span></h3>
+    <div style="overflow-x:auto"><table class="corr" id="momTable"></table></div>
+    <div class="h-sub" id="momNote" style="margin:10px 0 0"></div>
+  </div>
+  <div class="cardbox" id="rsiCard" style="display:none">
+    <h3>Momentum oscillator <span style="font-size:11px;font-weight:400;color:var(--muted)">overbought / oversold</span><span class="info" data-tip="Wilder's RSI(14) on daily closes. Below 30 is oversold (selling exhausted); above 70 is overbought (rally extended). Unlike the leaderboard, RSI measures the quality of a move, not raw percent change. Short window — a snapshot.">?</span></h3>
+    <div style="overflow-x:auto"><table class="corr" id="rsiTable"></table></div>
+    <div class="h-sub" id="rsiNote" style="margin:10px 0 0"></div>
+  </div>
+  <div class="cardbox" id="brCard" style="display:none">
+    <h3>Market breadth <span style="font-size:11px;font-weight:400;color:var(--muted)">basket internals</span><span class="info" data-tip="Share of non-stable tokens advancing (price up) over the trailing 1, 7 and 30 days, plus the basket median return. A rally on narrow breadth is weaker than one where most tokens advance. Is TON risk-on or risk-off right now?">?</span></h3>
+    <div style="overflow-x:auto"><table class="corr" id="brTable"></table></div>
+    <div class="h-sub" id="brNote" style="margin:10px 0 0"></div>
+  </div>
+</div></div>
+
+<div class="tabpane" id="paneRisk"><div class="bento">
+  <div class="cardbox" id="rrCard" style="display:none">
+    <h3>Risk&ndash;return map <span style="font-size:11px;font-weight:400;color:var(--muted)">Sharpe ranking</span><span class="info" data-tip="About 40 daily closes turned into annualized return and volatility (risk-free 0). Up and left means more reward per unit of risk. Color shows Sharpe (green good, red bad). A short-window snapshot, not a forecast.">?</span></h3>
+    <div style="overflow-x:auto" id="rrPlot"></div>
+    <div style="overflow-x:auto"><table class="corr" id="rrTable"></table></div>
+    <div class="h-sub" id="rrNote" style="margin:10px 0 0"></div>
+  </div>
+  <div class="cardbox" id="ddCard" style="display:none">
+    <h3>Drawdown radar <span style="font-size:11px;font-weight:400;color:var(--muted)">distance from high</span><span class="info" data-tip="Last close versus its 40-day peak (0 percent equals a new high). The bar shows position in the 40-day low-to-high range. Deep and near the low means beaten down; near the high means momentum or breakout.">?</span></h3>
+    <div style="overflow-x:auto"><table class="corr" id="ddTable"></table></div>
+    <div class="h-sub" id="ddNote" style="margin:10px 0 0"></div>
+  </div>
+</div></div>
 
 <div class="two-col">
   <div class="cardbox" style="margin-bottom:0">
@@ -344,6 +363,16 @@ document.getElementById("navBurger").addEventListener("click",()=>{
 document.addEventListener("click",e=>{
   if(!document.getElementById("topbar").contains(e.target)&&!document.getElementById("navDrawer").contains(e.target))
     document.getElementById("navDrawer").classList.remove("open");
+});
+
+/* ---------- Analytics tabs ---------- */
+document.querySelectorAll("#anaTabs .tab").forEach(tab=>{
+  tab.addEventListener("click",()=>{
+    document.querySelectorAll("#anaTabs .tab").forEach(t=>t.classList.remove("active"));
+    document.querySelectorAll(".tabpane").forEach(p=>p.classList.remove("active"));
+    tab.classList.add("active");
+    document.getElementById(tab.dataset.pane).classList.add("active");
+  });
 });
 
 /* ---------- formatting ---------- */
