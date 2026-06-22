@@ -34,27 +34,48 @@ def position_size(cfg, t):
     size = min(base, impact_cap) * vscale
     return round(size, 2) if size >= MIN_POS else 0.0
 
-# Capital is allocated by measured edge. RANK_MULTS bias entry priority; SIZE_MULTS
-# scale position size (kept <=1.0 so a boost can't blow past the impact-safe base).
-# Journal always records raw w. Walk-forward-confirmed signals (positive excess in
-# BOTH in- and out-of-sample) are the only robust alpha -> prioritized for the scarce
-# open slots even when the small-sample point verdict is merely "neutral".
+# Capital is allocated by measured edge. RANK_MULTS bias entry priority; position
+# size scales continuously with the measured excess (see SIZE_* below). The journal
+# always records raw w. Walk-forward-confirmed signals (positive excess in BOTH in-
+# and out-of-sample) are the only robust alpha -> prioritized for the scarce open
+# slots even when the small-sample point verdict is merely "neutral".
 RANK_MULTS = {"edge": 1.5, "neutral": 0.8, "noise": 0.3, "collecting": 1.0}
-SIZE_MULTS = {"edge": 1.0, "neutral": 1.0, "noise": 0.0, "collecting": 0.6}  # probe unproven smaller; noise gets nothing
 WF_RANK_BONUS = 1.4
+# Position size is now CONTINUOUS in the measured base-horizon excess (size ~ edge),
+# not a stepwise verdict table. Walk-forward-confirmed alpha gets full impact-safe
+# size; everything else scales by its excess shrunk toward 0 for small samples
+# (eff_x = x*n/(n+SIZE_SHRINK) — an n=1 estimate is mostly noise). noise verdicts and
+# any non-positive measured excess get 0. The signal journal keeps scoring every
+# detected signal regardless of whether the bot opens, so sitting out never starves learning.
+SIZE_X_FULL = 4.0   # base-horizon excess % that earns full impact-safe size
+SIZE_SHRINK = 3.0   # small-sample shrinkage strength
+SIZE_FLOOR = 0.25   # min size for any positive shrunk edge (still probe it)
 
 def load_score_mults():
-    """Return {sig: (rank_mult, size_mult)} from data/signals/scores.json verdicts.
-    Walk-forward-confirmed alpha gets a ranking boost; unproven ('collecting')
-    signals are sized down so unproven bets risk less capital."""
+    """Return {sig: (rank_mult, size_mult)} from data/signals/scores.json.
+    rank = verdict bias + walk-forward boost (entry priority). size = continuous
+    in the measured base-horizon excess: validated alpha -> full size; otherwise
+    the excess shrunk for small samples, capped <=1.0 (impact-safe) and floored to
+    a small probe; noise and non-positive excess get 0."""
     sc = load("data/signals/scores.json", {})
     out = {}
     for sig, agg in sc.get("per_sig", {}).items():
         v = agg.get("verdict", "collecting")
-        rank, size = RANK_MULTS.get(v, 1.0), SIZE_MULTS.get(v, 1.0)
-        if v != "noise" and agg.get("wf", {}).get("confirmed"):
+        rank = RANK_MULTS.get(v, 1.0)
+        confirmed = v != "noise" and agg.get("wf", {}).get("confirmed")
+        if confirmed:
             rank *= WF_RANK_BONUS
-        out[sig] = (rank, size)
+        bh = agg.get("base_h")
+        xb = agg.get("x", {}).get("h%d" % bh, {}) if bh else {}
+        x, n = xb.get("avg"), xb.get("n") or 0
+        if v == "noise" or x is None or n == 0 or x <= 0:
+            size = 0.0
+        elif confirmed:
+            size = 1.0
+        else:
+            eff_x = x * n / (n + SIZE_SHRINK)
+            size = max(SIZE_FLOOR, min(1.0, eff_x / SIZE_X_FULL))
+        out[sig] = (round(rank, 3), round(size, 3))
     return out
 
 def pct(cur, prev):
@@ -221,7 +242,7 @@ def main():
     print("paper2:", today, "signals:", {a: [s[0] for s in v] for a, v in sig_map.items()},
           "journal:", len(journal), "equity:", summary,
           "score_mults:", score_mults if score_mults else "none",
-          "noise_blocked:", noise if noise else "none")
+          "zero_size:", noise if noise else "none")
 
 if __name__ == "__main__":
     main()
