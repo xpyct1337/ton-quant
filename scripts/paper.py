@@ -34,17 +34,27 @@ def position_size(cfg, t):
     size = min(base, impact_cap) * vscale
     return round(size, 2) if size >= MIN_POS else 0.0
 
-# Multipliers applied to signal priority when verdict is known.
-# Journal always records raw w; multiplier only affects entry ranking.
-SCORE_MULTS = {"edge": 1.5, "neutral": 0.8, "noise": 0.3, "collecting": 1.0}
+# Capital is allocated by measured edge. RANK_MULTS bias entry priority; SIZE_MULTS
+# scale position size (kept <=1.0 so a boost can't blow past the impact-safe base).
+# Journal always records raw w. Walk-forward-confirmed signals (positive excess in
+# BOTH in- and out-of-sample) are the only robust alpha -> prioritized for the scarce
+# open slots even when the small-sample point verdict is merely "neutral".
+RANK_MULTS = {"edge": 1.5, "neutral": 0.8, "noise": 0.3, "collecting": 1.0}
+SIZE_MULTS = {"edge": 1.0, "neutral": 1.0, "noise": 0.0, "collecting": 0.6}  # probe unproven smaller; noise gets nothing
+WF_RANK_BONUS = 1.4
 
 def load_score_mults():
-    """Return {sig: mult} from data/signals/scores.json per_sig verdicts."""
+    """Return {sig: (rank_mult, size_mult)} from data/signals/scores.json verdicts.
+    Walk-forward-confirmed alpha gets a ranking boost; unproven ('collecting')
+    signals are sized down so unproven bets risk less capital."""
     sc = load("data/signals/scores.json", {})
     out = {}
     for sig, agg in sc.get("per_sig", {}).items():
-        verdict = agg.get("verdict", "collecting")
-        out[sig] = SCORE_MULTS.get(verdict, 1.0)
+        v = agg.get("verdict", "collecting")
+        rank, size = RANK_MULTS.get(v, 1.0), SIZE_MULTS.get(v, 1.0)
+        if v != "noise" and agg.get("wf", {}).get("confirmed"):
+            rank *= WF_RANK_BONUS
+        out[sig] = (rank, size)
     return out
 
 def pct(cur, prev):
@@ -130,15 +140,16 @@ def run_bot(name, cfg, bot, toks, sig_map, prev_map, today, score_mults=None):
         if cfg["min_liq_ratio"] > 0 and mcap > 0 and tvl / mcap < cfg["min_liq_ratio"]: continue
         for sig, w in sigs:
             if sig in cfg["signals"]:
-                mult = (score_mults or {}).get(sig, 1.0)
-                cands.append((w * mult, addr, t, sig))
+                rank_mult = (score_mults or {}).get(sig, (1.0, 1.0))[0]
+                cands.append((w * rank_mult, addr, t, sig))
     cands.sort(key=lambda x: -x[0])
     for eff_w, addr, t, sig in cands:
         if len(bot["positions"]) >= cfg["max_open"]: break
         if eff_w < MIN_EFF_W: break  # sorted desc — rest also below threshold
         if addr in open_addrs: continue
-        size = position_size(cfg, t)
-        if size <= 0 or bot["cash"] < size: continue
+        size_mult = (score_mults or {}).get(sig, (1.0, 1.0))[1]
+        size = round(position_size(cfg, t) * size_mult, 2)
+        if size < MIN_POS or bot["cash"] < size: continue
         tvl = t.get("tvl", 0) or 0
         entry_eff = t["price"] * (1 + min(impact(tvl, size), 0.5) + FEE)
         qty = size / entry_eff
@@ -206,7 +217,7 @@ def main():
     os.makedirs("data/paper", exist_ok=True)
     with open("data/paper/bots.json", "w") as f:
         json.dump(state, f, separators=(",", ":"))
-    noise = [s for s, m in score_mults.items() if m < 1.0]
+    noise = [s for s, (r, sz) in score_mults.items() if sz == 0.0]
     print("paper2:", today, "signals:", {a: [s[0] for s in v] for a, v in sig_map.items()},
           "journal:", len(journal), "equity:", summary,
           "score_mults:", score_mults if score_mults else "none",
