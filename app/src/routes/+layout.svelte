@@ -7,7 +7,7 @@
     { href: base + '/screener.html', label: 'Screener', icon: 'ti-list-search' },
     { href: base + '/compare.html', label: 'Compare', icon: 'ti-arrows-diff' },
     { href: base + '/portfolio.html', label: 'Portfolio', icon: 'ti-wallet' },
-    { href: base + '/paper.html', label: 'Paper bot', icon: 'ti-robot' }
+    { href: base + '/paper', label: 'Paper bot', icon: 'ti-robot' }
   ];
 </script>
 

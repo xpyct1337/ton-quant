@@ -7,7 +7,7 @@ const t=(name,cond,info="")=>{ if(cond){pass++;} else {fail++; console.log("FAIL
 const DIR=process.env.TQ_DIR||'.';
 const pages=fs.readdirSync(DIR).filter(f=>f.endsWith('.html'));
 t('found html pages', pages.length>=5, pages.length);
-const exists=new Set(pages);
+const exists=new Set(pages); exists.add('index.html'); // provided by SvelteKit build
 for(const p of pages){
   const buf=fs.readFileSync(DIR+'/'+p);
   // (a) no NUL bytes

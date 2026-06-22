@@ -72,8 +72,8 @@ const parse$=s=>{ // "$1.43B" -> number
   t('foreign jetton NOT priced at MASTER price (TSHIB bug)', !tshibPriced, 'TSHIB has $ value');
 }
 
-// ---- 3. index.html: summary numbers internally consistent ----
-{
+// ---- 3. index.html (legacy vanilla main; skipped once migrated to SvelteKit) ----
+if(fs.existsSync('/tmp/index_new.html')){
   const {dom,api}=boot('/tmp/index_new.html','https://x.test/',/render\(\);\s*refresh\(\)\.then[\s\S]*$/);
   api.render(); await api.refresh(); await api.loadDex(); api.summary(); api.treemap(); api.activityDigest();
   const d=dom.window.document;

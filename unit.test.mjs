@@ -1,42 +1,17 @@
-// ===== UNIT TESTS: every formula, independently recomputed =====
+// ===== UNIT TESTS: still-vanilla pages (token.html). Pure fns from the new
+// SvelteKit main page are tested in app/src/lib/*.test.js. =====
 import fs from 'fs';
 let pass=0,fail=0;
 const t=(name,cond,info="")=>{ if(cond){pass++;} else {fail++; console.log("FAIL:",name,info);} };
-
-const idx=fs.readFileSync(process.env.TQ_IDX||'/tmp/index_new.html','utf8');
 const tok=fs.readFileSync(process.env.TQ_TOK||'/tmp/token_new.html','utf8');
-const js=f=>f.match(/<script>\n?([\s\S]*?)<\/script>\s*<\/body>/)[1];
-
-// --- extract pure functions from index ---
-const elStub=new Proxy({},{get:(o,k)=>k==='classList'?{toggle(){},add(){},remove(){}}:k==='style'?{}: (k==='addEventListener'||k==='onclick')?()=>{}:(typeof k==='string'&&['textContent','innerHTML','title','className'].includes(k))?'':()=>{}});
-const sandbox={document:{getElementById:()=>elStub,querySelectorAll:()=>[],addEventListener(){}},window:{addEventListener(){}},localStorage:{getItem:()=>null,setItem(){}},console,setInterval:()=>0,setTimeout:()=>0,clearTimeout:()=>0,fetch:async()=>({ok:false,status:0}),URLSearchParams,location:{href:''}};
-const IDX=js(idx);
-const grab=(src,names)=>{
-  const fn=new Function(...Object.keys(sandbox),src+'\n;return {'+names.join(',')+'};');
-  return fn(...Object.values(sandbox));
-};
-// cut off the bootstrap calls so nothing fetches
-const IDXdef=IDX.replace(/render\(\);\s*refresh\(\)\.then[\s\S]*$/,'');
-// Stubs for functions moved to token/screener pages (skip if not in index.html)
-// These tests still run to validate reference implementations match expected behaviour
-const F=grab(IDXdef,['fmtUsd','fmtInt','squarify','tmColor','snapSignalFor','holderGrowth']);
-// Stubs for functions moved out of index.html (pearson/rets/mxColor/esc2 → token.html, netArb → screener.html)
+const F={};
 F.pearson=(a,b)=>{if(!a||a.length<3)return null;const n=a.length,ma=a.reduce((s,x)=>s+x,0)/n,mb=b.reduce((s,x)=>s+x,0)/n;let num=0,da=0,db=0;for(let i=0;i<n;i++){const ea=a[i]-ma,eb=b[i]-mb;num+=ea*eb;da+=ea*ea;db+=eb*eb;}return da&&db?num/Math.sqrt(da*db):0;};
 F.esc2=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 F.mxColor=v=>{if(v===null||v===undefined)return '#eef0f3';const x=Math.max(-1,Math.min(1,v));return x>=0?`rgb(${Math.round(24)},${Math.round(140+x*45)},${Math.round(87)})`:`rgb(${Math.round(180)},${Math.round(80)},${Math.round(70)})`;};
 F.rets=prices=>{const r=[];for(let i=1;i<prices.length;i++){const p=prices[i-1];r.push(p===0?0:Math.log(prices[i]/p));}return r;};
+
 // netArb: reference implementation (matches screener.html production code)
 // netArb is in screener.html not index.html — stub uses refNetArb for both production and reference checks
-
-// fmtUsd
-t('fmtUsd 0', F.fmtUsd(0)==='$0.00');
-t('fmtUsd 1234', F.fmtUsd(1234)==='$1.23K');
-t('fmtUsd 1.5e9', F.fmtUsd(1.5e9)==='$1.50B');
-t('fmtUsd 2.5e6', F.fmtUsd(2.5e6)==='$2.50M');
-t('fmtUsd null', F.fmtUsd(null)==='—'||F.fmtUsd(null)==='—');
-t('fmtUsd NaN', F.fmtUsd(NaN)==='—'||F.fmtUsd(NaN)==='—');
-t('fmtUsd small', F.fmtUsd(0.00005).includes('e-'), F.fmtUsd(0.00005));
-t('fmtUsd 0.5', F.fmtUsd(0.5)==='$0.5');
 
 // pearson — independent recompute
 const px=[1,2,3,4,5,6],py=[2,4,6,8,10,12],pz=[6,5,4,3,2,1];
@@ -56,19 +31,7 @@ const rr=F.rets([100,110,121]);
 t('rets log', Math.abs(rr[0]-Math.log(1.1))<1e-12 && Math.abs(rr[1]-Math.log(1.1))<1e-12);
 t('rets zero-guard', F.rets([0,5])[0]===0);
 
-// squarify: invariants
-const items=[{value:50},{value:30},{value:15},{value:5}];
-const rects=F.squarify(items,200,100);
-t('squarify count', rects.length===4);
-const area=rects.reduce((s,r)=>s+r.w*r.h,0);
-t('squarify area sum', Math.abs(area-20000)<1, area);
-t('squarify bounds', rects.every(r=>r.x>=-0.01&&r.y>=-0.01&&r.x+r.w<=200.01&&r.y+r.h<=100.01));
-t('squarify proportional', Math.abs(rects[0].w*rects[0].h/20000-0.5)<0.01);
-
 // colors
-t('tmColor neutral', F.tmColor(0.05)==='#7c8497');
-t('tmColor nan', F.tmColor(NaN)==='#a4adbf');
-t('tmColor up is green-ish', F.tmColor(8).startsWith('rgb('));
 t('mxColor null', F.mxColor(null)==='#eef0f3');
 t('esc2 strips', !/[<>"]/.test(F.esc2('<img src=x onerror="a">')));
 
@@ -186,83 +149,11 @@ t('snapDiv stable h near-zero => muted', snapDivLabel(0.05,2).cls==="muted");
 t('snapDiv stable p near-zero => good or muted', ['good','muted'].includes(snapDivLabel(0.5,0).cls));
 
 
-// --- snapSignalFor: main-page snapshot divergence classification ---
-function snapSignalFor(a,b){
-  const dh=(b.holders-a.holders)/Math.max(a.holders,1)*100;
-  const dp=(b.price-a.price)/Math.max(a.price,1e-18)*100;
-  const dtvl=a.tvl>0?(b.tvl-a.tvl)/a.tvl*100:null;
-  if(dtvl!==null&&dtvl<-20)return{kind:'rug_watch',dh,dp,dtvl};
-  if(dh>1.5&&dp<-2)return{kind:'accum',dh,dp,dtvl};
-  if(dh<-1&&dp>5)return{kind:'distrib',dh,dp,dtvl};
-  if(dtvl!==null&&dtvl>30)return{kind:'liq_inflow',dh,dp,dtvl};
-  return null;
-}
-t('snapSig rug_watch: TVL -30%', snapSignalFor({holders:1000,price:1,tvl:100000},{holders:1001,price:0.98,tvl:70000}).kind==='rug_watch');
-t('snapSig accum: holders +2% price -3%', snapSignalFor({holders:1000,price:1,tvl:50000},{holders:1020,price:0.97,tvl:50000}).kind==='accum');
-t('snapSig distrib: holders -2% price +8%', snapSignalFor({holders:1000,price:1,tvl:50000},{holders:980,price:1.08,tvl:55000}).kind==='distrib');
-t('snapSig liq_inflow: TVL +40%', snapSignalFor({holders:1000,price:1,tvl:50000},{holders:1005,price:1.01,tvl:70000}).kind==='liq_inflow');
-t('snapSig null for flat data', snapSignalFor({holders:1000,price:1,tvl:50000},{holders:1001,price:1.001,tvl:50100})===null);
-t('snapSig no TVL=>no rug/inflow, accum check', (()=>{const s=snapSignalFor({holders:1000,price:1,tvl:0},{holders:1021,price:0.96,tvl:0});return s&&s.kind==='accum';})());
-t('snapSig priority: rug_watch beats accum threshold', (()=>{const s=snapSignalFor({holders:1000,price:1,tvl:100000},{holders:1021,price:0.96,tvl:70000});return s&&s.kind==='rug_watch';})());
-
-// --- holderGrowth: full-window holder trend for main table ---
-t('holderGrowth up +10%', (()=>{const g=F.holderGrowth([{holders:1000},{holders:1100}]);return g&&Math.abs(g.pct-10)<1e-9&&g.days===1;})());
-t('holderGrowth down -10%', (()=>{const g=F.holderGrowth([{holders:1000},{holders:900}]);return g&&Math.abs(g.pct+10)<1e-9;})());
-t('holderGrowth uses first&last only', (()=>{const g=F.holderGrowth([{holders:1000},{holders:5},{holders:1200}]);return g&&Math.abs(g.pct-20)<1e-9&&g.days===2&&g.from===1000&&g.to===1200;})());
-t('holderGrowth null when <2 snapshots', F.holderGrowth([{holders:1000}])===null && F.holderGrowth([])===null && F.holderGrowth(null)===null);
-t('holderGrowth null on zero/invalid holders', F.holderGrowth([{holders:0},{holders:1000}])===null && F.holderGrowth([{holders:1000},{holders:0}])===null);
-
 // --- regression guards: holder/liq history card wiring (snapshot index key is "dates") ---
 t('snapHist reads idxD.dates (not dead .snapshots-only)', /idxD\.dates/.test(tok));
 t('snapHist renders liquidity column', tok.includes('\u0394 Liq'));
 t('snapHist has liquidity-trend verdict pills', /Liq draining/.test(tok)&&/Liq inflow/.test(tok));
 t('snapHist computes per-day TVL delta', /const dt=prev\.tvl>0\?/.test(tok));
-
-// --- correlation matrix + beta (index.html): math contract + wiring ---
-{ // reference impls mirror the shipped pcorr/betaVs/lrets
-  const lrets=p=>{const r=[];for(let i=1;i<p.length;i++){const a=p[i-1],b=p[i];r.push(a>0&&b>0?Math.log(b/a):0);}return r;};
-  const pcorr=(a,b)=>{const n=Math.min(a.length,b.length);if(n<5)return null;let ma=0,mb=0;for(let i=0;i<n;i++){ma+=a[i];mb+=b[i];}ma/=n;mb/=n;let num=0,da=0,db=0;for(let i=0;i<n;i++){const ea=a[i]-ma,eb=b[i]-mb;num+=ea*eb;da+=ea*ea;db+=eb*eb;}return da&&db?num/Math.sqrt(da*db):null;};
-  const betaVs=(a,m)=>{const n=Math.min(a.length,m.length);if(n<5)return null;let ma=0,mm=0;for(let i=0;i<n;i++){ma+=a[i];mm+=m[i];}ma/=n;mm/=n;let cov=0,vm=0;for(let i=0;i<n;i++){cov+=(a[i]-ma)*(m[i]-mm);vm+=(m[i]-mm)**2;}return vm?cov/vm:null;};
-  const x=[1,2,3,4,5,6,7,8];
-  t('pcorr self = 1', Math.abs(pcorr(x,x)-1)<1e-9);
-  t('pcorr anti = -1', Math.abs(pcorr(x,x.map(v=>-v))+1)<1e-9);
-  t('pcorr null when n<5', pcorr([1,2],[1,2])===null);
-  t('betaVs self = 1', Math.abs(betaVs(x,x)-1)<1e-9);
-  t('betaVs 2x market = 2', Math.abs(betaVs(x.map(v=>2*v),x)-2)<1e-9);
-  t('lrets skips non-positive', lrets([1,0,2]).every(Number.isFinite));
-  // wiring guards: feature defined and invoked at boot
-  t('correlMatrix defined', /function correlMatrix\(\)/.test(idx));
-  t('correlMatrix called at boot', /treemap\(\);\s*correlMatrix\(\)/.test(idx));
-  t('corr uses non-stable CORE tokens', /CORE\(t\)&&t\.spark/.test(idx));
-  // lead-lag radar
-  const laggedCorr=(a,b,k)=>pcorr(a.slice(0,a.length-k),b.slice(k));
-  const lead=[1,2,3,4,5,6,7,8,9,10];
-  const follow=[99].concat(lead.slice(0,9));
-  t('laggedCorr perfect 1d lead = 1', Math.abs(laggedCorr(lead,follow,1)-1)<1e-9);
-  t('laggedCorr is directional (fwd>rev)', laggedCorr(lead,follow,1)>laggedCorr(follow,lead,1)+0.1);
-  t('leadLag defined', /function leadLag\(\)/.test(idx));
-  t('leadLag called at boot', /correlMatrix\(\);\s*leadLag\(\)/.test(idx));
-  // risk-return map (Sharpe)
-  const dstats=r=>{const n=r.length;if(n<2)return null;let m=0;for(const x of r)m+=x;m/=n;let v=0;for(const x of r)v+=(x-m)*(x-m);v/=n;return{mean:m,std:Math.sqrt(v)};};
-  const sharpe=r=>{const s=dstats(r);return s&&s.std>0?s.mean/s.std*Math.sqrt(365):null;};
-  const ds=dstats([1,2,3,4,5]);
-  t('dstats mean', Math.abs(ds.mean-3)<1e-9);
-  t('dstats pop std = sqrt(2)', Math.abs(ds.std-Math.SQRT2)<1e-9);
-  t('dstats null when n<2', dstats([1])===null);
-  t('sharpe positive on rising returns', sharpe([0.01,0.02,0.03,0.015,0.025])>0);
-  t('sharpe null when std=0', sharpe([0.01,0.01,0.01])===null);
-  t('riskReturn defined', /function riskReturn\(\)/.test(idx));
-  t('riskReturn called at boot', /leadLag\(\);\s*riskReturn\(\)/.test(idx));
-  // drawdown radar
-  const dd=(arr)=>{const a=arr.filter(x=>x>0),last=a[a.length-1],hi=Math.max(...a),lo=Math.min(...a);return{dd:(last-hi)/hi*100,pos:hi>lo?(last-lo)/(hi-lo)*100:50};};
-  const ddlo=dd([10,8,6,5]); t('drawdown at low = -50%', Math.abs(ddlo.dd+50)<1e-9, ddlo.dd);
-  t('range pos 0 at low', Math.abs(ddlo.pos)<1e-9, ddlo.pos);
-  const ddhi=dd([5,6,8,10]); t('drawdown 0 at new high', Math.abs(ddhi.dd)<1e-9, ddhi.dd);
-  t('range pos 100 at high', Math.abs(ddhi.pos-100)<1e-9, ddhi.pos);
-  t('drawdowns defined', /function drawdowns\(\)/.test(idx));
-  t('drawdowns called at boot', /riskReturn\(\);\s*drawdowns\(\)/.test(idx));
-  t('drawdowns uses CORE non-stable tokens', /function drawdowns[\s\S]{0,260}TOKENS\.filter\(t=>CORE\(t\)/.test(idx));
-}
 
 console.log(`\nUNIT: ${pass} passed, ${fail} failed`);
 process.exit(fail?1:0);

@@ -63,3 +63,26 @@ export async function liveRates(addrs) {
     return {};
   }
 }
+
+import { computeMarketRegime, buildBenchmark } from './metrics.js';
+
+const RAWB = 'https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data';
+
+// Paper bots: cons/aggr (+ alt) state, plus signal scoreboard.
+export async function loadPaper() {
+  const [bots, alt, scores] = await Promise.all([
+    j(`${RAWB}/paper/bots.json`).catch(() => null),
+    j(`${RAWB}/paper/altbots.json`).catch(() => null),
+    j(`${RAWB}/signals/scores.json`).catch(() => null)
+  ]);
+  return { bots: { ...(bots?.bots || {}), ...(alt?.bots || {}) }, scores };
+}
+
+// Regime + buy&hold benchmark over the full snapshot history.
+export async function loadRegimeBench() {
+  const [idx, cats] = await Promise.all([j(`${RAWB}/index.json`), j(`${RAWB}/cats.json`)]);
+  const snaps = await Promise.all(
+    idx.dates.map((d) => j(`${RAWB}/snapshots/${d}.json`).then((s) => ({ d, tokens: s.tokens || {} })).catch(() => ({ d, tokens: {} })))
+  );
+  return { regime: computeMarketRegime(snaps, cats), bench: buildBenchmark(snaps, cats) };
+}

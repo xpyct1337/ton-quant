@@ -93,3 +93,45 @@ export function coreIndex(rows) {
   if (tot <= 0) return null;
   return core.reduce((s, r) => s + (r.mcap / tot) * r.d7, 0);
 }
+
+// Market regime from a 7-day snapshot window. Ported from paper.html.
+// snaps = [{ d, tokens:{ addr:{price} } }] oldest→newest; cats = { addr: category }.
+export function computeMarketRegime(snaps, cats) {
+  if (!snaps || snaps.length < 2) return null;
+  const coreA = Object.entries(cats || {}).filter(([, c]) => c !== 'stable' && c !== 'staking').map(([a]) => a);
+  if (!coreA.length) return null;
+  const now = snaps[snaps.length - 1].tokens || {};
+  const window7 = snaps.slice(-7);
+  let above = 0, total = 0;
+  for (const a of coreA) {
+    const pp = window7.map((s) => (s.tokens?.[a] || {}).price).filter(Boolean);
+    const avg = pp.length ? pp.reduce((s, p) => s + p, 0) / pp.length : null;
+    const cur = (now[a] || {}).price;
+    if (cur && avg) { total++; if (cur > avg) above++; }
+  }
+  if (!total) return null;
+  const breadth = Math.round((above / total) * 100);
+  const regime = breadth >= 60 ? 'BULL' : breadth <= 40 ? 'BEAR' : 'NEUTRAL';
+  const snap7 = snaps.length >= 7 ? snaps[snaps.length - 7] : snaps[0];
+  const chg = coreA.map((a) => {
+    const p0 = (snap7.tokens?.[a] || {}).price, p1 = (now[a] || {}).price;
+    return p0 && p1 ? (p1 / p0 - 1) * 100 : null;
+  }).filter((v) => v !== null).sort((a, b) => a - b);
+  const med7 = chg.length ? chg[Math.floor(chg.length / 2)] : null;
+  return { regime, breadth, above, total, med7 };
+}
+
+// Equal-weight CORE buy&hold from $1000 at snaps[0]. Ported from paper.html.
+export function buildBenchmark(snaps, cats) {
+  if (!snaps || snaps.length < 2) return null;
+  const coreA = Object.entries(cats || {}).filter(([, c]) => c !== 'stable' && c !== 'staking').map(([a]) => a);
+  const base0 = {};
+  for (const a of coreA) { const t = snaps[0].tokens?.[a]; if (t && t.price > 0) base0[a] = t.price; }
+  const eligible = Object.keys(base0);
+  if (!eligible.length) return null;
+  return snaps.map(({ d, tokens }) => {
+    const rets = eligible.map((a) => { const t = tokens?.[a]; return t && t.price > 0 ? t.price / base0[a] : 1; });
+    const mean = rets.reduce((s, r) => s + r, 0) / rets.length;
+    return { d, v: Math.round(1000 * mean * 100) / 100 };
+  });
+}

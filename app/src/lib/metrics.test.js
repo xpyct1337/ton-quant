@@ -51,3 +51,30 @@ test('pctChange guards zero base', () => {
   assert.equal(pctChange(0, 5), null);
   assert.equal(pctChange(100, 110), 10);
 });
+
+import { computeMarketRegime, buildBenchmark } from './metrics.js';
+
+const mkSnaps = (prices) => prices.map((p, i) => ({ d: '2026-06-' + (12 + i), tokens: { A: { price: p }, B: { price: p * 2 } } }));
+
+test('computeMarketRegime BULL when all above 7d avg', () => {
+  const snaps = mkSnaps([1, 1, 1, 1, 1, 1, 2]); // last well above window mean
+  const r = computeMarketRegime(snaps, { A: 'meme', B: 'meme' });
+  assert.equal(r.regime, 'BULL');
+  assert.equal(r.total, 2);
+});
+
+test('computeMarketRegime BEAR when all below', () => {
+  const snaps = mkSnaps([2, 2, 2, 2, 2, 2, 1]);
+  assert.equal(computeMarketRegime(snaps, { A: 'meme', B: 'meme' }).regime, 'BEAR');
+});
+
+test('computeMarketRegime excludes stable/staking', () => {
+  const r = computeMarketRegime(mkSnaps([1, 2]), { A: 'stable', B: 'staking' });
+  assert.equal(r, null);
+});
+
+test('buildBenchmark starts at 1000 and tracks equal-weight', () => {
+  const b = buildBenchmark(mkSnaps([1, 2]), { A: 'meme', B: 'meme' });
+  assert.equal(b[0].v, 1000);
+  assert.equal(b[1].v, 2000); // both doubled
+});
