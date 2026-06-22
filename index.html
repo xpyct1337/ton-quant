@@ -702,10 +702,13 @@ function riskReturn(){
   const card=document.getElementById("rrCard"); if(!card)return;
   const rows=TOKENS.filter(t=>CORE(t)&&t.spark&&t.spark.length>=12).map(t=>{
     const s=dstats(lrets(t.spark)); if(!s)return null;
-    return {t,ann:s.mean*365*100,vol:s.std*Math.sqrt(365)*100,sh:s.std>0?s.mean/s.std*Math.sqrt(365):0};
+    return {t,ann:s.mean*365*100,vol:s.std*Math.sqrt(365)*100,sh:s.std>0?s.mean/s.std*Math.sqrt(365):0,mc:Math.max(mcapOf(t),1)};
   }).filter(Boolean);
   if(rows.length<3)return;
   const W=640,H=360,pl=58,pr=14,pt=14,pb=42,iw=W-pl-pr,ih=H-pt-pb;
+  // bubble radius ~ sqrt(mcap) so AREA scales with mcap (microcaps shrink, big caps grow)
+  const rMin=4,rMax=20,sMin=Math.sqrt(Math.min(...rows.map(r=>r.mc))),sMax=Math.sqrt(Math.max(...rows.map(r=>r.mc)));
+  const rad=mc=>sMax>sMin?rMin+(rMax-rMin)*(Math.sqrt(mc)-sMin)/(sMax-sMin):rMin+2;
   const vmax=Math.max(...rows.map(r=>r.vol))*1.08||1;
   let amin=Math.min(0,...rows.map(r=>r.ann)),amax=Math.max(0,...rows.map(r=>r.ann));
   const padv=(amax-amin)*0.08||1; amin-=padv; amax+=padv;
@@ -718,9 +721,10 @@ function riskReturn(){
   for(let k=0;k<=4;k++){const v=vmax*k/4,x=X(v);svg+=`<text x="${x}" y="${pt+ih+14}" text-anchor="middle" font-size="9" fill="var(--muted)">${v.toFixed(0)}%</text>`;}
   svg+=`<text x="${pl+iw/2}" y="${H-4}" text-anchor="middle" font-size="10" fill="var(--muted)">annualized volatility</text>`;
   svg+=`<text x="14" y="${pt+ih/2}" text-anchor="middle" font-size="10" fill="var(--muted)" transform="rotate(-90 14 ${pt+ih/2})">annualized return</text>`;
-  for(const r of rows){const x=X(r.vol),y=Y(r.ann);
-    svg+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="5" fill="${cc(r.sh)}" stroke="#5a6472" stroke-width="0.6"><title>${esc(r.t.symbol)} — return ${r.ann.toFixed(0)}% / vol ${r.vol.toFixed(0)}% / Sharpe ${r.sh.toFixed(2)}</title></circle>`;
-    svg+=`<text x="${(x+7).toFixed(1)}" y="${(y+3).toFixed(1)}" font-size="9" fill="#444">${esc(r.t.symbol)}</text>`;}
+  for(const r of rows.slice().sort((a,b)=>b.mc-a.mc)){const x=X(r.vol),y=Y(r.ann),rr=rad(r.mc);   // big bubbles first so small ones stay clickable on top
+    svg+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rr.toFixed(1)}" fill="${cc(r.sh)}" fill-opacity="0.82" stroke="#5a6472" stroke-width="0.6"><title>${esc(r.t.symbol)} — return ${r.ann.toFixed(0)}% / vol ${r.vol.toFixed(0)}% / Sharpe ${r.sh.toFixed(2)} / mcap ${fmtUsd(r.mc)}</title></circle>`;
+    svg+=`<text x="${(x+rr+3).toFixed(1)}" y="${(y+3).toFixed(1)}" font-size="9" fill="#444">${esc(r.t.symbol)}</text>`;}
+  svg+=`<text x="${W-pr}" y="${pt+8}" text-anchor="end" font-size="9" fill="var(--muted)">bubble size = market cap</text>`;
   svg+=`</svg>`;
   document.getElementById("rrPlot").innerHTML=svg;
   const link=t=>`<a href="token.html?a=${t.address}" style="color:inherit;text-decoration:none">${esc(t.symbol)}</a>`;
@@ -733,9 +737,14 @@ function riskReturn(){
   document.getElementById("rrTable").innerHTML=
     `<tr><th></th><th class="beta">ann. return</th><th>ann. vol</th><th>Sharpe</th></tr>`+trs;
   const best=rk[0],worst=rk[rk.length-1];
+  const ms=rows.map(r=>r.mc).sort((a,b)=>a-b),medMc=ms[Math.floor(ms.length/2)];   // mcap median = "tradeable" threshold
+  const bigBest=rk.find(r=>r.mc>=medMc);                                            // best Sharpe among larger half
+  const lens=bigBest&&bigBest!==best
+    ?` Best among larger caps (&ge;${fmtUsd(medMc)} mcap): <strong>${esc(bigBest.t.symbol)}</strong> (Sharpe ${bigBest.sh.toFixed(2)}) &mdash; a strong Sharpe on a microcap rarely survives slippage.`:'';
   document.getElementById("rrNote").innerHTML=
     `Best risk-adjusted: <strong>${esc(best.t.symbol)}</strong> (Sharpe ${best.sh.toFixed(2)}, ${best.ann>=0?'+':''}${best.ann.toFixed(0)}% at ${best.vol.toFixed(0)}% vol). `+
-    `Worst: <strong>${esc(worst.t.symbol)}</strong> (Sharpe ${worst.sh.toFixed(2)}). ${rows.length} tokens, ~40 daily closes, rf=0.`;
+    `Worst: <strong>${esc(worst.t.symbol)}</strong> (Sharpe ${worst.sh.toFixed(2)}). ${rows.length} tokens, ~40 daily closes, rf=0.`+
+    `${lens} Bubble area &prop; market cap.`;
   card.style.display="";
 }
 
