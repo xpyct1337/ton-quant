@@ -28,6 +28,15 @@ TOKENS = {
  "EQBARQjzu8ZnTzJJMXlDqrnaZ-CH_nrV2XbzL28l6-p8xNo9": "GTA"
 }
 
+# conytail: universe.py owns the tracked set; the dict above is a fallback if it hasn't run yet.
+try:
+    _u = json.load(open(os.path.join(os.path.dirname(__file__), "..", "data", "universe.json")))
+    _tr = {t["addr"]: t["sym"] for t in _u["tokens"] if t.get("tracked")}
+    if _tr:
+        TOKENS = _tr
+except Exception:
+    pass
+
 def get(url, ton=False):
     h = {"Accept": "application/json", "User-Agent": "tonquant-snapshot"}
     if ton:

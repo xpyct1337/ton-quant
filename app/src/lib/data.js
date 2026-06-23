@@ -144,3 +144,8 @@ export async function loadToken(addr) {
     track: paperTrack(paper.bots, addr), tonUsd
   };
 }
+
+// Broad discovery universe (Screener firehose).
+export async function loadUniverse() {
+  return j(`${RAWB}/universe.json`).catch(() => ({ tokens: [] }));
+}
