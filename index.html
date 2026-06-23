@@ -834,10 +834,33 @@ function rsi(s,n){
   if(al===0)return ag===0?50:100;
   return 100-100/(1+ag/al);
 }
+/* RSI series (Wilder) + divergence: compares the recent L-bar price extreme against the prior L-bar
+   one. Bearish = higher price high but lower RSI high (momentum waning into the new high). Bullish =
+   lower price low but higher RSI low (selling exhausting). A reversal warning the bounded RSI level misses. */
+function rsiArr(s,n){
+  const a=(s||[]).filter(x=>x>0); if(a.length<n+1)return null;
+  const out=new Array(a.length).fill(null); let g=0,l=0;
+  for(let i=1;i<=n;i++){const d=a[i]-a[i-1];if(d>=0)g+=d;else l-=d;}
+  let ag=g/n,al=l/n; const rv=()=>al===0?(ag===0?50:100):100-100/(1+ag/al);
+  out[n]=rv();
+  for(let i=n+1;i<a.length;i++){const d=a[i]-a[i-1];ag=(ag*(n-1)+(d>0?d:0))/n;al=(al*(n-1)+(d<0?-d:0))/n;out[i]=rv();}
+  return {p:a,r:out};
+}
+function rsiDiv(s,n=14,L=5){
+  const o=rsiArr(s,n); if(!o)return null;
+  const {p,r}=o, M=p.length; if(M<n+2*L+1)return null;            // need RSI defined across both windows
+  const amax=(lo,hi)=>{let b=lo;for(let i=lo+1;i<=hi;i++)if(p[i]>p[b])b=i;return b;};
+  const amin=(lo,hi)=>{let b=lo;for(let i=lo+1;i<=hi;i++)if(p[i]<p[b])b=i;return b;};
+  const rH=amax(M-L,M-1),oH=amax(M-2*L,M-L-1),rL=amin(M-L,M-1),oL=amin(M-2*L,M-L-1);
+  if(r[rH]==null||r[oH]==null||r[rL]==null||r[oL]==null)return {type:null};
+  if(p[rH]>p[oH] && r[rH]<r[oH]) return {type:'bear', dr:r[rH]-r[oH]};
+  if(p[rL]<p[oL] && r[rL]>r[oL]) return {type:'bull', dr:r[rL]-r[oL]};
+  return {type:null};
+}
 function rsiGauge(){
   const card=document.getElementById("rsiCard"); if(!card)return;
   const rows=TOKENS.filter(t=>CORE(t)&&t.spark&&t.spark.length>=15)
-    .map(t=>{const v=rsi(t.spark,14);return v==null?null:{t,v};}).filter(Boolean);
+    .map(t=>{const v=rsi(t.spark,14);return v==null?null:{t,v,div:rsiDiv(t.spark)};}).filter(Boolean);
   if(rows.length<3)return;
   rows.sort((x,y)=>x.v-y.v);                                   // most oversold first
   const link=t=>`<a href="token.html?a=${t.address}" style="color:inherit;text-decoration:none">${esc(t.symbol)}</a>`;
@@ -845,17 +868,29 @@ function rsiGauge(){
     return `<div style="position:relative;height:10px;border-radius:5px;min-width:140px;background:linear-gradient(90deg,#bfe3c6 0%,#bfe3c6 30%,#eef0f3 30%,#eef0f3 70%,#f3c9cf 70%,#f3c9cf 100%)">`+
       `<div style="position:absolute;left:calc(${x.toFixed(0)}% - 4px);top:-1px;width:8px;height:12px;border-radius:2px;background:#0b1220;border:1px solid #5a6472"></div></div>`;};
   const zone=v=>v>=70?'overbought':v<=30?'oversold':'neutral';
+  const divCell=d=>{
+    if(!d||!d.type)return `<td style="color:var(--muted)">&mdash;</td>`;
+    const bull=d.type==='bull';
+    return `<td style="color:${bull?'#2e9e5b':'#cf4f5f'};font-weight:600" title="${bull?'price lower low but RSI higher low &mdash; selling exhausting':'price higher high but RSI lower high &mdash; momentum waning'}">${bull?'&#9650; bullish':'&#9660; bearish'}</td>`;
+  };
   const trs=rows.map(r=>
     `<tr><th class="rowh">${link(r.t)}</th>`+
     `<td class="cell" style="background:${corrColor((50-r.v)/50)}">${r.v.toFixed(0)}</td>`+
     `<td style="min-width:150px">${gauge(r.v)}</td>`+
-    `<td style="color:var(--muted)">${zone(r.v)}</td></tr>`).join("");
+    `<td style="color:var(--muted)">${zone(r.v)}</td>`+
+    divCell(r.div)+`</tr>`).join("");
   document.getElementById("rsiTable").innerHTML=
-    `<tr><th></th><th class="beta">RSI(14)</th><th>0&mdash;30 oversold&nbsp;/&nbsp;70&mdash;100 overbought</th><th>zone</th></tr>`+trs;
+    `<tr><th></th><th class="beta">RSI(14)</th><th>0&mdash;30 oversold&nbsp;/&nbsp;70&mdash;100 overbought</th><th>zone</th><th>divergence</th></tr>`+trs;
   const os=rows[0],ob=rows[rows.length-1];
+  const bear=rows.filter(r=>r.div&&r.div.type==='bear').map(r=>esc(r.t.symbol));
+  const bull=rows.filter(r=>r.div&&r.div.type==='bull').map(r=>esc(r.t.symbol));
+  const dparts=[];
+  if(bear.length)dparts.push(`<strong style="color:#cf4f5f">bearish</strong> ${bear.join(', ')} (higher price high on weaker RSI)`);
+  if(bull.length)dparts.push(`<strong style="color:#2e9e5b">bullish</strong> ${bull.join(', ')} (lower price low on firmer RSI)`);
+  const divLine=dparts.length?` Divergence (reversal watch): ${dparts.join('; ')}.`:` No active RSI divergences.`;
   document.getElementById("rsiNote").innerHTML=
     `Most oversold: <strong>${esc(os.t.symbol)}</strong> (RSI ${os.v.toFixed(0)}${os.v<=30?' &mdash; stretched, mean-reversion watch':''}). `+
-    `Most overbought: <strong>${esc(ob.t.symbol)}</strong> (RSI ${ob.v.toFixed(0)}${ob.v>=70?' &mdash; extended':''}). Wilder RSI on 14 daily closes, ${rows.length} tokens.`;
+    `Most overbought: <strong>${esc(ob.t.symbol)}</strong> (RSI ${ob.v.toFixed(0)}${ob.v>=70?' &mdash; extended':''}). Wilder RSI on 14 daily closes, ${rows.length} tokens.`+divLine;
   card.style.display="";
 }
 

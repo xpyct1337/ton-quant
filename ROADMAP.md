@@ -2,6 +2,38 @@
 
 Что добавить, чтобы было информативнее и полезнее. По тирам: от быстрых побед к киллер-фичам.
 
+## ✅ Готово 22.06.2026 (evolve-run #32, Opus, scheduled) — требует deploy.bat
+
+**index.html: RSI divergence — колонка «divergence» в карточке `#rsiCard`.** Снято прямо из бэклога «RSI-дивергенция (цена новый хай при падающем RSI)», фигурировал в «Следующее» несколько циклов.
+
+**0 новых запросов** — переиспользует те же запечённые `spark[]`, что RSI/MACD/momentum. Новая `rsiArr(s,n)` строит полный ряд Wilder-RSI (не только последнее значение, как `rsi()`), `rsiDiv(s,14,5)` сравнивает ценовой экстремум последнего окна L=5 с предыдущим окном L=5: **bearish** = более высокий ценовой хай при более низком RSI-хае (моментум выдыхается у нового хая), **bullish** = более низкий ценовой лоу при более высоком RSI-лоу (продажи иссякают). Нужно ≥25 точек (n+2L+1), иначе «—». В таблицу добавлена колонка (▲ bullish зелёным / ▼ bearish красным, tooltip с определением), в note — список активных дивергенций.
+
+**Зачем, если есть уровень RSI:** ограниченный осциллятор говорит «перекуплен/перепродан»; дивергенция ловит ослабление тренда ДО разворота уровня — цена ещё печатает новый хай, но осциллятор уже не подтверждает. Классический ранний сигнал разворота, ортогонален и уровню RSI, и MACD-кроссоверу.
+
+**Данные на сборку (real-data self-check, Node-порт против запечённого `const TOKENS`, 18 CORE-токенов):** **STORM — bearish** (recentHigh 5.804e-3 > olderHigh 5.770e-3, но RSI 64.5 < 72.4 — определение подтверждено вручную), **GTA — bullish** (recentLow 2.404e-5 < olderLow 2.674e-5, но RSI 31.8 > 30.8), остальные — none. PASS: тип ∈ {bull,bear,null} для всех; монотонный рост → null; синтетический bullish → bull; scale-invariance подтверждена (×1e6 → тот же тип). Обе реальные детекции прошли определительную инварианту (HH&lowerRSI / LL&higherRSI).
+
+**Блокеров по пути не было.** Правки внесены Edit-инструментом (Windows-side); целостность подтверждена ТОЛЬКО Read-tool'ом: `rsiArr`/`rsiDiv` (стр.840–859, по одному определению), `divCell`+колонка+note в `rsiGauge` (стр.871–893), `rsiGauge()` вызывается в analytics-boot (стр.545), `</script></body></html>` (стр.1245–1247) на месте. **Подтверждено снова:** bash-маунт QUANT усекает чтение/запись хвоста index.html — вся проверка целостности через Read-tool. git из песочницы НЕ запускался — деплой через `deploy.bat`.
+
+Тесты: real-data self-check + 4 ассерта (PASS, см. выше). Тривиальная отрисовка (divCell по образцу zone) юнита не требует (conytail). API живые (TONAPI/STON.fi/DexScreener — 200).
+
+Следующее: дивергенцию пометить и в MACD-карточке (цена новый хай при падающей гистограмме — уже в бэклоге); copy-trading (топ-кошельки TON через TONAPI) — главная money-фича; risk-return — фильтр «скрыть микрокапы <$X»; лид-лаг с лагом 2 дня.
+
+## ✅ Готово 22.06.2026 (evolve-run, Opus, scheduled) — требует deploy.bat
+
+**paper.html: «🔔 Today's signals — buy / skip» — мост research→action (карточка `#todayBody` сразу под KPI, самая верхняя).** Money-first: дашборд уже детектит сигналы и считает их edge, но не было экрана «что делать ПРЯМО сейчас». Карточка берёт сигналы последнего снапшота (`data/signals/{последняя дата}.json`) и аннотирует каждый его **conviction** — вердикт scoreboard'а (edge/neutral/noise/collecting) + walk-forward, превращённые в тот самый вес позиции, которым сайзится реальный бот. Сортировка по conviction. Метка действия: `buy` (≥0.6), `probe` (>0), `skip` (0). Conviction 0 = тип сигнала исторически теряет деньги → не гнаться.
+
+**0 новых эндпоинтов** — те же JSON, что уже тянут другие карточки (signals/index.json, signals/{date}.json, scores.json), оба источника (локальный путь + GH raw fallback).
+
+**Ключевое:** `conviction()` в JS — точный порт `load_score_mults` SIZE-ветки из paper.py (SHRINK=3, FULL=4, FLOOR=0.25): noise или x≤0 → 0; walk-forward-confirmed → 1.0; иначе excess, сжатый под малую выборку `x*n/(n+3)`, кап ≤1, пол 0.25. Так на экране ровно то, что бот реально заложил бы в размер.
+
+**Данные на сборку (real-data self-check, Node-порт против настоящих scores.json+signals):** сегодня (2026-06-22) сработали momentum/HMSTR (+18%), accum_div/SCAT, liq_inflow/BOLT — **все conviction 0 (skip)**: momentum и accum_div — noise (отрицательный excess), liq_inflow — collecting с x=−2.1%. Карточка честно говорит «sit out, не гнаться за сырым пампом». Засветится зелёным когда сработает walk-forward-confirmed hidden_buyer (conv 1.0) или flow_imbalance (0.25). PASS: conviction∈[0,1] для всех; кросс-чек — JS conviction идентичен `load_score_mults` size paper.py по всем 6 типам (diff <1e-9); node --check синтаксис OK.
+
+**Блокеров по пути не было.** Правки внесены Edit-инструментом (Windows-side); целостность подтверждена ТОЛЬКО Read-tool'ом: карточка (стр.50–56), IIFE (стр.400–439), `</script>/</body>/</html>` (стр.440–442) на месте. **Подтверждено снова:** bash-маунт усекает чтение cloud-only хвоста (cp scores.json дал 6347 байт битого JSON) — вся проверка через Read-tool; self-check гонялся на копии полного содержимого, восстановленного Read-tool'ом.
+
+Тесты: real-data self-check + кросс-чек против paper.py (PASS, см. выше). Тривиальная отрисовка — без юнита (conytail). API живые (TONAPI/STON.fi/DexScreener — 200). git из песочницы НЕ запускался — деплой через `deploy.bat`.
+
+Следующее: copy-trading (трекать топ-кошельки TON через TONAPI) — главная money-фича; conviction-метка в open positions paper.html; TON Quant Index — переключатель окна 7/30/all; risk-return — фильтр «скрыть микрокапы <$X».
+
 ## ✅ Готово 21.06.2026 (evolve-run, Opus, scheduled) — требует deploy.bat
 
 **index.html: Risk-return map — размер пузыря = market cap (карточка `#rrCard`).** Снято прямо из бэклога «risk-return — размер точки = mcap» (фигурировал в «Следующее» у breadth и RSI).

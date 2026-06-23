@@ -48,6 +48,14 @@
 <div class="kpi-grid" id="botKpis"></div>
 
 <div class="card">
+  <h3>🔔 Today's signals — buy / skip</h3>
+  <div class="h-sub">The latest snapshot's fired signals, ranked by the bot's <strong>conviction</strong> — its validated edge (verdict + walk-forward) turned into the very position weight the real bot would size with. <span class="pill good">buy</span> = proven edge, <span class="pill warn">probe</span> = small tilt, <span class="pill bad">skip</span> = no edge or negative history. Conviction 0 means that signal type loses money in our scoreboard — don't chase it.</div>
+  <table><thead><tr><th>Token</th><th>Signal</th><th class="num">today &Delta;</th><th>Edge verdict</th><th class="num">base-h excess</th><th class="num">conviction</th><th>Action</th></tr></thead>
+  <tbody id="todayBody"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody></table>
+  <div id="todayNote" class="h-sub" style="margin-top:8px"></div>
+</div>
+
+<div class="card">
   <h3>Equity curves</h3>
   <div class="h-sub"><span style="color:var(--accent);font-weight:700">&#9632; Conservative</span> &nbsp; <span style="color:var(--warn);font-weight:700">&#9632; Aggressive</span> &nbsp; <span style="color:#888;font-weight:700">&#9135;&#9135; Buy&amp;Hold</span> &nbsp; equal-weight CORE, daily mark-to-market.</div>
   <div class="chart-wrap"><canvas id="eqChart" width="1200" height="240"></canvas></div>
@@ -387,6 +395,47 @@ async function loadBenchmark(){
     <td class="num">${fmtR(r.r3)}</td>
     <td class="num">${fmtR(r.r7)}</td></tr>`).join("")
   :'<tr><td colspan="7" class="empty">No scored events yet.</td></tr>';
+})();
+
+/* Today's signals — actionable buy/skip ranked by validated conviction.
+   conviction() is an exact port of paper.py load_score_mults SIZE logic
+   (SHRINK=3, FULL=4, FLOOR=0.25) — same weight the real bot would size with. */
+(async()=>{
+  const grab=async us=>{for(const u of us){try{const r=await fetch(u,{cache:"no-store"});if(r.ok)return await r.json();}catch(e){}}return null;};
+  const gh="https://raw.githubusercontent.com/xpyct1337/ton-quant/main/";
+  const sidx=await grab(["data/signals/index.json",gh+"data/signals/index.json"]);
+  const date=(sidx&&sidx.dates&&sidx.dates[sidx.dates.length-1])||null;
+  if(!date)return;
+  const day=await grab(["data/signals/"+date+".json",gh+"data/signals/"+date+".json"]);
+  const sc=await grab(["data/signals/scores.json",gh+"data/signals/scores.json"]);
+  const body=document.getElementById("todayBody"),note=document.getElementById("todayNote");
+  if(!day||!day.signals||!day.signals.length){body.innerHTML='<tr><td colspan="7" class="empty">No signals fired on '+esc(date)+'.</td></tr>';return;}
+  const per=(sc&&sc.per_sig)||{};
+  const conviction=a=>{
+    const v=a.verdict,bh=a.base_h,xb=(bh&&a.x)?a.x["h"+bh]:null;
+    const x=xb?xb.avg:null,n=(xb?xb.n:0)||0,ok=v!=="noise"&&a.wf&&a.wf.confirmed;
+    if(v==="noise"||x==null||n===0||x<=0)return{c:0,x};
+    if(ok)return{c:1,x};
+    const eff=x*n/(n+3);return{c:Math.round(Math.max(0.25,Math.min(1,eff/4))*1000)/1000,x};
+  };
+  const V={edge:"good",neutral:"warn",noise:"bad",collecting:""};
+  const rows=day.signals.map(s=>{
+    const a=per[s.sig];const cv=a?conviction(a):{c:0,x:null};
+    return {...s,verdict:a?a.verdict:"new",wf:!!(a&&a.wf&&a.wf.confirmed),c:cv.c,xs:cv.x};
+  }).sort((p,q)=>q.c-p.c||q.w-p.w);
+  const fmtX=x=>x==null?'<span style="color:var(--muted)">n/a</span>':`<span class="${x>0?"up":x<0?"down":""}">${x>0?"+":""}${x.toFixed(1)}%</span>`;
+  const act=c=>c>=0.6?["buy","good"]:c>0?["probe","warn"]:["skip","bad"];
+  body.innerHTML=rows.map(r=>{const[al,ac]=act(r.c);return `<tr>
+    <td>${tokLink(r.addr,r.sym)}</td>
+    <td><span class="pill">${esc(r.sig)}</span>${r.wf?' <span class="pill good" title="positive excess in- and out-of-sample" style="font-size:10px">walk-fwd ✓</span>':""}</td>
+    <td class="num ${r.d1>0?"up":r.d1<0?"down":""}">${r.d1==null?"n/a":(r.d1>0?"+":"")+r.d1+"%"}</td>
+    <td><span class="pill ${V[r.verdict]||""}">${esc(r.verdict)}</span></td>
+    <td class="num">${fmtX(r.xs)}</td>
+    <td class="num" style="font-weight:700">${r.c.toFixed(2)}</td>
+    <td><span class="pill ${ac}">${al}</span></td></tr>`;}).join("");
+  const buys=rows.filter(r=>r.c>0).length;
+  note.innerHTML=buys?`<strong>${buys}</strong> candidate${buys>1?"s":""} with measured edge fired on ${esc(date)} — top: <strong>${esc(rows[0].sym)}</strong> (${esc(rows[0].sig)}, conviction ${rows[0].c.toFixed(2)}).`
+    :`No validated edge fired on ${esc(date)} — every signal today scores 0 conviction (noise or negative history). The disciplined move is to <strong>sit out</strong> rather than chase the raw price move.`;
 })();
 </script>
 </body>
