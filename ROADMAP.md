@@ -2,6 +2,22 @@
 
 Что добавить, чтобы было информативнее и полезнее. По тирам: от быстрых побед к киллер-фичам.
 
+## ✅ Готово 22.06.2026 (evolve-run #33, Opus, scheduled) — требует deploy.bat
+
+**paper.html: колонка «Edge» в карточке Open positions — conviction каждой открытой позиции.** Money-first, снято из «Следующее» (conviction-метка в open positions). «Today's signals» показывает edge для *новых* сигналов дня; здесь тот же вердикт прикладывается к позициям, что бот **уже держит** — мгновенно видно, какие из них стоят на доказанном крае (зелёная 1.00), какие на полу-probe (янтарная 0.25), а какие держатся на сигнале, который в scoreboard теряет деньги (красная 0.00 = noise/negative).
+
+**0 новых эндпоинтов** — тот же `data/signals/scores.json`, что уже тянут scoreboard и Today's signals (локальный путь + GH raw fallback), добавлен в общий `Promise.all` бутстрапа.
+
+**Ключевое:** `conviction()` из Today's-IIFE поднята до общей `convict(a)` (точный порт SIZE-ветки `load_score_mults` paper.py: SHRINK=3, FULL=4, FLOOR=0.25). Для каждой позиции `convict(per[p.signal])` → цветной pill со значением conviction (≥0.6 good / >0 warn / 0 bad) + tooltip с вердиктом и walk-forward. Так на экране ровно тот вес, которым бот реально сайзил бы этот сигнал сегодня.
+
+**Данные на сборку (real-data self-check, Node-порт против настоящего scores.json, 6 типов сигналов):** hidden_buyer (walk-forward confirmed) → **1.00** (зелёный), flow_imbalance (collecting, x>0) → **0.25** floor (янтарный), accum_div/momentum (noise) → **0.00** (красный), отсутствующий тип → 0. PASS: conviction∈[0,1] у всех 6; ok-ветка (neutral+wf) =1; floor-ветка =0.25; noise/missing =0 — все ассерты прошли. Логика байт-в-байт совпадает с уже валидированной `conviction()` (та проверена против paper.py diff<1e-9).
+
+**Блокеров по пути не было.** Правки внесены Edit-инструментом (Windows-side); целостность подтверждена ТОЛЬКО Read-tool'ом: `convict`/`loadScores` (стр.262–272), `Promise.all`+`per` (стр.273–275), Edge-колонка в шапке (стр.87, colspan 8→9 стр.88), conviction-ячейка в `posBody.map` (стр.336), `</script></body></html>` (стр.454–456) на месте. bash-маунт QUANT по-прежнему усекает чтение/запись хвоста — вся проверка через Read-tool. git из песочницы НЕ запускался — деплой через `deploy.bat`.
+
+Тесты: real-data self-check + 5 ассертов (PASS, см. выше). Тривиальная отрисовка pill — без юнита (conytail). API живые (TONAPI/STON.fi/DexScreener — 200).
+
+Следующее: copy-trading (топ-кошельки TON через TONAPI) — главная money-фича; MACD-дивергенция (цена новый хай при падающей гистограмме); risk-return — фильтр «скрыть микрокапы <$X»; лид-лаг с лагом 2 дня.
+
 ## ✅ Готово 22.06.2026 (evolve-run #32, Opus, scheduled) — требует deploy.bat
 
 **index.html: RSI divergence — колонка «divergence» в карточке `#rsiCard`.** Снято прямо из бэклога «RSI-дивергенция (цена новый хай при падающем RSI)», фигурировал в «Следующее» несколько циклов.

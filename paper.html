@@ -84,8 +84,8 @@
 
 <div class="card">
   <h3>Open positions</h3>
-  <table><thead><tr><th>Bot</th><th>Token</th><th>Signal</th><th>Opened</th><th class="num">Entry (eff.)</th><th class="num">Day</th><th class="num">Live Δ</th><th class="num">Unr. PnL</th></tr></thead>
-  <tbody id="posBody"><tr><td colspan="8" class="empty">None</td></tr></tbody></table>
+  <table><thead><tr><th>Bot</th><th>Token</th><th>Signal</th><th class="num">Edge</th><th>Opened</th><th class="num">Entry (eff.)</th><th class="num">Day</th><th class="num">Live Δ</th><th class="num">Unr. PnL</th></tr></thead>
+  <tbody id="posBody"><tr><td colspan="9" class="empty">None</td></tr></tbody></table>
 </div>
 
 <div class="card">
@@ -259,8 +259,20 @@ async function loadBenchmark(){
     });
   }catch(e){return null;}
 }
+/* convict() — exact port of paper.py load_score_mults SIZE logic (SHRINK=3, FULL=4, FLOOR=0.25):
+   the validated edge weight the real bot sizes a signal with. Shared by Open positions. */
+function convict(a){
+  if(!a)return{c:0,v:"new",wf:false};
+  const v=a.verdict,bh=a.base_h,xb=(bh&&a.x)?a.x["h"+bh]:null;
+  const x=xb?xb.avg:null,n=(xb?xb.n:0)||0,wf=!!(a.wf&&a.wf.confirmed),ok=v!=="noise"&&wf;
+  if(v==="noise"||x==null||n===0||x<=0)return{c:0,v,wf};
+  if(ok)return{c:1,v,wf};
+  const eff=x*n/(n+3);return{c:Math.round(Math.max(0.25,Math.min(1,eff/4))*1000)/1000,v,wf};
+}
+async function loadScores(){for(const u of["data/signals/scores.json","https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data/signals/scores.json"]){try{const r=await fetch(u,{cache:"no-store"});if(r.ok)return await r.json();}catch(e){}}return null;}
 (async()=>{
-  const [s,alt,bench,regime]=await Promise.all([getState(),getAltState(),loadBenchmark(),loadMarketRegime()]);
+  const [s,alt,bench,regime,scores]=await Promise.all([getState(),getAltState(),loadBenchmark(),loadMarketRegime(),loadScores()]);
+  const per=(scores&&scores.per_sig)||{};
   const bots={...((s&&s.bots)||{}),...((alt&&alt.bots)||{})};
   if(!Object.keys(bots).length){document.getElementById("botKpis").innerHTML='<div class="kpi"><div class="label">Status</div><div class="value">no data yet</div><div class="delta">first run pending</div></div>';return;}
   document.getElementById("botKpis").innerHTML=Object.entries(bots).map(([n,b])=>{
@@ -320,7 +332,9 @@ async function loadBenchmark(){
     document.getElementById("posBody").innerHTML=ps.map((p,i)=>`<tr>
       <td style="color:${COLORS[p.n]};font-weight:700">${p.n}</td>
       <td>${tokLink(p.addr,p.sym)}</td>
-      <td><span class="pill">${esc(p.signal)}</span></td><td>${esc(p.opened)}</td>
+      <td><span class="pill">${esc(p.signal)}</span></td>
+      <td class="num">${(()=>{const c=convict(per[p.signal]),k=c.c>=0.6?"good":c.c>0?"warn":"bad";return `<span class="pill ${k}" title="${esc(c.v)} verdict &middot; walk-fwd ${c.wf?"✓":"✗"} — validated edge weight the bot sizes this signal with">${c.c.toFixed(2)}</span>`;})()}</td>
+      <td>${esc(p.opened)}</td>
       <td class="num">$${p.entry_eff<0.01?p.entry_eff.toExponential(2):p.entry_eff.toFixed(6)}</td>
       <td class="num">${p.days}</td>
       <td class="num" id="pos-ret-${i}"><span style="color:var(--muted)">...</span></td>
