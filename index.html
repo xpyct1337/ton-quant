@@ -282,9 +282,14 @@
     <div class="h-sub" id="tqNote" style="margin:10px 0 0"></div>
   </div>
   <div class="cardbox" id="macdCard" style="display:none">
-    <h3>MACD trend <span style="font-size:11px;font-weight:400;color:var(--muted)">trend &amp; turns</span><span class="info" data-tip="MACD on daily closes: EMA(12) minus EMA(26), with a 9-day signal line. The histogram (MACD minus signal) is positive when momentum is building, negative when fading; a sign flip is a fresh bullish or bearish crossover. Rising/falling shows whether momentum is accelerating. Computed on a base-100 series so it compares across tokens. Trend-following — complements the bounded RSI. A snapshot, not a forecast.">?</span></h3>
+    <h3>MACD trend <span style="font-size:11px;font-weight:400;color:var(--muted)">trend &amp; turns</span><span class="info" data-tip="MACD on daily closes: EMA(12) minus EMA(26), with a 9-day signal line. The histogram (MACD minus signal) is positive when momentum is building, negative when fading; a sign flip is a fresh bullish or bearish crossover. Rising/falling shows whether momentum is accelerating. Computed on a base-100 series so it compares across tokens. Trend-following — complements the bounded RSI. The divergence column flags where price and the histogram disagree (price prints a higher high while the histogram makes a lower high = bearish; lower low with a higher histogram low = bullish) — a classic early reversal cue. A snapshot, not a forecast.">?</span></h3>
     <div style="overflow-x:auto"><table class="corr" id="macdTable"></table></div>
     <div class="h-sub" id="macdNote" style="margin:10px 0 0"></div>
+  </div>
+  <div class="cardbox" id="revCard" style="display:none">
+    <h3>Reversal watch <span style="font-size:11px;font-weight:400;color:var(--muted)">double-confirmed turns</span><span class="info" data-tip="Combines the RSI and MACD divergence signals into one panel. A single divergence is noisy; when BOTH the bounded RSI oscillator and the unbounded MACD histogram diverge from price in the same direction, the reversal cue is far stronger because two orthogonal momentum reads agree. 'Confirmed' = both fired the same way; 'single' = only one (an early warning awaiting confirmation). Conflicts (one bullish, one bearish) are dropped as not actionable. Reuses the existing divergence math — no extra data. A snapshot, not a forecast.">?</span></h3>
+    <div style="overflow-x:auto"><table class="corr" id="revTable"></table></div>
+    <div class="h-sub" id="revNote" style="margin:10px 0 0"></div>
   </div>
 </div></div>
 
@@ -542,7 +547,7 @@ async function loadDex(){
       d.buys+=p.txns?.h24?.buys||0; d.sells+=p.txns?.h24?.sells||0; d.pools++;
     }
   }catch(e){console.warn("dex batch failed",e);}
-  render(); summary(); treemap(); correlMatrix(); leadLag(); riskReturn(); drawdowns(); momentum(); breadth(); rsiGauge(); tqIndex(); macd();
+  render(); summary(); treemap(); correlMatrix(); leadLag(); riskReturn(); drawdowns(); momentum(); breadth(); rsiGauge(); tqIndex(); macd(); reversalWatch();
 }
 
 /* ---------- summary bar ---------- */
@@ -971,35 +976,100 @@ function tqIndex(){
    rising/falling = accelerating/fading. Computed on a base-100 series so the histogram compares
    across tokens regardless of price magnitude. Trend-following complement to the bounded RSI. */
 function ema(a,n){const k=2/(n+1);let e=a[0];const o=[e];for(let i=1;i<a.length;i++){e=a[i]*k+e*(1-k);o.push(e);}return o;}
-function macdHist(s){
+function macdArr(s){
   const raw=(s||[]).filter(x=>x>0); if(raw.length<35)return null;     // need slow EMA(26)+signal(9) to settle
   const a=raw.map(x=>x/raw[0]*100);                                   // base-100 normalize -> cross-token comparable
   const f=ema(a,12),sl=ema(a,26),line=a.map((_,i)=>f[i]-sl[i]);
-  const sig=ema(line,9),h=line.map((v,i)=>v-sig[i]),n=h.length;
+  const sig=ema(line,9),h=line.map((v,i)=>v-sig[i]);
+  return {p:a,h};                                                     // base-100 price series + full histogram
+}
+function macdHist(s){
+  const o=macdArr(s); if(!o)return null;
+  const h=o.h,n=h.length;
   return {h:h[n-1],prev:h[n-2],cross:(h[n-1]>0)!==(h[n-2]>0)};        // latest hist, prior hist, sign-flip flag
+}
+function macdDiv(s,L=5){                                              // price vs histogram over two L-day windows
+  const o=macdArr(s); if(!o)return null;
+  const {p,h}=o,M=p.length; if(M<2*L)return {type:null};
+  const amax=(lo,hi)=>{let b=lo;for(let i=lo+1;i<=hi;i++)if(p[i]>p[b])b=i;return b;};
+  const amin=(lo,hi)=>{let b=lo;for(let i=lo+1;i<=hi;i++)if(p[i]<p[b])b=i;return b;};
+  const rH=amax(M-L,M-1),oH=amax(M-2*L,M-L-1),rL=amin(M-L,M-1),oL=amin(M-2*L,M-L-1);
+  if(p[rH]>p[oH] && h[rH]<h[oH]) return {type:'bear', dh:h[rH]-h[oH]}; // higher price high, lower hist high -> momentum fading
+  if(p[rL]<p[oL] && h[rL]>h[oL]) return {type:'bull', dh:h[rL]-h[oL]}; // lower price low, higher hist low -> selling exhausting
+  return {type:null};
 }
 function macd(){
   const card=document.getElementById("macdCard"); if(!card)return;
-  const rows=TOKENS.filter(t=>CORE(t)&&t.spark).map(t=>{const m=macdHist(t.spark);return m?{t,...m}:null;}).filter(Boolean);
+  const rows=TOKENS.filter(t=>CORE(t)&&t.spark).map(t=>{const m=macdHist(t.spark);return m?{t,...m,div:macdDiv(t.spark)}:null;}).filter(Boolean);
   if(rows.length<3)return;
   rows.sort((x,y)=>y.h-x.h);                                          // strongest momentum first
   const link=t=>`<a href="token.html?a=${t.address}" style="color:inherit;text-decoration:none">${esc(t.symbol)}</a>`;
   const trs=rows.map(r=>{
     const accel=r.h>r.prev?'&uarr; rising':'&darr; falling';
     const state=r.cross?(r.h>0?'bullish cross':'bearish cross'):(r.h>0?'positive':'negative');
+    const dv=r.div&&r.div.type;
+    const divCell=dv
+      ?`<td style="font-weight:600;color:${dv==='bull'?'#2e9e5b':'#cf4f5f'}" title="${dv==='bull'?'Bullish divergence: lower price low but higher MACD-histogram low — selling pressure waning':'Bearish divergence: higher price high but lower MACD-histogram high — momentum fading at the new high'}">${dv==='bull'?'&#9650; bull':'&#9660; bear'}</td>`
+      :`<td style="color:var(--muted)">&mdash;</td>`;
     return `<tr><th class="rowh">${link(r.t)}</th>`+
       `<td class="cell" style="background:${corrColor(Math.max(-1,Math.min(1,r.h/2)))}">${r.h>=0?'+':''}${r.h.toFixed(2)}</td>`+
       `<td style="color:var(--muted)">${accel}</td>`+
-      `<td style="font-weight:${r.cross?600:400};color:${r.cross?(r.h>0?'#2e9e5b':'#cf4f5f'):'var(--muted)'}">${state}</td></tr>`;
+      `<td style="font-weight:${r.cross?600:400};color:${r.cross?(r.h>0?'#2e9e5b':'#cf4f5f'):'var(--muted)'}">${state}</td>`+
+      divCell+`</tr>`;
   }).join("");
   document.getElementById("macdTable").innerHTML=
-    `<tr><th></th><th class="beta">histogram</th><th>momentum</th><th>state</th></tr>`+trs;
-  const top=rows[0],bot=rows[rows.length-1],crosses=rows.filter(r=>r.cross);
+    `<tr><th></th><th class="beta">histogram</th><th>momentum</th><th>state</th><th>divergence</th></tr>`+trs;
+  const top=rows[0],bot=rows[rows.length-1],crosses=rows.filter(r=>r.cross),divs=rows.filter(r=>r.div&&r.div.type);
   document.getElementById("macdNote").innerHTML=
     `Strongest trend: <strong>${esc(top.t.symbol)}</strong> (hist ${top.h>=0?'+':''}${top.h.toFixed(2)}, ${top.h>top.prev?'rising':'fading'}). `+
     `Weakest: <strong>${esc(bot.t.symbol)}</strong> (hist ${bot.h.toFixed(2)}). `+
     (crosses.length?`Fresh crossover: ${crosses.map(r=>esc(r.t.symbol)+(r.h>0?' &uarr;':' &darr;')).join(', ')}. `:'No fresh crossovers. ')+
+    (divs.length?`Divergence: ${divs.map(r=>esc(r.t.symbol)+(r.div.type==='bull'?' &#9650;':' &#9660;')).join(', ')} (price/histogram disagree — early reversal cue). `:'')+
     `MACD(12,26,9) on a base-100 series. ${rows.length} tokens.`;
+  card.style.display="";
+}
+
+/* ---------- Reversal watch (client-side, 0 extra requests; reuses rsiDiv + macdDiv) ----------
+   Double-confirmation panel. A lone divergence is noisy; when the bounded RSI AND the unbounded
+   MACD histogram diverge from price the SAME way, the reversal cue is far stronger (two orthogonal
+   momentum reads agreeing). Confirmed (both) ranked above single-indicator rows; conflicts dropped.
+   The synthesis the two separate divergence columns don't surface. */
+function reversalWatch(){
+  const card=document.getElementById("revCard"); if(!card)return;
+  const rows=TOKENS.filter(t=>CORE(t)&&t.spark).map(t=>{
+    const r=rsiDiv(t.spark), m=macdDiv(t.spark);
+    const rt=(r&&r.type)||null, mt=(m&&m.type)||null;
+    if(!rt&&!mt)return null;
+    if(rt&&mt&&rt!==mt)return null;                          // conflict -> not actionable
+    if(rt&&mt)return {t,type:rt,conf:'both'};                // double confirmation
+    return {t,type:rt||mt,conf:rt?'rsi':'macd'};             // single indicator
+  }).filter(Boolean);
+  if(!rows.length)return;                                    // nothing on watch -> stay hidden
+  const rk={both:0,rsi:1,macd:1};
+  rows.sort((a,b)=>rk[a.conf]-rk[b.conf]||(a.type<b.type?-1:1));
+  const link=t=>`<a href="token.html?a=${t.address}" style="color:inherit;text-decoration:none">${esc(t.symbol)}</a>`;
+  const sig=ty=>ty==='bull'
+    ?`<span style="color:#2e9e5b;font-weight:600">&#9650; bullish</span>`
+    :`<span style="color:#cf4f5f;font-weight:600">&#9660; bearish</span>`;
+  const chip=(on,lbl)=>`<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:11px;margin-right:4px;background:${on?'#0b1220':'#eef0f3'};color:${on?'#fff':'#aab2bd'}">${lbl}</span>`;
+  const conf=r=>chip(r.conf!=='macd','RSI')+chip(r.conf!=='rsi','MACD');
+  const strength=r=>r.conf==='both'
+    ?`<td style="font-weight:600;color:${r.type==='bull'?'#2e9e5b':'#cf4f5f'}" title="Both RSI and MACD diverge the same way — double confirmation">confirmed</td>`
+    :`<td style="color:var(--muted)" title="Only one indicator diverges — weaker, watch for the other to confirm">single</td>`;
+  const trs=rows.map(r=>
+    `<tr><th class="rowh">${link(r.t)}</th>`+
+    `<td>${sig(r.type)}</td>`+
+    `<td style="min-width:120px">${conf(r)}</td>`+
+    strength(r)+`</tr>`).join("");
+  document.getElementById("revTable").innerHTML=
+    `<tr><th></th><th>reversal signal</th><th>confirmed by</th><th>strength</th></tr>`+trs;
+  const cfm=rows.filter(r=>r.conf==='both');
+  const fmt=arr=>arr.map(r=>esc(r.t.symbol)+(r.type==='bull'?' &#9650;':' &#9660;')).join(', ');
+  document.getElementById("revNote").innerHTML=
+    (cfm.length
+      ?`<strong>Confirmed reversals (RSI + MACD agree):</strong> ${fmt(cfm)}. `
+      :`No double-confirmed reversals right now. `)+
+    `${rows.length} token${rows.length>1?'s':''} on watch. Double confirmation &mdash; a bounded oscillator and an unbounded trend-follower diverging the same way &mdash; is a stronger reversal cue than either alone; single-indicator rows are early warnings awaiting confirmation. A snapshot, not a forecast.`;
   card.style.display="";
 }
 
