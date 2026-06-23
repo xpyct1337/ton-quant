@@ -31,16 +31,16 @@ const parse$=s=>{ // "$1.43B" -> number
   return parseFloat(m[1])*({K:1e3,M:1e6,B:1e9}[m[2]]||1);
 };
 
-// ---- 1. token.html: invalid address must redirect ----
-{
-  const {getRedirect}=boot('/tmp/token_new.html','https://x.test/token.html?a=INVALID',/function start\(\)[\s\S]*$/);
+// ---- 1. token.html (legacy; archived as token-old.html) ----
+if(fs.existsSync('token-old.html')){
+  const {getRedirect}=boot('token-old.html','https://x.test/token.html?a=INVALID',/function start\(\)[\s\S]*$/);
   t('bad address redirects', getRedirect()==='index.html', getRedirect());
 }
 
-// ---- 2. token.html NOT: cross-validate vs raw API ----
-{
+// ---- 2. token.html NOT cross-validate (legacy) ----
+if(fs.existsSync('token-old.html')){
   const NOT='EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT';
-  const {dom,api}=boot('/tmp/token_new.html','https://x.test/token.html?a='+NOT,/function start\(\)[\s\S]*$/);
+  const {dom,api}=boot('token-old.html','https://x.test/token.html?a='+NOT,/function start\(\)[\s\S]*$/);
   await api.load();
   const q=id=>dom.window.document.getElementById(id).textContent.trim();
   // independent fetch
@@ -117,10 +117,10 @@ if(fs.existsSync('/tmp/index_new.html')){
   }
 }
 
-// ---- 4. token2 demo mode: exactly 10 signals ----
-{
+// ---- 4. token2 demo (legacy) ----
+if(fs.existsSync('token2.html')){
   const NOT='EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT';
-  const {dom,api}=boot('/tmp/token2.html','https://x.test/token2.html?a='+NOT+'&demo=1',/function start\(\)[\s\S]*$/);
+  const {dom,api}=boot('token2.html','https://x.test/token2.html?a='+NOT+'&demo=1',/function start\(\)[\s\S]*$/);
   await api.load();
   const sigs=dom.window.document.querySelectorAll('#signals .sig').length;
   t('demo shows 10 signals', sigs===10, sigs);

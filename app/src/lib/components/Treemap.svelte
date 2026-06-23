@@ -15,7 +15,7 @@
 
 <svg viewBox="0 0 {W} {H}" preserveAspectRatio="none" class="tm" role="img" aria-label="Market map by market cap">
   {#each rects as rc}
-    <a href="{base}/token.html?a={rc.it.r.addr}">
+    <a href="{base}/token?a={rc.it.r.addr}">
       <rect x={rc.x + 1} y={rc.y + 1} width={Math.max(rc.w - 2, 0)} height={Math.max(rc.h - 2, 0)}
         rx="4" fill={tmColor(rc.it.r.d7)} />
       {#if rc.w > 64 && rc.h > 30}

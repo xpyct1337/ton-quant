@@ -3,7 +3,7 @@
   let { card } = $props();
 </script>
 
-<a class="ac" href="{base}/token.html?a={card.addr}">
+<a class="ac" href="{base}/token?a={card.addr}">
   <div class="ac-top">
     <i class="ti {card.icon} tone-{card.tone}"></i>
     <span class="ac-agent">{card.agent}</span>

@@ -32,7 +32,7 @@
     <tbody>
       {#each shown as r}
         <tr>
-          <td><a href="{base}/token.html?a={r.addr}"><span class="sym">{r.sym}</span> <span class="cat muted">{r.cat}</span></a></td>
+          <td><a href="{base}/token?a={r.addr}"><span class="sym">{r.sym}</span> <span class="cat muted">{r.cat}</span></a></td>
           <td class="r mono">{fmtUsd(r.price)}</td>
           <td class="r mono" class:good={r.d1 > 0} class:bad={r.d1 < 0}>{fmtPct(r.d1)}</td>
           <td class="r mono" class:good={r.d7 > 0} class:bad={r.d7 < 0}>{fmtPct(r.d7)}</td>

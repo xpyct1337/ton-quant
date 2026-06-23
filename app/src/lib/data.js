@@ -86,3 +86,61 @@ export async function loadRegimeBench() {
   );
   return { regime: computeMarketRegime(snaps, cats), bench: buildBenchmark(snaps, cats) };
 }
+
+import { tonQuantScore, hhiOf, topNShare, tiersOf, mvrvLite, inProfitPct, signalEdge, paperTrack, human } from './token.js';
+
+// Full token page payload for any jetton address.
+export async function loadToken(addr) {
+  const H = { Authorization: 'Bearer ' + TONAPI_KEY };
+  const [info, holders, rates, chartR, dex, ston, all, paper, sig] = await Promise.all([
+    j(`${TONAPI}/jettons/${addr}`, { headers: H }),
+    j(`${TONAPI}/jettons/${addr}/holders?limit=100`, { headers: H }).catch(() => ({ addresses: [], total: 0 })),
+    j(`${TONAPI}/rates?tokens=${addr}%2CTON&currencies=usd`, { headers: H }).catch(() => ({ rates: {} })),
+    j(`${TONAPI}/rates/chart?token=${addr}&currency=usd`, { headers: H }).catch(() => ({ points: [] })),
+    j(`https://api.dexscreener.com/latest/dex/tokens/${addr}`).catch(() => null),
+    j(`https://api.ston.fi/v1/assets/${addr}`).catch(() => null),
+    loadAll().catch(() => ({ rows: [] })),
+    loadPaper().catch(() => ({ bots: {} })),
+    loadSignals().catch(() => ({}))
+  ]);
+
+  const decimals = Number(info.metadata?.decimals ?? 9);
+  const supplyRaw = info.total_supply || '0';
+  const supply = human(supplyRaw, decimals);
+  const price = rates.rates?.[addr]?.prices?.USD ?? 0;
+  const tonUsd = rates.rates?.TON?.prices?.USD ?? null;
+  const addrList = holders.addresses || [];
+  const totalHolders = info.holders_count ?? holders.total ?? addrList.length ?? 0;
+
+  const pairs = ((dex && dex.pairs) || []).filter((p) => p.chainId === 'ton')
+    .sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0));
+  const liq = pairs.reduce((s, p) => s + (p.liquidity?.usd || 0), 0);
+  const vol = pairs.reduce((s, p) => s + (p.volume?.h24 || 0), 0);
+  const created = Math.min(...pairs.map((p) => p.pairCreatedAt || Infinity));
+  const ageDays = isFinite(created) ? Math.round((Date.now() - created) / 86400000) : null;
+
+  const tags = ston?.asset?.tags || [];
+  const taxable = !!(ston?.asset?.taxable || tags.some((t) => /taxable/.test(t)));
+  const lowLiq = tags.some((t) => /low_liquidity|no_liquidity|liquidity:(low|no)/.test(t));
+  const adminZero = !!info.admin?.address?.replace(/^0:/, '').match(/^0+$/);
+  const verification = info.verification || 'none';
+
+  const top10 = topNShare(addrList, supplyRaw, 10);
+  const chart = (chartR.points || []).map((p) => ({ d: new Date(p[0] * 1000).toISOString().slice(0, 10), v: p[1] }))
+    .filter((p) => p.v > 0);
+
+  const curatedRow = (all.rows || []).find((r) => r.addr === addr);
+  const score = tonQuantScore({ verification, adminZero, liq, top10, holders: totalHolders, ageDays, taxable });
+
+  return {
+    addr, name: info.metadata?.name || addr.slice(0, 6), symbol: info.metadata?.symbol || '',
+    image: info.metadata?.image, verification, taxable, lowLiq, adminZero, decimals,
+    price, priceTon: price && tonUsd ? price / tonUsd : null, mcap: price * supply, supply, holders: totalHolders,
+    top10, hhi: hhiOf(addrList, supplyRaw), tiers: tiersOf(addrList, price, decimals),
+    holdersList: addrList.slice(0, 100), liq, vol, pairs, ageDays,
+    chart, mvrv: mvrvLite(chart), inProfit: inProfitPct(chart), score,
+    curated: !!curatedRow, hist: curatedRow?.hist || [], growth: curatedRow?.growth || null,
+    edge: signalEdge(curatedRow?.hist || [], sig.today?.signals, sig.scores, addr),
+    track: paperTrack(paper.bots, addr), tonUsd
+  };
+}
