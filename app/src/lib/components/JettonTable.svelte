@@ -32,14 +32,14 @@
     <tbody>
       {#each shown as r}
         <tr>
-          <td><a href="{base}/token?a={r.addr}"><span class="sym">{r.sym}</span> <span class="cat muted">{r.cat}</span></a></td>
-          <td class="r mono">{fmtUsd(r.price)}</td>
-          <td class="r mono" class:good={r.d1 > 0} class:bad={r.d1 < 0}>{fmtPct(r.d1)}</td>
-          <td class="r mono" class:good={r.d7 > 0} class:bad={r.d7 < 0}>{fmtPct(r.d7)}</td>
-          <td class="r mono">{fmtUsd(r.mcap)}</td>
-          <td class="r mono">{fmtUsd(r.tvl)}</td>
-          <td class="r mono" class:warn={r.volTvl > 3}>{r.volTvl.toFixed(1)}×</td>
-          <td class="r mono" class:good={r.growth?.pct > 0.05} class:bad={r.growth?.pct < -0.05}>
+          <td data-label="Jetton"><a href="{base}/token?a={r.addr}"><span class="sym">{r.sym}</span> <span class="cat muted">{r.cat}</span></a></td>
+          <td data-label="Price" class="r mono">{fmtUsd(r.price)}</td>
+          <td data-label="24h" class="r mono" class:good={r.d1 > 0} class:bad={r.d1 < 0}>{fmtPct(r.d1)}</td>
+          <td data-label="7d" class="r mono" class:good={r.d7 > 0} class:bad={r.d7 < 0}>{fmtPct(r.d7)}</td>
+          <td data-label="MCap" class="r mono">{fmtUsd(r.mcap)}</td>
+          <td data-label="TVL" class="r mono">{fmtUsd(r.tvl)}</td>
+          <td data-label="Vol/TVL" class="r mono" class:warn={r.volTvl > 3}>{r.volTvl.toFixed(1)}×</td>
+          <td data-label="Holders 7d" class="r mono" class:good={r.growth?.pct > 0.05} class:bad={r.growth?.pct < -0.05}>
             {r.growth ? (r.growth.pct >= 0 ? '▲' : '▼') + Math.abs(r.growth.pct).toFixed(1) + '%' : '—'}</td>
         </tr>
       {/each}
@@ -62,4 +62,13 @@
   .sym{font-weight:500}.cat{font-size:11px}
   .more{margin-top:10px;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:7px 14px;font-size:12px;cursor:pointer}
   .more:hover{color:var(--text)}
+
+  @media(max-width:640px){
+    table{display:block}thead{display:none}
+    tbody{display:flex;flex-direction:column;gap:8px}
+    tr{display:grid;grid-template-columns:1fr 1fr;gap:3px 10px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:9px 12px}
+    td{border-top:none;padding:2px 0;text-align:left;display:flex;justify-content:space-between;gap:8px;white-space:normal}
+    td::before{content:attr(data-label);color:var(--muted);font-size:11px}
+    td:first-child{grid-column:1/-1}td:first-child::before{display:none}
+  }
 </style>

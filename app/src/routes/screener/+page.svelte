@@ -48,13 +48,13 @@
       <tbody>
         {#each view as t}
           <tr>
-            <td><a href="{base}/token?a={t.addr}"><span class="sym">{t.sym}</span></a></td>
-            <td class="muted">{t.cat}</td>
-            <td class="r mono">{fmtUsd(t.price)}</td>
-            <td class="r mono" class:good={t.d1 > 0} class:bad={t.d1 < 0}>{fmtPct(t.d1)}</td>
-            <td class="r mono">{fmtUsd(t.mcap)}</td>
-            <td class="r mono">{fmtUsd(t.liq)}</td>
-            <td class="r mono">{fmtUsd(t.vol24)}</td>
+            <td data-label="Jetton"><a href="{base}/token?a={t.addr}"><span class="sym">{t.sym}</span></a></td>
+            <td data-label="Кат." class="muted">{t.cat}</td>
+            <td data-label="Price" class="r mono">{fmtUsd(t.price)}</td>
+            <td data-label="24h" class="r mono" class:good={t.d1 > 0} class:bad={t.d1 < 0}>{fmtPct(t.d1)}</td>
+            <td data-label="MCap" class="r mono">{fmtUsd(t.mcap)}</td>
+            <td data-label="Liquidity" class="r mono">{fmtUsd(t.liq)}</td>
+            <td data-label="Vol 24h" class="r mono">{fmtUsd(t.vol24)}</td>
           </tr>
         {/each}
       </tbody>
@@ -77,4 +77,13 @@
   th{color:var(--dim);font-weight:400;text-align:left;padding:7px 10px;font-size:11px;white-space:nowrap}
   td{padding:9px 10px;border-top:1px solid var(--border);white-space:nowrap}
   .r{text-align:right}.sym{font-weight:500}
+
+  @media(max-width:640px){
+    table{display:block}thead{display:none}
+    tbody{display:flex;flex-direction:column;gap:8px}
+    tr{display:grid;grid-template-columns:1fr 1fr;gap:3px 10px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:9px 12px}
+    td{border-top:none;padding:2px 0;text-align:left;display:flex;justify-content:space-between;gap:8px;white-space:normal}
+    td::before{content:attr(data-label);color:var(--muted);font-size:11px}
+    td:first-child{grid-column:1/-1}td:first-child::before{display:none}
+  }
 </style>

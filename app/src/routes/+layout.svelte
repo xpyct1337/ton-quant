@@ -44,5 +44,14 @@
   .navlink i{font-size:18px}
   .side-foot{margin-top:auto;padding:8px;font-size:11px}
   main{flex:1;min-width:0;padding:22px 26px;max-width:1180px}
-  @media(max-width:720px){.side{width:60px}.name,.navlink span,.side-foot{display:none}main{padding:16px}}
+  @media(max-width:640px){
+    .shell{display:block}
+    .side{position:fixed;inset:auto 0 0 0;width:auto;height:auto;flex-direction:row;border-right:none;border-top:1px solid var(--border);padding:4px 2px;gap:0;z-index:50;background:#0a0e16}
+    .logo,.side-foot{display:none}
+    .side nav{display:flex;flex-direction:row;width:100%}
+    .navlink{flex:1;flex-direction:column;gap:2px;padding:7px 2px;font-size:10px;min-height:48px;align-items:center;justify-content:center;text-align:center}
+    .navlink i{font-size:19px}
+    .navlink span{font-size:10px;line-height:1.05}
+    main{padding:14px 14px 66px;max-width:none}
+  }
 </style>

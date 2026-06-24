@@ -17,3 +17,12 @@ h1,h2,h3{font-family:var(--head);font-weight:600;margin:0}
 ::-webkit-scrollbar{width:9px;height:9px}
 ::-webkit-scrollbar-thumb{background:#1c2330;border-radius:6px}
 button{font-family:var(--ui)}
+
+/* mobile (2026: mobile-first polish, no JS) */
+html{overflow-x:hidden}
+@media (max-width:640px){
+  body{font-size:14px}
+  .card{border-radius:12px;padding:12px 13px}
+  .sec-title{font-size:12px}
+}
+@media (pointer:coarse){ button,input,select{min-height:42px} }
