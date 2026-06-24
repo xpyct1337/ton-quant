@@ -266,3 +266,30 @@ export function macdDiv(s, L = 5) {
   if (p[rL] < p[oL] && h[rL] > h[oL]) return { type: 'bull', dh: h[rL] - h[oL] };
   return { type: null };
 }
+
+// ---- Microstructure / valuation (rows-only, 0 extra requests) ----
+
+// Median of a numeric array (nulls skipped). null when empty.
+export function median(a) {
+  const s = a.filter((x) => x != null).sort((x, y) => x - y), n = s.length;
+  if (!n) return null;
+  return n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2;
+}
+
+// Wash-trading heuristic from daily turnover (vol24 / tvl). Higher = more suspect.
+// Academic flag: real DEX turnover rarely sustains >3-5x/day without fake volume.
+export function washVerdict(turnover) {
+  return turnover >= 5 ? 'wash' : turnover >= 3 ? 'elevated' : 'ok';
+}
+
+// Volume×Price absorption from 24h buy/sell txn counts and 1d price move.
+// sell_wall = heavy buying absorbed by a seller (price flat/down despite buys).
+// accumulation = heavy selling absorbed by a buyer (price flat/up despite sells).
+export function absorptionSignal(buys, sells, d1) {
+  const t = (buys || 0) + (sells || 0);
+  if (t < 20) return null; // too few trades to read
+  const br = (buys || 0) / t * 100;
+  if (br >= 65 && d1 != null && d1 <= 1) return 'sell_wall';
+  if (br <= 35 && d1 != null && d1 >= -1) return 'accumulation';
+  return null;
+}

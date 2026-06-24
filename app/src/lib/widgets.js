@@ -10,8 +10,11 @@ import Reversal from './components/Reversal.svelte';
 import LeadLag from './components/LeadLag.svelte';
 import RiskReturn from './components/RiskReturn.svelte';
 import Drawdown from './components/Drawdown.svelte';
+import WashDetector from './components/WashDetector.svelte';
+import PHRatio from './components/PHRatio.svelte';
+import Absorption from './components/Absorption.svelte';
 
-export const GROUPS = ['Обзор', 'Моментум', 'Кросс-токен', 'Риск'];
+export const GROUPS = ['Обзор', 'Моментум', 'Кросс-токен', 'Риск', 'Микроструктура'];
 
 export const WIDGETS = [
   { id: 'treemap', title: 'Market map', group: 'Обзор', ready: true, span: 2, component: Treemap,
@@ -30,13 +33,20 @@ export const WIDGETS = [
     desc: 'Корреляции топ-12 + β к корзине' },
   { id: 'leadlag', title: 'Lead–lag radar', group: 'Кросс-токен', ready: true, span: 1, component: LeadLag,
     desc: 'Кто двигается первым (лаг 1д)' },
+  { id: 'phratio', title: 'P/H ratio', group: 'Кросс-токен', ready: true, span: 1, component: PHRatio,
+    desc: 'Mcap на холдера vs медиана — скрининг переоценки' },
 
   { id: 'riskret', title: 'Risk–return map', group: 'Риск', ready: true, span: 2, component: RiskReturn,
     desc: 'Доходность vs волатильность, Sharpe' },
   { id: 'drawdown', title: 'Drawdown radar', group: 'Риск', ready: true, span: 1, component: Drawdown,
     desc: 'Просадка от 40д-хая + позиция в диапазоне' },
 
-  // backlog (📸 snapshot-based — next):
+  { id: 'wash', title: 'Wash detector', group: 'Микроструктура', ready: true, span: 1, component: WashDetector,
+    desc: 'Турновер vol/TVL — флаг накрутки объёма' },
+  { id: 'absorption', title: 'Volume × Price', group: 'Микроструктура', ready: true, span: 1, component: Absorption,
+    desc: 'Абсорбция: поток сделок против цены' },
+
+  // backlog (📸 / extra fetch — next):
   { id: 'rugradar', title: 'Rug Radar', group: 'Риск', ready: false, span: 1, desc: 'TVL падает при стабильной цене' }
 ];
 
@@ -45,7 +55,7 @@ export const READY_IDS = WIDGETS.filter((w) => w.ready).map((w) => w.id);
 // Presets = profiles. Only reference ready ids.
 export const PRESETS = {
   'Всё': READY_IDS,
-  'Трейдер': ['momentum', 'rsi', 'macd', 'reversal', 'treemap'],
-  'Инвестор': ['corr', 'riskret', 'drawdown', 'treemap'],
-  'Риск-менеджер': ['riskret', 'drawdown', 'reversal', 'corr']
+  'Трейдер': ['momentum', 'rsi', 'macd', 'reversal', 'absorption', 'treemap'],
+  'Инвестор': ['corr', 'riskret', 'drawdown', 'phratio', 'treemap'],
+  'Риск-менеджер': ['riskret', 'drawdown', 'reversal', 'wash', 'corr']
 };

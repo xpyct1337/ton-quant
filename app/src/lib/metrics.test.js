@@ -2,7 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { squarify, persistentSignal, holderGrowth, breadth, coreIndex, pctChange,
   lrets, pcorr, betaVs, corrColor, winRet, rsComposite,
-  laggedCorr, dstats, rsi, rsiArr, rsiDiv, ema, macdArr, macdHist } from './metrics.js';
+  laggedCorr, dstats, rsi, rsiArr, rsiDiv, ema, macdArr, macdHist,
+  median, washVerdict, absorptionSignal } from './metrics.js';
 
 test('squarify covers the full area', () => {
   const items = [{ value: 6 }, { value: 6 }, { value: 4 }, { value: 3 }, { value: 2 }, { value: 1 }];
@@ -158,4 +159,27 @@ test('macdArr null<35, defined>=35; macdHist finite', () => {
   const s = Array.from({ length: 40 }, (_, i) => 100 + i);
   const o = macdArr(s); assert.ok(o && o.h.length === 40);
   const m = macdHist(s); assert.ok(Number.isFinite(m.h) && typeof m.cross === 'boolean');
+});
+
+// ---- Microstructure / valuation ----
+test('median odd/even/empty/nulls', () => {
+  assert.equal(median([3, 1, 2]), 2);
+  assert.equal(median([1, 2, 3, 4]), 2.5);
+  assert.equal(median([]), null);
+  assert.equal(median([null, 5, null]), 5);
+});
+
+test('washVerdict thresholds', () => {
+  assert.equal(washVerdict(1), 'ok');
+  assert.equal(washVerdict(3), 'elevated');
+  assert.equal(washVerdict(4.9), 'elevated');
+  assert.equal(washVerdict(5), 'wash');
+});
+
+test('absorptionSignal cases', () => {
+  assert.equal(absorptionSignal(5, 5, 0), null);             // <20 txns
+  assert.equal(absorptionSignal(80, 20, -2), 'sell_wall');   // buys-heavy, price down
+  assert.equal(absorptionSignal(20, 80, 2), 'accumulation'); // sells-heavy, price up
+  assert.equal(absorptionSignal(50, 50, 5), null);           // balanced
+  assert.equal(absorptionSignal(80, 20, 10), null);          // buys-heavy but price ripping
 });
