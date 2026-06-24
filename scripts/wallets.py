@@ -87,7 +87,11 @@ def main():
             "addr": w, "name": e["name"], "n": len(e["toks"]),
             "toks": [toks[a] for a in sorted(e["toks"], key=lambda a: e["toks"][a])],
             "new": new,
-            "edge": round(sum(eh) / len(eh), 1) if eh else None
+            "edge": round(sum(eh) / len(eh), 1) if eh else None,
+            # hit-rate: % of priced held tokens that are up over the window (consistency,
+            # vs edge which one moonshot can dominate). ne = how many tokens it's based on.
+            "win": round(100 * sum(x > 0 for x in eh) / len(eh)) if eh else None,
+            "ne": len(eh)
         })
     out = {"date": today, "scanned": ok, "wallets": len(held), "edge_days": edge_days,
            "roster_size": len(out_roster), "roster": out_roster}

@@ -12,7 +12,11 @@
 
   let roster = $derived(
     [...(data?.roster || [])].sort((a, b) =>
-      sort === 'edge' ? (b.edge ?? -1e9) - (a.edge ?? -1e9) || b.n - a.n : b.n - a.n
+      sort === 'edge'
+        ? (b.edge ?? -1e9) - (a.edge ?? -1e9) || b.n - a.n
+        : sort === 'win'
+          ? (b.win ?? -1) - (a.win ?? -1) || (b.edge ?? -1e9) - (a.edge ?? -1e9)
+          : b.n - a.n
     )
   );
   let signals = $derived(roster.filter((w) => w.new && w.new.length));
@@ -40,6 +44,7 @@
     <div class="sortbar">
       <span class="muted small">сортировка:</span>
       <button class="sb" class:on={sort === 'edge'} onclick={() => (sort = 'edge')}>по edge ({data.edge_days || 7}д)</button>
+      <button class="sb" class:on={sort === 'win'} onclick={() => (sort = 'win')}>по hit-rate</button>
       <button class="sb" class:on={sort === 'breadth'} onclick={() => (sort = 'breadth')}>по breadth</button>
     </div>
   {/if}
@@ -70,7 +75,11 @@
           <a class="addr mono" href={tv(w.addr)} target="_blank" rel="noopener" title={w.addr}>{w.name || short(w.addr)}</a>
           {#if w.edge != null}
             <span class="edge mono" class:up={w.edge > 0} class:down={w.edge < 0}
-              title="средняя доходность отслеживаемых токенов в портфеле за {data.edge_days || 7}д — прокси скилла отбора">{fmtEdge(w.edge)}</span>
+              title="средняя доходность отслеживаемых токенов в портфеле за {data.edge_days || 7}д (на основе {w.ne} цен) — прокси скилла отбора">{fmtEdge(w.edge)}</span>
+          {/if}
+          {#if w.win != null}
+            <span class="win mono" class:up={w.win >= 50} class:down={w.win < 50}
+              title="доля отслеживаемых токенов в портфеле, выросших за {data.edge_days || 7}д (из {w.ne} с ценой) — консистентность отбора, в отличие от edge один памп её не вытягивает">{w.win}%↑</span>
           {/if}
           <span class="n" title="в скольких отслеживаемых токенах — топ-холдер">{w.n}×</span>
         </div>
@@ -80,7 +89,7 @@
       </div>
     {/each}
   </div>
-  <p class="muted small foot"><b>edge</b> = средняя {data.edge_days || 7}-дн. доходность отслеживаемых токенов в портфеле кошелька (прокси скилла отбора по результату, не entry-PnL): отделяет тех, кто реально набирает растущие токены, от бэгхолдеров. <b>breadth</b> = число отслеживаемых токенов, где кошелёк в топ-{25} холдеров (CEX/DEX/пулы/скам отфильтрованы) — «whale-конвикшн по экосистеме». Самый чистый copy-сигнал — раздел «новые входы» (наполняется со второго дня).</p>
+  <p class="muted small foot"><b>edge</b> = средняя {data.edge_days || 7}-дн. доходность отслеживаемых токенов в портфеле кошелька (прокси скилла отбора по результату, не entry-PnL): отделяет тех, кто реально набирает растущие токены, от бэгхолдеров. <b>hit-rate</b> = доля отслеживаемых токенов в портфеле, выросших за окно (из тех, что с ценой): консистентность отбора — edge +35% может быть одним пампом, hit-rate показывает, систематический ли это скилл. <b>breadth</b> = число отслеживаемых токенов, где кошелёк в топ-{25} холдеров (CEX/DEX/пулы/скам отфильтрованы) — «whale-конвикшн по экосистеме». Самый чистый copy-сигнал — раздел «новые входы» (наполняется со второго дня).</p>
 {/if}
 
 <style>
@@ -104,6 +113,9 @@
   .edge{font-size:12px;color:var(--muted);background:rgba(255,255,255,.06);border-radius:6px;padding:1px 7px}
   .edge.up{color:#41d68a;background:rgba(65,214,138,.12)}
   .edge.down{color:#ff6b6b;background:rgba(255,107,107,.12)}
+  .win{font-size:12px;color:var(--muted);background:rgba(255,255,255,.06);border-radius:6px;padding:1px 7px}
+  .win.up{color:#41d68a;background:rgba(65,214,138,.12)}
+  .win.down{color:#ffae57;background:rgba(255,174,87,.12)}
   .sortbar{display:flex;align-items:center;gap:8px;margin-top:10px}
   .sb{font-size:12px;color:var(--muted);background:var(--card);border:1px solid var(--border);border-radius:8px;padding:3px 10px;cursor:pointer}
   .sb.on{color:var(--accent);border-color:rgba(34,167,255,.5);background:rgba(34,167,255,.08)}
