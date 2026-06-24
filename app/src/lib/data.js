@@ -150,6 +150,11 @@ export async function loadUniverse() {
   return j(`${RAWB}/universe.json`).catch(() => ({ tokens: [] }));
 }
 
+// Smart-money roster: wallets that are top holders across many tracked tokens.
+export async function loadWallets() {
+  return j(`${RAWB}/wallets.json`).catch(() => null);
+}
+
 // Lean per-token stats for the Compare page (no holders sample / chart / curated extras).
 export async function loadCompare(addr) {
   const H = { Authorization: 'Bearer ' + TONAPI_KEY };
