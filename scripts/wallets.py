@@ -60,6 +60,20 @@ def main():
     snaps = sorted(glob.glob(D + "/wallets/*.json"))
     prev_h = (json.load(open(snaps[-1])).get("held", {})) if snaps else {}
 
+    # token returns from price snapshots -> per-wallet "edge" = avg return of held
+    # tokens (proxy for picking skill, not entry-PnL; ranks copy targets by results)
+    psnaps = sorted(glob.glob(D + "/snapshots/*.json"))
+    rets, edge_days = {}, 0
+    if len(psnaps) >= 2:
+        base = json.load(open(psnaps[-8 if len(psnaps) >= 8 else 0]))
+        last = json.load(open(psnaps[-1]))
+        edge_days = (datetime.date.fromisoformat(last["date"]) - datetime.date.fromisoformat(base["date"])).days
+        bt, lt = base["tokens"], last["tokens"]
+        for a in toks:
+            pb, pl = (bt.get(a) or {}).get("price"), (lt.get(a) or {}).get("price")
+            if pb and pl:
+                rets[a] = (pl / pb - 1) * 100
+
     # roster: breadth desc, then best (lowest) rank
     roster = sorted(held.items(), key=lambda kv: (-len(kv[1]["toks"]), min(kv[1]["toks"].values())))
     out_roster = []
@@ -68,12 +82,14 @@ def main():
             continue
         pt = set((prev_h.get(w) or {}).get("toks", {}))
         new = [toks[a] for a in e["toks"] if pt and a not in pt]
+        eh = [rets[a] for a in e["toks"] if a in rets]
         out_roster.append({
             "addr": w, "name": e["name"], "n": len(e["toks"]),
             "toks": [toks[a] for a in sorted(e["toks"], key=lambda a: e["toks"][a])],
-            "new": new
+            "new": new,
+            "edge": round(sum(eh) / len(eh), 1) if eh else None
         })
-    out = {"date": today, "scanned": ok, "wallets": len(held),
+    out = {"date": today, "scanned": ok, "wallets": len(held), "edge_days": edge_days,
            "roster_size": len(out_roster), "roster": out_roster}
     os.makedirs(D + "/wallets", exist_ok=True)
     json.dump(out, open(D + "/wallets.json", "w"), separators=(",", ":"))
