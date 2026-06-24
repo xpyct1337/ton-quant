@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { squarify, persistentSignal, holderGrowth, breadth, coreIndex, pctChange,
-  lrets, pcorr, betaVs, corrColor, winRet, rsComposite } from './metrics.js';
+  lrets, pcorr, betaVs, corrColor, winRet, rsComposite,
+  laggedCorr, dstats, rsi, rsiArr, rsiDiv, ema, macdArr, macdHist } from './metrics.js';
 
 test('squarify covers the full area', () => {
   const items = [{ value: 6 }, { value: 6 }, { value: 4 }, { value: 3 }, { value: 2 }, { value: 1 }];
@@ -117,4 +118,44 @@ test('rsComposite: best window → top percentile', () => {
   const rs = rsComposite([[10], [20], [30]]); // three tokens, one window
   assert.equal(rs[2], 100); // highest return = 100th pct
   assert.equal(rs[0], 0);
+});
+
+// ---- Lead-lag / risk-return / RSI / MACD ----
+test('laggedCorr finds lead-1', () => {
+  const a = [1, 2, 3, 4, 5, 6], b = [0, 1, 2, 3, 4, 5]; // b[t+1] == a[t]
+  assert.ok(Math.abs(laggedCorr(a, b, 1) - 1) < 1e-9);
+});
+
+test('dstats mean/std', () => {
+  const s = dstats([1, 2, 3, 4, 5]);
+  assert.equal(s.mean, 3); assert.ok(Math.abs(s.std - Math.sqrt(2)) < 1e-9);
+  assert.equal(dstats([1]), null);
+});
+
+test('rsi all-up = 100, short = null', () => {
+  const up = Array.from({ length: 16 }, (_, i) => i + 1);
+  assert.equal(rsi(up, 14), 100);
+  assert.equal(rsi([1, 2, 3], 14), null);
+});
+
+test('rsiArr defines value at n, null before', () => {
+  const up = Array.from({ length: 20 }, (_, i) => i + 1);
+  const o = rsiArr(up, 14); assert.ok(o.r[14] != null); assert.equal(o.r[13], null);
+});
+
+test('rsiDiv null when too short', () => {
+  assert.equal(rsiDiv([1, 2, 3, 4, 5], 14, 5), null);
+  const seq = Array.from({ length: 30 }, (_, i) => 10 + Math.sin(i));
+  const d = rsiDiv(seq, 14, 5); assert.ok(d === null || typeof d === 'object');
+});
+
+test('ema flat series stays flat', () => {
+  assert.deepEqual(ema([5, 5, 5], 2), [5, 5, 5]);
+});
+
+test('macdArr null<35, defined>=35; macdHist finite', () => {
+  assert.equal(macdArr(Array.from({ length: 30 }, (_, i) => i + 1)), null);
+  const s = Array.from({ length: 40 }, (_, i) => 100 + i);
+  const o = macdArr(s); assert.ok(o && o.h.length === 40);
+  const m = macdHist(s); assert.ok(Number.isFinite(m.h) && typeof m.cross === 'boolean');
 });

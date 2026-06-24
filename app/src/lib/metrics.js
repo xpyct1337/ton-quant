@@ -193,3 +193,76 @@ export function rsComposite(retArrs) {
   }
   return retArrs.map((_, i) => { const p = pct[i].filter((v) => v != null); return p.length ? p.reduce((a, b) => a + b, 0) / p.length : null; });
 }
+
+// Lag-k correlation: X at day t vs Y at day t+k. X leads Y when this is strong.
+export function laggedCorr(a, b, k) { return pcorr(a.slice(0, a.length - k), b.slice(k)); }
+
+// Daily-return mean & population std (for annualized return/vol/Sharpe).
+export function dstats(r) {
+  const n = r.length; if (n < 2) return null;
+  let m = 0; for (const x of r) m += x; m /= n;
+  let v = 0; for (const x of r) v += (x - m) * (x - m); v /= n;
+  return { mean: m, std: Math.sqrt(v) };
+}
+
+// Wilder RSI(n) — last value. null if fewer than n+1 positive closes.
+export function rsi(s, n) {
+  const a = s.filter((x) => x > 0); if (a.length < n + 1) return null;
+  let g = 0, l = 0;
+  for (let i = 1; i <= n; i++) { const d = a[i] - a[i - 1]; if (d >= 0) g += d; else l -= d; }
+  let ag = g / n, al = l / n;
+  for (let i = n + 1; i < a.length; i++) { const d = a[i] - a[i - 1]; ag = (ag * (n - 1) + (d > 0 ? d : 0)) / n; al = (al * (n - 1) + (d < 0 ? -d : 0)) / n; }
+  if (al === 0) return ag === 0 ? 50 : 100;
+  return 100 - 100 / (1 + ag / al);
+}
+
+// Full Wilder RSI series aligned to prices (for divergence).
+export function rsiArr(s, n) {
+  const a = (s || []).filter((x) => x > 0); if (a.length < n + 1) return null;
+  const out = new Array(a.length).fill(null); let g = 0, l = 0;
+  for (let i = 1; i <= n; i++) { const d = a[i] - a[i - 1]; if (d >= 0) g += d; else l -= d; }
+  let ag = g / n, al = l / n; const rv = () => (al === 0 ? (ag === 0 ? 50 : 100) : 100 - 100 / (1 + ag / al));
+  out[n] = rv();
+  for (let i = n + 1; i < a.length; i++) { const d = a[i] - a[i - 1]; ag = (ag * (n - 1) + (d > 0 ? d : 0)) / n; al = (al * (n - 1) + (d < 0 ? -d : 0)) / n; out[i] = rv(); }
+  return { p: a, r: out };
+}
+
+// RSI divergence over two L-bar windows. bear/bull/null.
+export function rsiDiv(s, n = 14, L = 5) {
+  const o = rsiArr(s, n); if (!o) return null;
+  const { p, r } = o, M = p.length; if (M < n + 2 * L + 1) return null;
+  const amax = (lo, hi) => { let b = lo; for (let i = lo + 1; i <= hi; i++) if (p[i] > p[b]) b = i; return b; };
+  const amin = (lo, hi) => { let b = lo; for (let i = lo + 1; i <= hi; i++) if (p[i] < p[b]) b = i; return b; };
+  const rH = amax(M - L, M - 1), oH = amax(M - 2 * L, M - L - 1), rL = amin(M - L, M - 1), oL = amin(M - 2 * L, M - L - 1);
+  if (r[rH] == null || r[oH] == null || r[rL] == null || r[oL] == null) return { type: null };
+  if (p[rH] > p[oH] && r[rH] < r[oH]) return { type: 'bear', dr: r[rH] - r[oH] };
+  if (p[rL] < p[oL] && r[rL] > r[oL]) return { type: 'bull', dr: r[rL] - r[oL] };
+  return { type: null };
+}
+
+// EMA series.
+export function ema(a, n) { const k = 2 / (n + 1); let e = a[0]; const o = [e]; for (let i = 1; i < a.length; i++) { e = a[i] * k + e * (1 - k); o.push(e); } return o; }
+
+// MACD(12,26,9) on a base-100 series → { p, h } (price + histogram). null if <35 closes.
+export function macdArr(s) {
+  const raw = (s || []).filter((x) => x > 0); if (raw.length < 35) return null;
+  const a = raw.map((x) => x / raw[0] * 100);
+  const f = ema(a, 12), sl = ema(a, 26), line = a.map((_, i) => f[i] - sl[i]);
+  const sig = ema(line, 9), h = line.map((v, i) => v - sig[i]);
+  return { p: a, h };
+}
+export function macdHist(s) {
+  const o = macdArr(s); if (!o) return null;
+  const h = o.h, n = h.length;
+  return { h: h[n - 1], prev: h[n - 2], cross: (h[n - 1] > 0) !== (h[n - 2] > 0) };
+}
+export function macdDiv(s, L = 5) {
+  const o = macdArr(s); if (!o) return null;
+  const { p, h } = o, M = p.length; if (M < 2 * L) return { type: null };
+  const amax = (lo, hi) => { let b = lo; for (let i = lo + 1; i <= hi; i++) if (p[i] > p[b]) b = i; return b; };
+  const amin = (lo, hi) => { let b = lo; for (let i = lo + 1; i <= hi; i++) if (p[i] < p[b]) b = i; return b; };
+  const rH = amax(M - L, M - 1), oH = amax(M - 2 * L, M - L - 1), rL = amin(M - L, M - 1), oL = amin(M - 2 * L, M - L - 1);
+  if (p[rH] > p[oH] && h[rH] < h[oH]) return { type: 'bear', dh: h[rH] - h[oH] };
+  if (p[rL] < p[oL] && h[rL] > h[oL]) return { type: 'bull', dh: h[rL] - h[oL] };
+  return { type: null };
+}
