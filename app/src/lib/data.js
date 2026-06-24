@@ -193,3 +193,17 @@ export async function loadWallet(addr) {
   const total = tonValue + holdings.reduce((s, h) => s + h.usd, 0);
   return { ton, tonUsd, tonValue, holdings, total, name: acc.name || null };
 }
+
+// Recent real DEX swaps for a token's deepest pool (GeckoTerminal). Meaningful
+// activity feed — conytail: TONAPI master-account events are spam, this is real trades.
+export async function loadTrades(addr) {
+  const gt = (u) => j(`https://api.geckoterminal.com/api/v2/networks/ton/${u}`).catch(() => null);
+  const pools = await gt(`tokens/${addr}/pools`);
+  const pool = pools?.data?.[0]?.attributes?.address;
+  if (!pool) return [];
+  const tr = await gt(`pools/${pool}/trades`);
+  return (tr?.data || []).slice(0, 25).map((t) => {
+    const a = t.attributes;
+    return { kind: a.kind, usd: +(a.volume_in_usd || 0), ts: a.block_timestamp, from: a.tx_from_address };
+  });
+}

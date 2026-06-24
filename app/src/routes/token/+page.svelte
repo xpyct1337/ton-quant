@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { base } from '$app/paths';
-  import { loadToken } from '$lib/data.js';
+  import { loadToken, loadTrades } from '$lib/data.js';
   import { fmtUsd, fmtPct, fmtNum, shortAddr } from '$lib/format.js';
   import { human } from '$lib/token.js';
   import PriceChart from '$lib/components/PriceChart.svelte';
@@ -13,6 +13,7 @@
   let err = $state('');
   let showAll = $state(false);
   let unitTon = $state(false);
+  let trades = $state([]);
 
   let d24 = $derived.by(() => {
     const c = d?.chart || []; if (c.length < 2) return null;
@@ -31,10 +32,12 @@
     return parts.join(' · ') + '.';
   });
 
+  const ago = (ts) => { const s = (Date.now() - new Date(ts).getTime()) / 1000; return s < 60 ? Math.round(s) + 's' : s < 3600 ? Math.round(s / 60) + 'm' : s < 86400 ? Math.round(s / 3600) + 'h' : Math.round(s / 86400) + 'd'; };
+
   onMount(async () => {
     const a = $page.url.searchParams.get('a');
     if (!a) { st = 'noaddr'; return; }
-    try { d = await loadToken(a); st = 'ready'; } catch (e) { err = e.message; st = 'error'; }
+    try { d = await loadToken(a); st = 'ready'; loadTrades(a).then((t) => (trades = t)).catch(() => {}); } catch (e) { err = e.message; st = 'error'; }
   });
 </script>
 
@@ -148,6 +151,22 @@
     </section>
   {/if}
 
+  {#if trades.length}
+    <section class="card tw">
+      <div class="sec-title">Свежие сделки на DEX <span class="muted">· реальные свопы (GeckoTerminal)</span></div>
+      <table>
+        <thead><tr><th>Время</th><th>Сторона</th><th class="r">Объём</th><th>Кошелёк</th></tr></thead>
+        <tbody>
+          {#each trades as t}
+            <tr><td class="muted">{ago(t.ts)} назад</td>
+              <td class="sym" class:good={t.kind === 'buy'} class:bad={t.kind === 'sell'}>{t.kind === 'buy' ? 'buy' : 'sell'}</td>
+              <td class="r mono" class:good={t.kind === 'buy'} class:bad={t.kind === 'sell'}>{fmtUsd(t.usd)}</td>
+              <td class="mono muted">{shortAddr(t.from)}</td></tr>
+          {/each}
+        </tbody>
+      </table>
+    </section>
+  {/if}
   <div class="foot muted">Данные: tonapi.io + DexScreener + STON.fi. Не финансовый совет.</div>
 {/if}
 
