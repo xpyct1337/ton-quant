@@ -149,3 +149,47 @@ export async function loadToken(addr) {
 export async function loadUniverse() {
   return j(`${RAWB}/universe.json`).catch(() => ({ tokens: [] }));
 }
+
+// Lean per-token stats for the Compare page (no holders sample / chart / curated extras).
+export async function loadCompare(addr) {
+  const H = { Authorization: 'Bearer ' + TONAPI_KEY };
+  const [info, rates, dex] = await Promise.all([
+    j(`${TONAPI}/jettons/${addr}`, { headers: H }),
+    j(`${TONAPI}/rates?tokens=${addr}%2CTON&currencies=usd`, { headers: H }).catch(() => ({ rates: {} })),
+    j(`https://api.dexscreener.com/latest/dex/tokens/${addr}`).catch(() => null)
+  ]);
+  const decimals = Number(info.metadata?.decimals ?? 9);
+  const supply = human(info.total_supply || '0', decimals);
+  const price = rates.rates?.[addr]?.prices?.USD ?? 0;
+  const pairs = ((dex && dex.pairs) || []).filter((p) => p.chainId === 'ton');
+  const liq = pairs.reduce((s, p) => s + (p.liquidity?.usd || 0), 0);
+  const vol = pairs.reduce((s, p) => s + (p.volume?.h24 || 0), 0);
+  const created = Math.min(...pairs.map((p) => p.pairCreatedAt || Infinity));
+  const ageDays = isFinite(created) ? Math.round((Date.now() - created) / 86400000) : null;
+  const verification = info.verification || 'none';
+  const adminZero = !!info.admin?.address?.replace(/^0:/, '').match(/^0+$/);
+  // conytail: skip STON.fi taxable lookup here (speed for N tokens) — taxable=false in score
+  const score = tonQuantScore({ verification, adminZero, liq, top10: null, holders: info.holders_count || 0, ageDays, taxable: false }).score;
+  return { addr, sym: info.metadata?.symbol || addr.slice(0, 6), name: info.metadata?.name, image: info.metadata?.image,
+    price, mcap: price * supply, holders: info.holders_count || 0, liq, vol, ageDays, verification, adminZero, score };
+}
+
+// Wallet holdings for the Portfolio page. Spam jettons (USD value 0) filtered out.
+export async function loadWallet(addr) {
+  const H = { Authorization: 'Bearer ' + TONAPI_KEY };
+  const [acc, jb, rates] = await Promise.all([
+    j(`${TONAPI}/accounts/${addr}`, { headers: H }),
+    j(`${TONAPI}/accounts/${addr}/jettons?currencies=usd`, { headers: H }).catch(() => ({ balances: [] })),
+    j(`${TONAPI}/rates?tokens=TON&currencies=usd`, { headers: H }).catch(() => ({ rates: {} }))
+  ]);
+  const tonUsd = rates.rates?.TON?.prices?.USD ?? 0;
+  const ton = Number(acc.balance || 0) / 1e9;
+  const holdings = (jb.balances || []).map((b) => {
+    const amount = human(b.balance, Number(b.jetton?.decimals ?? 9));
+    const price = b.price?.prices?.USD || 0;
+    return { sym: b.jetton?.symbol || '?', addr: b.jetton?.address, amount, price, usd: amount * price };
+  }).filter((h) => h.usd > 0.01).sort((a, b) => b.usd - a.usd);
+  const tonValue = ton * tonUsd;
+  const total = tonValue + holdings.reduce((s, h) => s + h.usd, 0);
+  return { ton, tonUsd, tonValue, holdings, total, name: acc.name || null };
+}

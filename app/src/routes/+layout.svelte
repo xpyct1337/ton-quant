@@ -6,8 +6,8 @@
     { href: base + '/', label: 'Markets', icon: 'ti-home', active: true },
     { href: base + '/analytics', label: 'Analytics', icon: 'ti-chart-dots' },
     { href: base + '/screener', label: 'Screener', icon: 'ti-list-search' },
-    { href: base + '/compare.html', label: 'Compare', icon: 'ti-arrows-diff' },
-    { href: base + '/portfolio.html', label: 'Portfolio', icon: 'ti-wallet' },
+    { href: base + '/compare', label: 'Compare', icon: 'ti-arrows-diff' },
+    { href: base + '/portfolio', label: 'Portfolio', icon: 'ti-wallet' },
     { href: base + '/paper', label: 'Paper bot', icon: 'ti-robot' }
   ];
 </script>
