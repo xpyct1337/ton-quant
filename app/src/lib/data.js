@@ -9,9 +9,9 @@ const STAKING = new Set(['stable', 'staking']);
 const j = (url, opt) => fetch(url, opt).then((r) => { if (!r.ok) throw new Error(r.status + ' ' + url); return r.json(); });
 
 // Load baked snapshots + signals + scores and assemble per-token rows.
-export async function loadAll() {
+export async function loadAll(days = 8) {
   const [idx, cats] = await Promise.all([j(`${RAW}/index.json`), j(`${RAW}/cats.json`)]);
-  const dates = idx.dates.slice(-8);
+  const dates = idx.dates.slice(-days);
   const snaps = await Promise.all(dates.map((d) => j(`${RAW}/snapshots/${d}.json`).catch(() => null)));
   const have = dates.filter((_, i) => snaps[i]);
   const data = snaps.filter(Boolean);

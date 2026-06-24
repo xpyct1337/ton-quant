@@ -4,6 +4,7 @@
   let { children } = $props();
   const nav = [
     { href: base + '/', label: 'Markets', icon: 'ti-home', active: true },
+    { href: base + '/analytics', label: 'Analytics', icon: 'ti-chart-dots' },
     { href: base + '/screener', label: 'Screener', icon: 'ti-list-search' },
     { href: base + '/compare.html', label: 'Compare', icon: 'ti-arrows-diff' },
     { href: base + '/portfolio.html', label: 'Portfolio', icon: 'ti-wallet' },

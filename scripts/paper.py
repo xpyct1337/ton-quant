@@ -136,6 +136,10 @@ def run_bot(name, cfg, bot, toks, sig_map, prev_map, today, score_mults=None):
         reason = None
         if dtvl is not None and dtvl < -25: reason = "rug_exit"
         elif ret >= cfg["tp"]: reason = "tp"
+        # edge-weighted exit: cut early if the entry signal's measured edge has
+        # collapsed to zero size (noise verdict or non-positive excess) — the same
+        # gate that blocks entry now also closes a stale position. Banks a TP first.
+        elif score_mults and score_mults.get(p["signal"], (1.0, 1.0))[1] == 0.0: reason = "edge_fade"
         elif ret <= cfg["sl"]: reason = "sl"
         elif p["days"] >= cfg["max_days"]: reason = "time"
         if reason:

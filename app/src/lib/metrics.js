@@ -135,3 +135,61 @@ export function buildBenchmark(snaps, cats) {
     return { d, v: Math.round(1000 * mean * 100) / 100 };
   });
 }
+
+// ---- Analytics-page metrics ported from index.html (corr / momentum). Pure, unit-tested. ----
+
+// Log returns from a price series. Non-positive steps → 0.
+export function lrets(p) {
+  const r = [];
+  for (let i = 1; i < p.length; i++) { const a = p[i - 1], b = p[i]; r.push(a > 0 && b > 0 ? Math.log(b / a) : 0); }
+  return r;
+}
+
+// Pearson correlation. null when fewer than 5 aligned points.
+export function pcorr(a, b) {
+  const n = Math.min(a.length, b.length);
+  if (n < 5) return null;
+  let ma = 0, mb = 0;
+  for (let i = 0; i < n; i++) { ma += a[i]; mb += b[i]; }
+  ma /= n; mb /= n;
+  let num = 0, da = 0, db = 0;
+  for (let i = 0; i < n; i++) { const ea = a[i] - ma, eb = b[i] - mb; num += ea * eb; da += ea * ea; db += eb * eb; }
+  return da && db ? num / Math.sqrt(da * db) : null;
+}
+
+// Beta of series a vs market m. null when fewer than 5 points.
+export function betaVs(a, m) {
+  const n = Math.min(a.length, m.length);
+  if (n < 5) return null;
+  let ma = 0, mm = 0;
+  for (let i = 0; i < n; i++) { ma += a[i]; mm += m[i]; }
+  ma /= n; mm /= n;
+  let cov = 0, vm = 0;
+  for (let i = 0; i < n; i++) { cov += (a[i] - ma) * (m[i] - mm); vm += (m[i] - mm) ** 2; }
+  return vm ? cov / vm : null;
+}
+
+// Diverging heatmap color on dark bg: +1 green, 0 transparent, -1 red.
+export function corrColor(v) {
+  if (v == null || !isFinite(v)) return 'transparent';
+  const x = Math.max(-1, Math.min(1, v)), t = Math.abs(x);
+  const al = (0.1 + t * 0.55).toFixed(3);
+  return x >= 0 ? `rgba(46,158,91,${al})` : `rgba(207,79,95,${al})`;
+}
+
+// Window return over last n closes, percent. null if series too short or zero.
+export function winRet(s, n) {
+  if (!s || s.length < n + 1) return null;
+  const a = s[s.length - 1 - n], b = s[s.length - 1];
+  return a > 0 && b > 0 ? (b / a - 1) * 100 : null;
+}
+
+// Composite relative-strength: mean percentile rank across windows. retArrs = [[r7,r14,r30],...].
+export function rsComposite(retArrs) {
+  const nWin = retArrs.length ? retArrs[0].length : 0, pct = retArrs.map(() => []);
+  for (let wi = 0; wi < nWin; wi++) {
+    const idx = retArrs.map((r, i) => ({ i, v: r[wi] })).filter((o) => o.v != null).sort((a, b) => a.v - b.v);
+    idx.forEach((o, k) => { pct[o.i][wi] = idx.length > 1 ? k / (idx.length - 1) * 100 : 50; });
+  }
+  return retArrs.map((_, i) => { const p = pct[i].filter((v) => v != null); return p.length ? p.reduce((a, b) => a + b, 0) / p.length : null; });
+}
