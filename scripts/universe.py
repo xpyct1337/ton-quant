@@ -5,7 +5,7 @@ conytail: one source (GeckoTerminal), stdlib only, overrides via tiny json files
 import urllib.request, json, time, pathlib, datetime
 
 D = pathlib.Path(__file__).resolve().parent.parent / "data"
-PAGES, MINVOL, MINLIQ, UNIVERSE, TRACKED = 10, 5000, 3000, 200, 100
+PAGES, MINVOL, MINLIQ, UNIVERSE, TRACKED = 10, 5000, 3000, 200, 200
 STABLE = ("USD", "DAI", "USDE", "USDQ")
 STAKE = ("TSTON", "STTON", "HTON", "STAKED")
 

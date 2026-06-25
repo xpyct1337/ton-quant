@@ -7,13 +7,17 @@ IMPACT_CAP = 0.01
 TURN_REF = 0.5
 MIN_VSCALE = 0.3
 MIN_POS = 25.0
-MIN_EFF_W = 1.0  # skip entries if noise-adjusted priority drops below this
+MIN_EFF_W = 0.5  # admit more candidates; safe because exits now protect downside
 
 BOTS = {
-    "cons": {"pos": 100.0, "max_open": 3, "tp": 0.15, "sl": -0.07, "max_days": 5,
+    "cons": {"pos": 100.0, "max_open": 6, "tp": 0.25, "sl": -0.07, "max_days": 5,
+             "be_arm": 0.05, "be_floor": 0.005, "trail_arm": 0.10, "trail_gap": 0.05,
+             "sig_cap": 2,
              "min_tvl": 50000, "min_holders": 5000, "min_liq_ratio": 0.02,
              "signals": ["hidden_buyer", "holders_surge", "accum_div", "liq_inflow"]},
-    "aggr": {"pos": 150.0, "max_open": 6, "tp": 0.30, "sl": -0.12, "max_days": 3,
+    "aggr": {"pos": 90.0, "max_open": 12, "tp": 0.50, "sl": -0.12, "max_days": 3,
+             "be_arm": 0.08, "be_floor": 0.01, "trail_arm": 0.15, "trail_gap": 0.10,
+             "sig_cap": 3,
              "min_tvl": 20000, "min_holders": 500, "min_liq_ratio": 0.0,
              "signals": ["hidden_buyer", "holders_surge", "accum_div", "liq_inflow",
                           "momentum", "breakout", "dip_reversal", "flow_imbalance"]},
@@ -83,6 +87,34 @@ def pct(cur, prev):
         return None
     return (cur / prev - 1) * 100
 
+def decide_exit(cfg, entry_eff, cur, peak, days, dtvl, d1, size_zero):
+    """Pure exit decision -> reason string or None. Caller updates `peak`
+    (max price since entry) before calling. dtvl/d1 are percent day-over-day
+    deltas (pct() output). Ladder order matters: trail and break-even protect
+    a position that has run up before the raw stop-loss can fire."""
+    ret = cur / entry_eff - 1
+    peak_ret = peak / entry_eff - 1
+    if dtvl is not None and dtvl < -25:
+        return "rug_exit"
+    if peak_ret >= cfg["trail_arm"] and ret <= peak_ret - cfg["trail_gap"]:
+        return "trail"
+    if peak_ret >= cfg["be_arm"] and ret <= cfg["be_floor"]:
+        return "breakeven"
+    if size_zero and ret <= 0:
+        return "edge_fade"
+    if ret <= cfg["sl"]:
+        return "sl"
+    if ret >= cfg["tp"]:
+        return "tp"
+    if days >= cfg["max_days"]:
+        if ret > 0:
+            return "time"
+        if days < 2 * cfg["max_days"] and (
+            (d1 is not None and d1 > 0) or (dtvl is not None and dtvl > 0)):
+            return None
+        return "time"
+    return None
+
 def detect_signals(addr, t, hist, cats, wash_ban, today):
     out = []
     if "error" in t or not t.get("price"):
@@ -130,18 +162,14 @@ def run_bot(name, cfg, bot, toks, sig_map, prev_map, today, score_mults=None):
         p["days"] += 1
         if not cur:
             still.append(p); continue
+        prevt = prev_map.get(p["addr"]) or {}
         tvl = (t or {}).get("tvl", 0) or 0
-        dtvl = pct(tvl, (prev_map.get(p["addr"]) or {}).get("tvl"))
+        dtvl = pct(tvl, prevt.get("tvl"))
+        d1 = pct(cur, prevt.get("price"))
+        p["peak"] = max(p.get("peak", p["entry_eff"]), cur)  # legacy positions: default to entry
         ret = cur / p["entry_eff"] - 1
-        reason = None
-        if dtvl is not None and dtvl < -25: reason = "rug_exit"
-        elif ret >= cfg["tp"]: reason = "tp"
-        # edge-weighted exit: cut early if the entry signal's measured edge has
-        # collapsed to zero size (noise verdict or non-positive excess) — the same
-        # gate that blocks entry now also closes a stale position. Banks a TP first.
-        elif score_mults and score_mults.get(p["signal"], (1.0, 1.0))[1] == 0.0: reason = "edge_fade"
-        elif ret <= cfg["sl"]: reason = "sl"
-        elif p["days"] >= cfg["max_days"]: reason = "time"
+        size_zero = bool(score_mults) and score_mults.get(p["signal"], (1.0, 1.0))[1] == 0.0
+        reason = decide_exit(cfg, p["entry_eff"], cur, p["peak"], p["days"], dtvl, d1, size_zero)
         if reason:
             size = p.get("size", cfg["pos"])
             out_mult = 1 - min(impact(tvl, size), 0.5) - FEE
@@ -155,6 +183,9 @@ def run_bot(name, cfg, bot, toks, sig_map, prev_map, today, score_mults=None):
             still.append(p)
     bot["positions"] = still
     open_addrs = {p["addr"] for p in bot["positions"]}
+    sig_counts = {}
+    for op in bot["positions"]:
+        sig_counts[op["signal"]] = sig_counts.get(op["signal"], 0) + 1
     cands = []
     for addr, sigs in sig_map.items():
         t = toks[addr]
@@ -172,6 +203,7 @@ def run_bot(name, cfg, bot, toks, sig_map, prev_map, today, score_mults=None):
         if len(bot["positions"]) >= cfg["max_open"]: break
         if eff_w < MIN_EFF_W: break  # sorted desc — rest also below threshold
         if addr in open_addrs: continue
+        if sig_counts.get(sig, 0) >= cfg["sig_cap"]: continue  # diversify: cap per signal type
         size_mult = (score_mults or {}).get(sig, (1.0, 1.0))[1]
         size = round(position_size(cfg, t) * size_mult, 2)
         if size < MIN_POS or bot["cash"] < size: continue
@@ -180,8 +212,10 @@ def run_bot(name, cfg, bot, toks, sig_map, prev_map, today, score_mults=None):
         qty = size / entry_eff
         bot["cash"] -= size
         bot["positions"].append({"addr": addr, "sym": t["sym"], "signal": sig, "opened": today,
-                                  "entry_eff": entry_eff, "qty": qty, "size": size, "days": 0})
+                                  "entry_eff": entry_eff, "qty": qty, "size": size, "days": 0,
+                                  "peak": entry_eff})
         open_addrs.add(addr)
+        sig_counts[sig] = sig_counts.get(sig, 0) + 1
     mtm = bot["cash"]
     for p in bot["positions"]:
         cur = (toks.get(p["addr"]) or {}).get("price") or p["entry_eff"]
