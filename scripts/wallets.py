@@ -34,6 +34,15 @@ def is_infra(o):
     n = (o.get("name") or "").lower()
     return any(k in n for k in INFRA)
 
+def smart_score(edge, win, ne, n):
+    # one number to rank "who to copy": shrunk edge x consistency x breadth bonus.
+    # edge * ne/(ne+3) discounts thin samples (a +35% on 1 token shrinks hard);
+    # * win/100 rewards systematic (not one-pump-lucky) pickers; (1+0.1*(n-2)) tilts
+    # toward broader ecosystem conviction. Negative edge -> negative score (ranks last).
+    if edge is None or win is None or ne == 0:
+        return None
+    return round(edge * (ne / (ne + 3)) * (win / 100) * (1 + 0.1 * (n - 2)), 2)
+
 def main():
     D = "data"
     uni = json.load(open(D + "/universe.json"))
@@ -83,15 +92,18 @@ def main():
         pt = set((prev_h.get(w) or {}).get("toks", {}))
         new = [toks[a] for a in e["toks"] if pt and a not in pt]
         eh = [rets[a] for a in e["toks"] if a in rets]
+        edge = round(sum(eh) / len(eh), 1) if eh else None
+        # hit-rate: % of priced held tokens that are up over the window (consistency,
+        # vs edge which one moonshot can dominate). ne = how many tokens it's based on.
+        win = round(100 * sum(x > 0 for x in eh) / len(eh)) if eh else None
+        ne = len(eh)
         out_roster.append({
             "addr": w, "name": e["name"], "n": len(e["toks"]),
             "toks": [toks[a] for a in sorted(e["toks"], key=lambda a: e["toks"][a])],
             "new": new,
-            "edge": round(sum(eh) / len(eh), 1) if eh else None,
-            # hit-rate: % of priced held tokens that are up over the window (consistency,
-            # vs edge which one moonshot can dominate). ne = how many tokens it's based on.
-            "win": round(100 * sum(x > 0 for x in eh) / len(eh)) if eh else None,
-            "ne": len(eh)
+            "edge": edge, "win": win, "ne": ne,
+            # combined "who to copy" rank: shrunk edge x hit-rate x breadth (see fn)
+            "smart": smart_score(edge, win, ne, len(e["toks"])),
         })
     # token-level consensus: how many ROSTER (smart) wallets hold each token =
     # crowding. Tokens many proven multi-token wallets converge on are the cleanest

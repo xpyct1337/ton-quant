@@ -4,7 +4,7 @@
 
   let st = $state('loading');
   let data = $state(null);
-  let sort = $state('edge'); // 'edge' = picking skill, 'breadth' = ecosystem conviction
+  let sort = $state('smart'); // combined who-to-copy rank (default); 'edge'=skill, 'breadth'=conviction
 
   const short = (a) => a.slice(0, 4) + '…' + a.slice(-4);
   const tv = (a) => 'https://tonviewer.com/' + a;
@@ -12,11 +12,13 @@
 
   let roster = $derived(
     [...(data?.roster || [])].sort((a, b) =>
-      sort === 'edge'
-        ? (b.edge ?? -1e9) - (a.edge ?? -1e9) || b.n - a.n
-        : sort === 'win'
-          ? (b.win ?? -1) - (a.win ?? -1) || (b.edge ?? -1e9) - (a.edge ?? -1e9)
-          : b.n - a.n
+      sort === 'smart'
+        ? (b.smart ?? -1e9) - (a.smart ?? -1e9) || b.n - a.n
+        : sort === 'edge'
+          ? (b.edge ?? -1e9) - (a.edge ?? -1e9) || b.n - a.n
+          : sort === 'win'
+            ? (b.win ?? -1) - (a.win ?? -1) || (b.edge ?? -1e9) - (a.edge ?? -1e9)
+            : b.n - a.n
     )
   );
   let signals = $derived(roster.filter((w) => w.new && w.new.length));
@@ -43,6 +45,7 @@
   {#if st === 'ready'}
     <div class="sortbar">
       <span class="muted small">сортировка:</span>
+      <button class="sb" class:on={sort === 'smart'} onclick={() => (sort = 'smart')}>по smart-score</button>
       <button class="sb" class:on={sort === 'edge'} onclick={() => (sort = 'edge')}>по edge ({data.edge_days || 7}д)</button>
       <button class="sb" class:on={sort === 'win'} onclick={() => (sort = 'win')}>по hit-rate</button>
       <button class="sb" class:on={sort === 'breadth'} onclick={() => (sort = 'breadth')}>по breadth</button>
@@ -89,6 +92,10 @@
         <div class="wc-top">
           <span class="rank mono">#{i + 1}</span>
           <a class="addr mono" href={tv(w.addr)} target="_blank" rel="noopener" title={w.addr}>{w.name || short(w.addr)}</a>
+          {#if w.smart != null}
+            <span class="smart mono" class:up={w.smart > 0} class:down={w.smart < 0}
+              title="smart-score — единый рейтинг «кого копировать»: shrunk edge × hit-rate × breadth-бонус (edge·ne/(ne+3)·win/100·(1+0.1·(n−2))). Тонкая выборка и непостоянство тянут вниз; отрицательный edge → отрицательный скор">★{w.smart}</span>
+          {/if}
           {#if w.edge != null}
             <span class="edge mono" class:up={w.edge > 0} class:down={w.edge < 0}
               title="средняя доходность отслеживаемых токенов в портфеле за {data.edge_days || 7}д (на основе {w.ne} цен) — прокси скилла отбора">{fmtEdge(w.edge)}</span>
@@ -105,7 +112,7 @@
       </div>
     {/each}
   </div>
-  <p class="muted small foot"><b>edge</b> = средняя {data.edge_days || 7}-дн. доходность отслеживаемых токенов в портфеле кошелька (прокси скилла отбора по результату, не entry-PnL): отделяет тех, кто реально набирает растущие токены, от бэгхолдеров. <b>hit-rate</b> = доля отслеживаемых токенов в портфеле, выросших за окно (из тех, что с ценой): консистентность отбора — edge +35% может быть одним пампом, hit-rate показывает, систематический ли это скилл. <b>breadth</b> = число отслеживаемых токенов, где кошелёк в топ-{25} холдеров (CEX/DEX/пулы/скам отфильтрованы) — «whale-конвикшн по экосистеме». Самый чистый copy-сигнал — раздел «новые входы» (наполняется со второго дня).</p>
+  <p class="muted small foot"><b>smart-score</b> (сортировка по умолчанию) = единый рейтинг «кого копировать»: edge, ужатый по размеру выборки (ne/(ne+3) — один лаки-хит на 1 токене сжимается сильно), × hit-rate (систематичность) × бонус за breadth — сводит три метрики в одно число. <b>edge</b> = средняя {data.edge_days || 7}-дн. доходность отслеживаемых токенов в портфеле кошелька (прокси скилла отбора по результату, не entry-PnL): отделяет тех, кто реально набирает растущие токены, от бэгхолдеров. <b>hit-rate</b> = доля отслеживаемых токенов в портфеле, выросших за окно (из тех, что с ценой): консистентность отбора — edge +35% может быть одним пампом, hit-rate показывает, систематический ли это скилл. <b>breadth</b> = число отслеживаемых токенов, где кошелёк в топ-{25} холдеров (CEX/DEX/пулы/скам отфильтрованы) — «whale-конвикшн по экосистеме». Самый чистый copy-сигнал — раздел «новые входы» (наполняется со второго дня).</p>
 {/if}
 
 <style>
@@ -126,6 +133,9 @@
   .addr{color:var(--accent);font-size:13px;text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .addr:hover{text-decoration:underline}
   .n{font-size:12px;color:var(--text);background:rgba(255,255,255,.06);border-radius:6px;padding:1px 7px}
+  .smart{font-size:12px;font-weight:600;color:var(--muted);background:rgba(255,255,255,.06);border-radius:6px;padding:1px 7px}
+  .smart.up{color:#41d68a;background:rgba(65,214,138,.14)}
+  .smart.down{color:#ff6b6b;background:rgba(255,107,107,.12)}
   .edge{font-size:12px;color:var(--muted);background:rgba(255,255,255,.06);border-radius:6px;padding:1px 7px}
   .edge.up{color:#41d68a;background:rgba(65,214,138,.12)}
   .edge.down{color:#ff6b6b;background:rgba(255,107,107,.12)}
