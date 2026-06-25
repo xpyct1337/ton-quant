@@ -67,6 +67,22 @@
     </section>
   {/if}
 
+  {#if data.favorites?.length}
+    <section class="card fav">
+      <div class="fav-h"><i class="ti ti-flame"></i> Топ токенов у умных денег</div>
+      <div class="muted small">сколько кошельков ростера держат каждый токен — консенсус «умных денег» по экосистеме. edge = средняя {data.edge_days || 7}-дн. доходность этих держателей</div>
+      {#each data.favorites.slice(0, 15) as f}
+        <div class="fav-row">
+          <span class="chip fav-tok">{f.sym}</span>
+          <span class="fav-bar"><span class="fav-fill" style="width:{(f.holders / data.favorites[0].holders) * 100}%"></span></span>
+          <span class="fav-n mono">{f.holders}×</span>
+          {#if f.avg_edge != null}<span class="edge mono" class:up={f.avg_edge > 0} class:down={f.avg_edge < 0}>{fmtEdge(f.avg_edge)}</span>{/if}
+          {#if f.new}<span class="chip new">+{f.new}</span>{/if}
+        </div>
+      {/each}
+    </section>
+  {/if}
+
   <div class="grid">
     {#each roster as w, i}
       <div class="card wc">
@@ -124,4 +140,11 @@
   .chip.new{background:rgba(34,167,255,.18);color:var(--accent)}
   .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
   .foot{margin-top:16px;max-width:680px;line-height:1.5}
+  .fav{margin-bottom:16px}
+  .fav-h{font-family:var(--head);font-size:14px;display:flex;align-items:center;gap:6px;margin-bottom:2px}
+  .fav-row{display:flex;align-items:center;gap:8px;margin-top:7px}
+  .fav-tok{flex:0 0 90px;text-align:center;color:var(--text);background:rgba(255,255,255,.06)}
+  .fav-bar{flex:1;height:7px;border-radius:4px;background:rgba(255,255,255,.05);overflow:hidden}
+  .fav-fill{display:block;height:100%;background:var(--accent);opacity:.55;border-radius:4px}
+  .fav-n{font-size:12px;color:var(--text);min-width:30px;text-align:right}
 </style>

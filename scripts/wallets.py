@@ -93,14 +93,33 @@ def main():
             "win": round(100 * sum(x > 0 for x in eh) / len(eh)) if eh else None,
             "ne": len(eh)
         })
+    # token-level consensus: how many ROSTER (smart) wallets hold each token =
+    # crowding. Tokens many proven multi-token wallets converge on are the cleanest
+    # copy targets — aggregates the wallet view into "what's smart money buying".
+    fav = {}
+    for r in out_roster:
+        for t in r["toks"]:
+            f = fav.setdefault(t, {"sym": t, "holders": 0, "edges": [], "new": 0})
+            f["holders"] += 1
+            if r["edge"] is not None:
+                f["edges"].append(r["edge"])
+            if t in r["new"]:
+                f["new"] += 1
+    favorites = sorted(
+        ({"sym": f["sym"], "holders": f["holders"], "new": f["new"],
+          "avg_edge": round(sum(f["edges"]) / len(f["edges"]), 1) if f["edges"] else None}
+         for f in fav.values()),
+        key=lambda x: (-x["holders"], -(x["avg_edge"] if x["avg_edge"] is not None else -1e9)))
+
     out = {"date": today, "scanned": ok, "wallets": len(held), "edge_days": edge_days,
-           "roster_size": len(out_roster), "roster": out_roster}
+           "roster_size": len(out_roster), "roster": out_roster, "favorites": favorites}
     os.makedirs(D + "/wallets", exist_ok=True)
     json.dump(out, open(D + "/wallets.json", "w"), separators=(",", ":"))
     json.dump({"date": today, "held": {w: {"name": e["name"], "toks": e["toks"]} for w, e in held.items()}},
               open(f"{D}/wallets/{today}.json", "w"), separators=(",", ":"))
     print(f"wallets {today}: scanned {ok}/{len(toks)} toks, {len(held)} wallets, "
-          f"roster {len(out_roster)}, new-entry signals {sum(len(r['new']) for r in out_roster)}")
+          f"roster {len(out_roster)}, favorites {len(favorites)}, "
+          f"new-entry signals {sum(len(r['new']) for r in out_roster)}")
 
 if __name__ == "__main__":
     main()
