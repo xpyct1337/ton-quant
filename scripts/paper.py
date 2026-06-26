@@ -82,6 +82,32 @@ def load_score_mults():
         out[sig] = (round(rank, 3), round(size, 3))
     return out
 
+SMART_TRUST_MAX = 0.6    # up to +60% entry priority for the strongest smart-money consensus
+SMART_DEBOOST_MAX = 0.4  # down to -40% for a token broad smart money holds underwater
+DEBOOST_EDGE = -5.0      # consensus avg edge below this = clear distribution, not noise
+
+def smart_trust(holders, avg_edge, new):
+    """Entry-priority multiplier for a token by smart-money consensus
+    (data/wallets.json favorites). A token that many proven multi-token roster
+    wallets hold AND that has been rising is the cleanest copy target for a
+    scarce open slot -> boost (>=3 holders, positive edge; fresh entries get the
+    full boost, already-held half — entering-now is the sharper copy signal;
+    bounded at 1+SMART_TRUST_MAX so it only reorders the queue, never dominates
+    measured-edge sizing). The mirror case is just as informative: a token that
+    broad consensus holds at a clear loss (edge <= DEBOOST_EDGE) is smart money
+    distributing/stuck -> de-boost below 1.0 so the scarce slot skips it. Both
+    sides scale with breadth (more roster wallets = stronger consensus). A
+    shallow loss (DEBOOST_EDGE < edge <= 0) is noise -> stay neutral (1.0)."""
+    if holders is None or holders < 3 or avg_edge is None:
+        return 1.0
+    breadth = min(holders, 9) / 9          # consensus width, capped (9+ = full)
+    if avg_edge > 0:
+        fresh = 1.0 if new else 0.5        # buying now vs already in
+        return round(1.0 + SMART_TRUST_MAX * breadth * fresh, 3)
+    if avg_edge <= DEBOOST_EDGE:           # broad consensus underwater = dumping
+        return round(1.0 - SMART_DEBOOST_MAX * breadth, 3)
+    return 1.0
+
 def pct(cur, prev):
     if prev is None or not prev:
         return None
@@ -154,7 +180,7 @@ def detect_signals(addr, t, hist, cats, wash_ban, today):
         out.append(("flow_imbalance", 1.2))
     return out
 
-def run_bot(name, cfg, bot, toks, sig_map, prev_map, today, score_mults=None):
+def run_bot(name, cfg, bot, toks, sig_map, prev_map, today, score_mults=None, fav_trust=None):
     still = []
     for p in bot["positions"]:
         t = toks.get(p["addr"])
@@ -177,7 +203,7 @@ def run_bot(name, cfg, bot, toks, sig_map, prev_map, today, score_mults=None):
             bot["cash"] += proceeds
             bot["trades"].append({"addr": p["addr"], "sym": p["sym"], "signal": p["signal"],
                 "opened": p["opened"], "closed": today, "entry": p["entry_eff"], "exit": cur,
-                "size": round(size, 2),
+                "size": round(size, 2), "trust": p.get("trust", 1.0),
                 "pnl": round(proceeds - size, 2), "ret": round(ret * 100, 2), "reason": reason})
         else:
             still.append(p)
@@ -194,10 +220,11 @@ def run_bot(name, cfg, bot, toks, sig_map, prev_map, today, score_mults=None):
         if tvl < cfg["min_tvl"]: continue
         if t.get("holders", 0) < cfg["min_holders"]: continue
         if cfg["min_liq_ratio"] > 0 and mcap > 0 and tvl / mcap < cfg["min_liq_ratio"]: continue
+        trust = (fav_trust or {}).get(t["sym"], 1.0)  # smart-money consensus boost
         for sig, w in sigs:
             if sig in cfg["signals"]:
                 rank_mult = (score_mults or {}).get(sig, (1.0, 1.0))[0]
-                cands.append((w * rank_mult, addr, t, sig))
+                cands.append((w * rank_mult * trust, addr, t, sig))
     cands.sort(key=lambda x: -x[0])
     for eff_w, addr, t, sig in cands:
         if len(bot["positions"]) >= cfg["max_open"]: break
@@ -213,7 +240,8 @@ def run_bot(name, cfg, bot, toks, sig_map, prev_map, today, score_mults=None):
         bot["cash"] -= size
         bot["positions"].append({"addr": addr, "sym": t["sym"], "signal": sig, "opened": today,
                                   "entry_eff": entry_eff, "qty": qty, "size": size, "days": 0,
-                                  "peak": entry_eff})
+                                  "peak": entry_eff,
+                                  "trust": round((fav_trust or {}).get(t["sym"], 1.0), 3)})
         open_addrs.add(addr)
         sig_counts[sig] = sig_counts.get(sig, 0) + 1
     mtm = bot["cash"]
@@ -237,6 +265,15 @@ def main():
         print("snapshot missing"); return
     cats = load("data/cats.json", {})
     score_mults = load_score_mults()
+    # smart-money trust: tokens the wallets.py roster converges on bias the scarce
+    # open slots — positive consensus -> boost, broad-but-underwater consensus
+    # (smart money dumping) -> de-boost. Guarded: stale or missing favorites ->
+    # empty map -> no behavior change.
+    fav_trust = {}
+    for f in load("data/wallets.json", {}).get("favorites", []):
+        m = smart_trust(f.get("holders", 0), f.get("avg_edge"), f.get("new", 0))
+        if m != 1.0:
+            fav_trust[f["sym"]] = m
     state = load("data/paper/bots.json", None)
     if state is None:
         state = {"wash_ban": {}, "bots": {n: {"cash": START_CASH, "positions": [], "trades": [], "equity": []} for n in BOTS}}
@@ -259,7 +296,7 @@ def main():
                     "d1": round(d1, 2) if d1 is not None else None})
     summary = {}
     for name, cfg in BOTS.items():
-        mtm = run_bot(name, cfg, state["bots"][name], toks, sig_map, prev_map, today, score_mults)
+        mtm = run_bot(name, cfg, state["bots"][name], toks, sig_map, prev_map, today, score_mults, fav_trust)
         summary[name] = round(mtm, 2)
     os.makedirs("data/signals", exist_ok=True)
     banned = sorted(a for a, d in state["wash_ban"].items()
@@ -280,7 +317,8 @@ def main():
     print("paper2:", today, "signals:", {a: [s[0] for s in v] for a, v in sig_map.items()},
           "journal:", len(journal), "equity:", summary,
           "score_mults:", score_mults if score_mults else "none",
-          "zero_size:", noise if noise else "none")
+          "zero_size:", noise if noise else "none",
+          "smart_trust:", fav_trust if fav_trust else "none")
 
 if __name__ == "__main__":
     main()

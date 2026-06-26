@@ -293,3 +293,23 @@ export function absorptionSignal(buys, sells, d1) {
   if (br <= 35 && d1 != null && d1 >= -1) return 'accumulation';
   return null;
 }
+
+// Rug Radar: liquidity draining while price holds up over the last ~week.
+// hist = aligned daily snapshots [{ tvl, price }] oldest→newest.
+// TVL is USD-denominated, so a TVL drop that merely tracks a price drop is NOT a rug.
+// The early-warning signal is the DIVERGENCE: TVL fell hard while price held flat/up —
+// LPs/insiders quietly pulling liquidity before the dump reaches the chart.
+// div = priceChg - tvlChg (large positive = price propped up while liquidity left).
+export function rugRisk(hist) {
+  const h = (hist || []).filter((s) => s && s.tvl > 0 && s.price > 0);
+  if (h.length < 4) return null;
+  const n = Math.min(7, h.length);
+  const a = h[h.length - n], b = h[h.length - 1];
+  const tvlChg = (b.tvl - a.tvl) / a.tvl * 100;
+  const priceChg = (b.price - a.price) / a.price * 100;
+  const div = priceChg - tvlChg;
+  let level = 'ok';
+  if (tvlChg <= -25 && priceChg >= -10) level = 'high';
+  else if (tvlChg <= -12 && priceChg >= -8) level = 'watch';
+  return { tvlChg, priceChg, div, level, days: n - 1 };
+}

@@ -13,6 +13,7 @@ import Drawdown from './components/Drawdown.svelte';
 import WashDetector from './components/WashDetector.svelte';
 import PHRatio from './components/PHRatio.svelte';
 import Absorption from './components/Absorption.svelte';
+import RugRadar from './components/RugRadar.svelte';
 
 export const GROUPS = ['Обзор', 'Моментум', 'Кросс-токен', 'Риск', 'Микроструктура'];
 
@@ -46,8 +47,8 @@ export const WIDGETS = [
   { id: 'absorption', title: 'Volume × Price', group: 'Микроструктура', ready: true, span: 1, component: Absorption,
     desc: 'Абсорбция: поток сделок против цены' },
 
-  // backlog (📸 / extra fetch — next):
-  { id: 'rugradar', title: 'Rug Radar', group: 'Риск', ready: false, span: 1, desc: 'TVL падает при стабильной цене' }
+  { id: 'rugradar', title: 'Rug Radar', group: 'Риск', ready: true, span: 1, component: RugRadar,
+    desc: 'Отток ликвидности: TVL падает при держащейся цене (0 запросов)' }
 ];
 
 export const READY_IDS = WIDGETS.filter((w) => w.ready).map((w) => w.id);
@@ -57,5 +58,5 @@ export const PRESETS = {
   'Всё': READY_IDS,
   'Трейдер': ['momentum', 'rsi', 'macd', 'reversal', 'absorption', 'treemap'],
   'Инвестор': ['corr', 'riskret', 'drawdown', 'phratio', 'treemap'],
-  'Риск-менеджер': ['riskret', 'drawdown', 'reversal', 'wash', 'corr']
+  'Риск-менеджер': ['riskret', 'drawdown', 'rugradar', 'reversal', 'wash', 'corr']
 };

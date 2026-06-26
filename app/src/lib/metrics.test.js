@@ -3,7 +3,15 @@ import assert from 'node:assert/strict';
 import { squarify, persistentSignal, holderGrowth, breadth, coreIndex, pctChange,
   lrets, pcorr, betaVs, corrColor, winRet, rsComposite,
   laggedCorr, dstats, rsi, rsiArr, rsiDiv, ema, macdArr, macdHist,
-  median, washVerdict, absorptionSignal } from './metrics.js';
+  median, washVerdict, absorptionSignal, rugRisk } from './metrics.js';
+
+test('rugRisk flags liquidity drain while price holds, ignores TVL that just tracks price', () => {
+  const flat = [{ tvl: 100, price: 1 }, { tvl: 100, price: 1 }, { tvl: 100, price: 1 }];
+  assert.equal(rugRisk([...flat, { tvl: 60, price: 0.98 }]).level, 'high');   // TVL -40%, price -2%
+  assert.equal(rugRisk([...flat, { tvl: 84, price: 1.05 }]).level, 'watch');  // TVL -16%, price +5%
+  assert.equal(rugRisk([...flat, { tvl: 60, price: 0.6 }]).level, 'ok');      // both -40% = TVL tracks price, not a rug
+  assert.equal(rugRisk([{ tvl: 1, price: 1 }]), null);                        // too little history
+});
 
 test('squarify covers the full area', () => {
   const items = [{ value: 6 }, { value: 6 }, { value: 4 }, { value: 3 }, { value: 2 }, { value: 1 }];
