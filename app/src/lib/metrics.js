@@ -313,3 +313,43 @@ export function rugRisk(hist) {
   else if (tvlChg <= -12 && priceChg >= -8) level = 'watch';
   return { tvlChg, priceChg, div, level, days: n - 1 };
 }
+
+// ---- Market breadth overview (rows-only, 0 extra requests) ----
+
+// Per-window market internals across the CORE basket. For each window n,
+// each token's own price spark gives a winRet; we report % advancers (up/total)
+// and the median basket return. Wide breadth (many names up) = healthier rally
+// than narrow breadth (index carried by a few). Reuses baked hist sparks.
+export function breadthWindows(rows, wins = [1, 7, 30]) {
+  const sparks = (rows || []).filter((r) => r.core)
+    .map((r) => (r.hist || []).map((s) => s && s.price).filter((p) => p > 0));
+  return wins.map((n) => {
+    const rets = sparks.map((s) => winRet(s, n)).filter((v) => v != null);
+    const up = rets.filter((v) => v > 0).length;
+    return { n, up, total: rets.length, pct: rets.length ? up / rets.length * 100 : null, med: median(rets) };
+  });
+}
+
+// Risk-on/off verdict from the 7d (or nearest) breadth row. ≥60% up = on, ≤40% = off.
+export function breadthRegime(wins) {
+  const w = (wins || []).find((x) => x.n === 7) || (wins || [])[0];
+  if (!w || w.pct == null) return null;
+  return { ...w, regime: w.pct >= 60 ? 'risk-on' : w.pct <= 40 ? 'risk-off' : 'mixed' };
+}
+
+// Equal-weight CORE index over the last n days, rebased to 100 at day 0.
+// Each token normalized to its own start so cheap and expensive names weigh equally.
+// Index[i] = mean over tokens of price[i]/price[0] * 100. null if <3 eligible tokens.
+export function equalWeightIndex(rows, n) {
+  const sparks = (rows || []).filter((r) => r.core)
+    .map((r) => (r.hist || []).map((s) => s && s.price).filter((p) => p > 0))
+    .filter((s) => s.length >= n + 1)
+    .map((s) => s.slice(s.length - (n + 1)));
+  if (sparks.length < 3) return null;
+  const out = [];
+  for (let i = 0; i <= n; i++) {
+    const vals = sparks.map((s) => s[i] / s[0]).filter((x) => isFinite(x) && x > 0);
+    out.push(vals.reduce((a, b) => a + b, 0) / vals.length * 100);
+  }
+  return out;
+}

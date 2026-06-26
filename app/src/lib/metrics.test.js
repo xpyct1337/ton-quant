@@ -3,7 +3,42 @@ import assert from 'node:assert/strict';
 import { squarify, persistentSignal, holderGrowth, breadth, coreIndex, pctChange,
   lrets, pcorr, betaVs, corrColor, winRet, rsComposite,
   laggedCorr, dstats, rsi, rsiArr, rsiDiv, ema, macdArr, macdHist,
-  median, washVerdict, absorptionSignal, rugRisk } from './metrics.js';
+  median, washVerdict, absorptionSignal, rugRisk,
+  breadthWindows, breadthRegime, equalWeightIndex } from './metrics.js';
+
+test('breadthWindows + breadthRegime: % advancers and risk-on/off verdict', () => {
+  // 4 core tokens, 8-day sparks. 3 rising, 1 falling over the window.
+  const up = (base, step) => Array.from({ length: 8 }, (_, i) => base + i * step);
+  const rows = [
+    { core: true, hist: up(1, 0.1).map((price) => ({ price })) },   // +70% over 7
+    { core: true, hist: up(2, 0.2).map((price) => ({ price })) },   // rising
+    { core: true, hist: up(5, 0.05).map((price) => ({ price })) },  // rising
+    { core: true, hist: up(10, -0.5).map((price) => ({ price })) }, // falling
+    { core: false, hist: up(1, -0.5).map((price) => ({ price })) }  // non-core, ignored
+  ];
+  const w = breadthWindows(rows, [1, 7]);
+  const w7 = w.find((x) => x.n === 7);
+  assert.equal(w7.total, 4);             // non-core excluded
+  assert.equal(w7.up, 3);                // 3 of 4 up
+  assert.equal(w7.pct.toFixed(0), '75'); // 75% advancers
+  assert.ok(w7.med != null);
+  const reg = breadthRegime(w);
+  assert.equal(reg.regime, 'risk-on');   // 75% >= 60
+});
+
+test('equalWeightIndex rebases to 100 and weighs tokens equally', () => {
+  const rows = [
+    { core: true, hist: [1, 1.1, 1.2].map((price) => ({ price })) },
+    { core: true, hist: [10, 12, 14].map((price) => ({ price })) },
+    { core: true, hist: [100, 90, 80].map((price) => ({ price })) }
+  ];
+  const idx = equalWeightIndex(rows, 2);
+  assert.equal(idx.length, 3);
+  assert.equal(idx[0], 100);             // rebased to 100 at day 0
+  // day2 = mean(1.2, 1.4, 0.8)*100 = 113.33…
+  assert.ok(Math.abs(idx[2] - 113.333) < 0.01);
+  assert.equal(equalWeightIndex(rows.slice(0, 2), 2), null); // <3 tokens → null
+});
 
 test('rugRisk flags liquidity drain while price holds, ignores TVL that just tracks price', () => {
   const flat = [{ tvl: 100, price: 1 }, { tvl: 100, price: 1 }, { tvl: 100, price: 1 }];

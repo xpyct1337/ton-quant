@@ -14,12 +14,15 @@ import WashDetector from './components/WashDetector.svelte';
 import PHRatio from './components/PHRatio.svelte';
 import Absorption from './components/Absorption.svelte';
 import RugRadar from './components/RugRadar.svelte';
+import MarketBreadth from './components/MarketBreadth.svelte';
 
 export const GROUPS = ['Обзор', 'Моментум', 'Кросс-токен', 'Риск', 'Микроструктура'];
 
 export const WIDGETS = [
   { id: 'treemap', title: 'Market map', group: 'Обзор', ready: true, span: 2, component: Treemap,
     desc: 'Карта рынка: размер = mcap, цвет = доходность окна' },
+  { id: 'breadth', title: 'Market breadth', group: 'Обзор', ready: true, span: 2, component: MarketBreadth,
+    desc: '% растущих по окнам 1/7/30д + равновес. индекс корзины (0 запросов)' },
 
   { id: 'momentum', title: 'Momentum leaderboard', group: 'Моментум', ready: true, span: 1, component: Momentum,
     desc: 'RS-рейтинг 7/14/30d + тренд' },
@@ -56,7 +59,7 @@ export const READY_IDS = WIDGETS.filter((w) => w.ready).map((w) => w.id);
 // Presets = profiles. Only reference ready ids.
 export const PRESETS = {
   'Всё': READY_IDS,
-  'Трейдер': ['momentum', 'rsi', 'macd', 'reversal', 'absorption', 'treemap'],
-  'Инвестор': ['corr', 'riskret', 'drawdown', 'phratio', 'treemap'],
+  'Трейдер': ['breadth', 'momentum', 'rsi', 'macd', 'reversal', 'absorption', 'treemap'],
+  'Инвестор': ['breadth', 'corr', 'riskret', 'drawdown', 'phratio', 'treemap'],
   'Риск-менеджер': ['riskret', 'drawdown', 'rugradar', 'reversal', 'wash', 'corr']
 };
