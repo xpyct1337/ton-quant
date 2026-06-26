@@ -91,6 +91,10 @@ def main():
             continue
         pt = set((prev_h.get(w) or {}).get("toks", {}))
         new = [toks[a] for a in e["toks"] if pt and a not in pt]
+        # rank-weighted conviction: top holder (rank 1) weighs ~1.0, tail (rank 25)
+        # ~0.04. Two wallets in the same # of tokens differ sharply if one is the
+        # LARGEST holder of each vs barely top-25 — conv surfaces real conviction.
+        conv = round(sum((TOPN + 1 - r) / TOPN for r in e["toks"].values()), 2)
         eh = [rets[a] for a in e["toks"] if a in rets]
         edge = round(sum(eh) / len(eh), 1) if eh else None
         # hit-rate: % of priced held tokens that are up over the window (consistency,
@@ -100,7 +104,7 @@ def main():
         out_roster.append({
             "addr": w, "name": e["name"], "n": len(e["toks"]),
             "toks": [toks[a] for a in sorted(e["toks"], key=lambda a: e["toks"][a])],
-            "new": new,
+            "new": new, "conv": conv,
             "edge": edge, "win": win, "ne": ne,
             # combined "who to copy" rank: shrunk edge x hit-rate x breadth (see fn)
             "smart": smart_score(edge, win, ne, len(e["toks"])),

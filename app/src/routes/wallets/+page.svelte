@@ -18,7 +18,9 @@
           ? (b.edge ?? -1e9) - (a.edge ?? -1e9) || b.n - a.n
           : sort === 'win'
             ? (b.win ?? -1) - (a.win ?? -1) || (b.edge ?? -1e9) - (a.edge ?? -1e9)
-            : b.n - a.n
+            : sort === 'conv'
+              ? (b.conv ?? -1) - (a.conv ?? -1) || b.n - a.n
+              : b.n - a.n
     )
   );
   let signals = $derived(roster.filter((w) => w.new && w.new.length));
@@ -48,6 +50,7 @@
       <button class="sb" class:on={sort === 'smart'} onclick={() => (sort = 'smart')}>по smart-score</button>
       <button class="sb" class:on={sort === 'edge'} onclick={() => (sort = 'edge')}>по edge ({data.edge_days || 7}д)</button>
       <button class="sb" class:on={sort === 'win'} onclick={() => (sort = 'win')}>по hit-rate</button>
+      <button class="sb" class:on={sort === 'conv'} onclick={() => (sort = 'conv')}>по conviction</button>
       <button class="sb" class:on={sort === 'breadth'} onclick={() => (sort = 'breadth')}>по breadth</button>
     </div>
   {/if}
@@ -104,6 +107,10 @@
             <span class="win mono" class:up={w.win >= 50} class:down={w.win < 50}
               title="доля отслеживаемых токенов в портфеле, выросших за {data.edge_days || 7}д (из {w.ne} с ценой) — консистентность отбора, в отличие от edge один памп её не вытягивает">{w.win}%↑</span>
           {/if}
+          {#if w.conv != null}
+            <span class="conv mono"
+              title="conviction — rank-взвешенная breadth: топ-холдер (rank 1) весит ~1.0, хвост (rank 25) ~0.04. Два кошелька в одном числе токенов различаются резко, если один — КРУПНЕЙШИЙ холдер каждого, а другой едва в топ-25">⚖{w.conv}</span>
+          {/if}
           <span class="n" title="в скольких отслеживаемых токенах — топ-холдер">{w.n}×</span>
         </div>
         <div class="chips">
@@ -112,7 +119,7 @@
       </div>
     {/each}
   </div>
-  <p class="muted small foot"><b>smart-score</b> (сортировка по умолчанию) = единый рейтинг «кого копировать»: edge, ужатый по размеру выборки (ne/(ne+3) — один лаки-хит на 1 токене сжимается сильно), × hit-rate (систематичность) × бонус за breadth — сводит три метрики в одно число. <b>edge</b> = средняя {data.edge_days || 7}-дн. доходность отслеживаемых токенов в портфеле кошелька (прокси скилла отбора по результату, не entry-PnL): отделяет тех, кто реально набирает растущие токены, от бэгхолдеров. <b>hit-rate</b> = доля отслеживаемых токенов в портфеле, выросших за окно (из тех, что с ценой): консистентность отбора — edge +35% может быть одним пампом, hit-rate показывает, систематический ли это скилл. <b>breadth</b> = число отслеживаемых токенов, где кошелёк в топ-{25} холдеров (CEX/DEX/пулы/скам отфильтрованы) — «whale-конвикшн по экосистеме». Самый чистый copy-сигнал — раздел «новые входы» (наполняется со второго дня).</p>
+  <p class="muted small foot"><b>smart-score</b> (сортировка по умолчанию) = единый рейтинг «кого копировать»: edge, ужатый по размеру выборки (ne/(ne+3) — один лаки-хит на 1 токене сжимается сильно), × hit-rate (систематичность) × бонус за breadth — сводит три метрики в одно число. <b>edge</b> = средняя {data.edge_days || 7}-дн. доходность отслеживаемых токенов в портфеле кошелька (прокси скилла отбора по результату, не entry-PnL): отделяет тех, кто реально набирает растущие токены, от бэгхолдеров. <b>hit-rate</b> = доля отслеживаемых токенов в портфеле, выросших за окно (из тех, что с ценой): консистентность отбора — edge +35% может быть одним пампом, hit-rate показывает, систематический ли это скилл. <b>breadth</b> = число отслеживаемых токенов, где кошелёк в топ-{25} холдеров (CEX/DEX/пулы/скам отфильтрованы) — «whale-конвикшн по экосистеме». <b>conviction</b> (⚖) = та же breadth, но rank-взвешенная: вклад токена = (26−rank)/25, так что быть КРУПНЕЙШИМ холдером весит ~1.0, а едва в топ-25 — ~0.04. Отделяет кита, реально доминирующего в позициях, от того, кто лишь формально в списке. Самый чистый copy-сигнал — раздел «новые входы» (наполняется со второго дня).</p>
 {/if}
 
 <style>
@@ -133,6 +140,7 @@
   .addr{color:var(--accent);font-size:13px;text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .addr:hover{text-decoration:underline}
   .n{font-size:12px;color:var(--text);background:rgba(255,255,255,.06);border-radius:6px;padding:1px 7px}
+  .conv{font-size:12px;color:#c9a8ff;background:rgba(167,139,250,.14);border-radius:6px;padding:1px 7px}
   .smart{font-size:12px;font-weight:600;color:var(--muted);background:rgba(255,255,255,.06);border-radius:6px;padding:1px 7px}
   .smart.up{color:#41d68a;background:rgba(65,214,138,.14)}
   .smart.down{color:#ff6b6b;background:rgba(255,107,107,.12)}
