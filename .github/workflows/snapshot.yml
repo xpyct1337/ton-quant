@@ -20,6 +20,8 @@ jobs:
       - run: python scripts/altsnapshot.py
       - run: python scripts/altpaper.py
       - run: python scripts/wallets.py
+      - run: pip install --quiet numpy pandas requests
+      - run: python scripts/xs_forward.py || true   # non-fatal: never break the snapshot
       - run: |
           git config user.name "snapshot-bot"
           git config user.email "actions@users.noreply.github.com"

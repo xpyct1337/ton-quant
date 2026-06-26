@@ -9,6 +9,7 @@
     { href: base + '/compare', label: 'Compare', icon: 'ti-arrows-diff' },
     { href: base + '/portfolio', label: 'Portfolio', icon: 'ti-wallet' },
     { href: base + '/wallets', label: 'Smart money', icon: 'ti-users-group' },
+    { href: base + '/xsmom', label: 'Momentum', icon: 'ti-trending-up' },
     { href: base + '/paper', label: 'Paper bot', icon: 'ti-robot' }
   ];
 </script>

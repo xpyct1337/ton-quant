@@ -155,6 +155,16 @@ export async function loadWallets() {
   return j(`${RAWB}/wallets.json`).catch(() => null);
 }
 
+// XS-momentum live paper forward-test: realized track record + current open basket.
+// Both files are written daily by scripts/xs_forward.py (absent until first Actions run).
+export async function loadXsForward() {
+  const [equity, state] = await Promise.all([
+    j(`${RAWB}/xs_forward_equity.json`).catch(() => null),
+    j(`${RAWB}/xs_forward_state.json`).catch(() => null)
+  ]);
+  return { records: equity?.records || [], state };
+}
+
 // Lean per-token stats for the Compare page (no holders sample / chart / curated extras).
 export async function loadCompare(addr) {
   const H = { Authorization: 'Bearer ' + TONAPI_KEY };

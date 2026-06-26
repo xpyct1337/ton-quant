@@ -2,6 +2,22 @@
 
 Что добавить, чтобы было информативнее и полезнее. По тирам: от быстрых побед к киллер-фичам.
 
+## 💰 Готово 26.06.2026 (evolve-run #44, Opus, scheduled) — требует deploy.bat
+
+**v2 `/xsmom` (Momentum): витрина живого XS-momentum forward-test.** Игорь в этом цикле добавил флагманскую стратегию — кросс-секционный моментум на перпах OKX (`scripts/xs_momentum.py`: long топ-квинтиль / short нижний по 20-барному моментуму, 4H, долларово-нейтрально, point-in-time топ-40 по обороту, vol-target, CPCV/PBO-гейт; бэктест Sharpe ~1.5, PBO 0.21 в −46% медвежке) + ежедневный live paper forward-test (`scripts/xs_forward.py`, вшит в `snapshot.yml` non-fatal). Но **на сайте это никак не показывалось** — стратегия крутилась вслепую. Этот цикл закрывает разрыв: трек-рекорд теперь виден и мониторится.
+
+**Что добавлено:** новая страница `app/src/routes/xsmom/+page.svelte` («Momentum») + `loadXsForward()` в `data.js` (тянет `data/xs_forward_equity.json` + `xs_forward_state.json`, гард на отсутствие — файлы появятся после первого прогона Actions) + нав-ссылка (`ti-trending-up`, между Smart money и Paper bot) + редирект `xsmom.html`. Страница: KPI-плитки (закрытых холдов / кумулятив-нетто / annualized Sharpe / hit-rate / последний холд), SVG-эквити (база 1.00), текущая long/short корзина чипами, таблица закрытых холдов (даты + нетто + состав), empty-state до первой сделки. Sharpe считается population-std (ddof=0) — точно как `np.std` в `xs_forward.py`, чтобы цифры на странице совпадали с логами прогона. 0 новых бэкенд-запросов (читает запечённые JSON).
+
+**Зачем денежно:** forward-test — единственное лекарство от главной оговорки бэктеста («один медвежий режим»). Делая трек-рекорд видимым по календарному времени, страница превращает невидимый фоновый прогон в инструмент: видно, держит ли стратегия Sharpe out-of-sample, прежде чем заводить реальный капитал. Прямая поддержка money-стратегии (80/20: strategy research).
+
+**Ревью изменений Игоря (по пути):** `xs_forward.py` ↔ `xs_momentum.py` сверены — `xm.H=12 → HOLD_MS=48ч` (2-дн. холд) корректно; все атрибуты, на которые ссылается forward (`POOL/fetch/panels/TURN_WIN/M/TOPN/Q/FEE/HOLDS_PER_YEAR`), присутствуют; `current_baskets` зеркалит селекцию `spread_returns`. `snapshot.yml` цел (31 стр., шаг `pip install` + `xs_forward.py || true` перед коммитом, git add/commit/push на месте — bash/`git diff` через маунт ложно показывал обрыв на `actions@users.nor`, но Read-tool подтвердил целостность). Багов/блокеров не внёс.
+
+**Self-check (живой OKX, песочница, БЕЗ записи в репо):** (1) прогнал `xs_forward.py` на урезанном POOL (20 перпов) — скрипт отрабатывает, panel (200×20), формирует long4/short4, `realized()` даёт нетто −0.24%; **зафиксировал точную JSON-схему** (`state{bar_ts,entry,long,short}`, `equity{records:[{open_ts,close_ts,net,long,short}]}`), под неё построена страница. (2) Сверил derived-математику страницы (cum=Πnet, Sharpe=mean/std·√182.5, эквити) с python-формулой `xs_forward.py` на одном наборе нетто: JS `cum=2.028% sharpe=4.2526 eqEnd=1.0203` ↔ PY `2.028 / 4.2526 / 1.0203` — **совпадение**. API живые (OKX history-candles — 200).
+
+**Целостность:** правки Edit/Write (Windows-side), подтверждено Read-tool'ом — `+page.svelte` цел (151 стр., `</style>`), `data.js` `loadXsForward` (стр.158–166, `RAWB` в скоупе), `+layout.svelte` нав-пункт, `xsmom.html`. app/node_modules нет — SvelteKit-билд не гонялся; страница зеркалит рабочий паттерн `/wallets` (client-render + onMount-fetch, conytail). git из песочницы НЕ запускался — деплой через `deploy.bat`.
+
+Следующее (денежное): (1) когда forward-track наберёт ≥10 холдов — показать live-Sharpe vs backtest-Sharpe (деградация = красный флаг до реального капитала); (2) разбить нетто на long-leg / short-leg вклад (бэктест говорит edge long-dominated — проверить вживую); (3) overlay BTC-benchmark на эквити (моментум-спред должен быть market-neutral); (4) `conv`-взвесить favorites в `wallets.py`.
+
 ## 💰 Готово 26.06.2026 (evolve-run #43, Opus, scheduled) — требует deploy.bat
 
 **Smart-money: rank-weighted conviction (`conv`) — `scripts/wallets.py` + `/wallets`.** Снято прямо из бэклога #36–#40 (повторялось 5 циклов: «rank-weighted holders — топ-холдер весит больше хвоста»). Money-фича: улучшает выбор кого копировать, ноль новых запросов.
