@@ -76,12 +76,13 @@
   {#if data.favorites?.length}
     <section class="card fav">
       <div class="fav-h"><i class="ti ti-flame"></i> Топ токенов у умных денег</div>
-      <div class="muted small">сколько кошельков ростера держат каждый токен — консенсус «умных денег» по экосистеме. edge = средняя {data.edge_days || 7}-дн. доходность этих держателей</div>
+      <div class="muted small">консенсус «умных денег» по экосистеме: <b>⚖cons</b> = rank-взвешенное число держателей ростера (топ-холдер весит больше хвоста), <b>N×</b> = сырое число держателей. edge = средняя {data.edge_days || 7}-дн. доходность этих держателей</div>
       {#each data.favorites.slice(0, 15) as f}
         <div class="fav-row">
           <span class="chip fav-tok">{f.sym}</span>
-          <span class="fav-bar"><span class="fav-fill" style="width:{(f.holders / data.favorites[0].holders) * 100}%"></span></span>
-          <span class="fav-n mono">{f.holders}×</span>
+          <span class="fav-bar"><span class="fav-fill" style="width:{((f.cons ?? f.holders) / (data.favorites[0].cons ?? data.favorites[0].holders)) * 100}%"></span></span>
+          {#if f.cons != null}<span class="conv mono" title="rank-взвешенный консенсус: Σ (26−rank)/25 по держателям ростера — токен, где умные деньги топ-холдеры, бьёт тот, что держат лишь хвостом">⚖{f.cons}</span>{/if}
+          <span class="fav-n mono" title="сырое число держателей ростера">{f.holders}×</span>
           {#if f.avg_edge != null}<span class="edge mono" class:up={f.avg_edge > 0} class:down={f.avg_edge < 0}>{fmtEdge(f.avg_edge)}</span>{/if}
           {#if f.new}<span class="chip new">+{f.new}</span>{/if}
         </div>

@@ -86,6 +86,7 @@ def main():
     # roster: breadth desc, then best (lowest) rank
     roster = sorted(held.items(), key=lambda kv: (-len(kv[1]["toks"]), min(kv[1]["toks"].values())))
     out_roster = []
+    fav = {}  # token-level consensus, accumulated rank-weighted in the same pass
     for w, e in roster[:ROSTER]:
         if len(e["toks"]) < 2:  # need cross-token conviction to qualify as smart money
             continue
@@ -109,23 +110,24 @@ def main():
             # combined "who to copy" rank: shrunk edge x hit-rate x breadth (see fn)
             "smart": smart_score(edge, win, ne, len(e["toks"])),
         })
-    # token-level consensus: how many ROSTER (smart) wallets hold each token =
-    # crowding. Tokens many proven multi-token wallets converge on are the cleanest
-    # copy targets — aggregates the wallet view into "what's smart money buying".
-    fav = {}
-    for r in out_roster:
-        for t in r["toks"]:
-            f = fav.setdefault(t, {"sym": t, "holders": 0, "edges": [], "new": 0})
+        # token-level consensus: which tokens ROSTER (smart) wallets converge on =
+        # cleanest copy targets. holders = raw crowding; cons = rank-WEIGHTED crowding
+        # — a token whose smart holders are TOP holders beats one held only at the tail
+        # (same rank weight as conv). Needs per-token rank, so accumulate here, not later.
+        for a, rk in e["toks"].items():
+            sym = toks[a]
+            f = fav.setdefault(sym, {"sym": sym, "holders": 0, "cons": 0.0, "edges": [], "new": 0})
             f["holders"] += 1
-            if r["edge"] is not None:
-                f["edges"].append(r["edge"])
-            if t in r["new"]:
+            f["cons"] += (TOPN + 1 - rk) / TOPN
+            if edge is not None:
+                f["edges"].append(edge)
+            if sym in new:
                 f["new"] += 1
     favorites = sorted(
-        ({"sym": f["sym"], "holders": f["holders"], "new": f["new"],
+        ({"sym": f["sym"], "holders": f["holders"], "cons": round(f["cons"], 2), "new": f["new"],
           "avg_edge": round(sum(f["edges"]) / len(f["edges"]), 1) if f["edges"] else None}
          for f in fav.values()),
-        key=lambda x: (-x["holders"], -(x["avg_edge"] if x["avg_edge"] is not None else -1e9)))
+        key=lambda x: (-x["cons"], -(x["avg_edge"] if x["avg_edge"] is not None else -1e9)))
 
     out = {"date": today, "scanned": ok, "wallets": len(held), "edge_days": edge_days,
            "roster_size": len(out_roster), "roster": out_roster, "favorites": favorites}
