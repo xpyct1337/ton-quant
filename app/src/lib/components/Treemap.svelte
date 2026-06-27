@@ -3,11 +3,14 @@
   import { base } from '$app/paths';
   let { rows } = $props();
   const W = 1000, H = 380;
+  // conytail: area ~ sqrt(mcap) so one large cap can't swallow the map and small
+  // tokens stay visible; top 28 by mcap avoids a long tail of sliver tiles.
   let rects = $derived(
     squarify(
       rows.filter((r) => r.core && r.mcap > 0)
-        .map((r) => ({ value: r.mcap, r }))
-        .sort((a, b) => b.value - a.value),
+        .sort((a, b) => b.mcap - a.mcap)
+        .slice(0, 28)
+        .map((r) => ({ value: Math.sqrt(r.mcap), r })),
       W, H
     )
   );

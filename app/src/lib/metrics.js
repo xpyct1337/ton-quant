@@ -353,3 +353,7 @@ export function equalWeightIndex(rows, n) {
   }
   return out;
 }
+
+// Fake market cap: a big claimed cap that liquidity can't back (e.g. FARM $7.5B on $7K liq).
+// conytail: mcap/liq ratio heuristic — real tokens sit ~10-2000x; fakes are 10000x+.
+export const isFakeCap = (mcap, tvl) => mcap > 50e6 && tvl > 0 && mcap / tvl > 10000;

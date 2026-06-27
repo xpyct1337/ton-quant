@@ -226,3 +226,11 @@ test('absorptionSignal cases', () => {
   assert.equal(absorptionSignal(50, 50, 5), null);           // balanced
   assert.equal(absorptionSignal(80, 20, 10), null);          // buys-heavy but price ripping
 });
+
+import { isFakeCap } from './metrics.js';
+test('isFakeCap flags inflated cap, spares real tokens', () => {
+  assert.equal(isFakeCap(7.5e9, 7000), true);   // FARM
+  assert.equal(isFakeCap(245e6, 124000), false); // OC (~2000x)
+  assert.equal(isFakeCap(16e6, 667000), false);  // UTYA
+  assert.equal(isFakeCap(1e6, 50), false);       // small thin token, not big-fake
+});

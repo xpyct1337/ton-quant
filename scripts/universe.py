@@ -60,8 +60,11 @@ def build():
                     t.update(price=price, mcap=mcap, liq=liq, d1=d1)
         time.sleep(2)  # conytail: gecko free tier ~30 req/min — 2s gap is safe
 
+    def fake_cap(t):  # conytail: $7.5B "cap" on $7K liq (FARM) — liquidity can't back it
+        return t["mcap"] > 50e6 and t["liq"] > 0 and t["mcap"] / t["liq"] > 10000
     rows = [t for a, t in toks.items()
-            if a not in block and ((t["vol24"] >= MINVOL and t["liq"] >= MINLIQ) or a in allow)]
+            if a not in block and not fake_cap(t)
+            and ((t["vol24"] >= MINVOL and t["liq"] >= MINLIQ) or a in allow)]
     rows.sort(key=lambda x: x["vol24"], reverse=True)
     uni = rows[:UNIVERSE]
     for i, t in enumerate(uni):

@@ -80,7 +80,7 @@
       <div class="kpi"><div class="kl">Breadth</div><div class="kv mono">{kpi.breadth ? `${kpi.breadth.above}/${kpi.breadth.total}` : '—'}</div></div>
     </div>
     <div class="card map">
-      <div class="sec-title">Market map · CORE по mcap, цвет = 7d</div>
+      <div class="sec-title">Market map · CORE, площадь ≈ √mcap, цвет = 7d</div>
       <Treemap {rows} />
       <div class="movers">
         {#each movers.slice(0, 3) as m}<span class="mv good">{m.sym} {fmtPct(m.d7)}</span>{/each}

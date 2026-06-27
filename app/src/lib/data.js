@@ -1,4 +1,4 @@
-import { pctChange, holderGrowth } from './metrics.js';
+import { pctChange, holderGrowth, isFakeCap } from './metrics.js';
 
 const RAW = 'https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data';
 const TONAPI = 'https://tonapi.io/v2';
@@ -25,7 +25,7 @@ export async function loadAll(days = 8) {
     const avgPrice = prices.length ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
     const cat = cats[addr] || 'meme';
     return {
-      addr, sym: t.sym, cat, core: !STAKING.has(cat),
+      addr, sym: t.sym, cat, core: !STAKING.has(cat) && !isFakeCap(t.mcap, t.tvl),
       price: t.price, mcap: t.mcap, tvl: t.tvl, vol24: t.vol24,
       holders: t.holders, buys: t.buys, sells: t.sells, pools: t.pools,
       supply: t.supply,
