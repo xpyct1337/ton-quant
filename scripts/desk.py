@@ -2,8 +2,9 @@
 """TON Quant v3.0 — AI Smart-Money Desk runtime (spec §7).
 
 Reads deterministic features (desk_features.build_features), runs two LLM agents
-SEQUENTIALLY against a local Ollama server — one model resident at a time, agents
-never co-loaded (8 GB M1 Air) — and writes data/desk/verdicts.json (schema §5).
+SEQUENTIALLY against a local OpenAI-compatible LLM server (Osaurus / Apple-MLX on
+:1337 by default; Ollama :11434/v1 also works) — one model resident at a time,
+agents never co-loaded (8 GB M1 Air) — writes data/desk/verdicts.json (schema §5).
 
 Fault-tolerant by design: a failed LLM call falls back to the deterministic floor
 verdict; the run NEVER crashes (like `xs_forward || true`). Deterministic floors
@@ -24,25 +25,29 @@ import json, os, sys, time, urllib.request
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from desk_features import build_features, load  # noqa: E402
 
-OLLAMA = os.environ.get("OLLAMA_URL", "http://localhost:11434/api/generate")
+# OpenAI-compatible chat endpoint — works for Osaurus (:1337, MLX, default) AND
+# Ollama (:11434/v1/chat/completions). Switch backend via DESK_ENDPOINT / config.
+ENDPOINT = os.environ.get("DESK_ENDPOINT", "http://localhost:1337/v1/chat/completions")
 RISK_ORD = {"low": 0, "med": 1, "high": 2}
 
 
-# ---------- Ollama client ----------
+# ---------- LLM client (OpenAI-compatible) ----------
 def llm(model, system, user, timeout=120, retries=2):
     body = {
-        "model": model, "prompt": system + "\n\n" + user, "stream": False,
-        "format": "json", "think": False,
-        "options": {"temperature": 0, "num_ctx": 2048, "num_predict": 256},
+        "model": model,
+        "messages": [{"role": "system", "content": system},
+                     {"role": "user", "content": user + " /no_think"}],  # Qwen3: no thinking
+        "response_format": {"type": "json_object"},
+        "temperature": 0, "max_tokens": 300,
     }
     data = json.dumps(body).encode()
     last = None
     for _ in range(retries):
         try:
             req = urllib.request.Request(
-                OLLAMA, data=data, headers={"Content-Type": "application/json"})
+                ENDPOINT, data=data, headers={"Content-Type": "application/json"})
             r = json.load(urllib.request.urlopen(req, timeout=timeout))
-            return _extract_json(r.get("response", ""))
+            return _extract_json(r["choices"][0]["message"]["content"])
         except Exception as e:                       # noqa: BLE001 — never crash the run
             last = e
     raise RuntimeError(f"llm failed: {last}")
@@ -146,8 +151,10 @@ def agent2(model, w, v1):
 
 # ---------- orchestration ----------
 def main():
+    global ENDPOINT
     cfg = load("data/desk/config.json", {}) or {}
-    model = os.environ.get("DESK_MODEL") or cfg.get("model", "qwen3:4b")
+    ENDPOINT = os.environ.get("DESK_ENDPOINT") or cfg.get("endpoint", ENDPOINT)
+    model = os.environ.get("DESK_MODEL") or cfg.get("model", "qwen3-4b-4bit")
     lim = os.environ.get("DESK_LIMIT") or cfg.get("wallet_limit")
     lim = int(lim) if lim else None
 

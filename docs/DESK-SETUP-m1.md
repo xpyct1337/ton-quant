@@ -6,9 +6,11 @@
 
 ## 0. Что уже сделано на этом Mac (28.06.2026)
 
-- Homebrew + Ollama (`brew install ollama`), сервер поднят.
-- Модели: `qwen3:4b` (основная), `gemma3:4b` (альт).
-- `~/.zshrc`: `OLLAMA_FLASH_ATTENTION=1`, `OLLAMA_KV_CACHE_TYPE=q8_0`.
+- **Бэкенд LLM: Osaurus** (нативный Apple-MLX, сервер на `:1337`), модель
+  **`qwen3-4b-4bit`**. MLX быстрее/легче Ollama на M1 и отдаёт чистый JSON через
+  OpenAI-совместимый `/v1/chat/completions` (`response_format: json_object`, `/no_think`).
+  Ollama тоже стоит (`qwen3:4b`/`gemma3:4b`, `:11434`) как запасной бэкенд.
+- Бэкенд/модель меняются в `data/desk/config.json` (`endpoint`, `model`) без правки кода.
 - SSH-ключ `~/.ssh/id_ed25519` (в keychain) добавлен на GitHub → clone/push работают.
 - Репо: `~/Projects/ton-quant`. Python 3.11 (stdlib + urllib, без зависимостей).
 - launchd-агент `com.tonquant.desk` (ночь 03:30 + RunAtLoad catch-up).
@@ -27,11 +29,17 @@ python3 scripts/desk_test.py                # ассерты §10 на verdicts.
 или поле `wallet_limit` в `data/desk/config.json`. Сменить модель: `DESK_MODEL=gemma3:4b`
 или `model` в конфиге.
 
-`data/desk/config.json` (опционально, читается и сайтом-пультом `/desk`):
+`data/desk/config.json` (бэкенд/модель/лимит; читается и сайтом-пультом `/desk`):
 
 ```json
-{ "model": "qwen3:4b", "wallet_limit": null }
+{ "backend": "osaurus",
+  "endpoint": "http://localhost:1337/v1/chat/completions",
+  "model": "qwen3-4b-4bit",
+  "wallet_limit": null }
 ```
+
+Переключить на Ollama: `"endpoint":"http://localhost:11434/v1/chat/completions"`,
+`"model":"qwen3:4b"` (или env `DESK_ENDPOINT` / `DESK_MODEL`).
 
 ## 2. launchd (ночной прогон + catch-up)
 
@@ -55,7 +63,8 @@ launchctl start com.tonquant.desk       # прогнать прямо сейча
 
 ```sh
 tail -f ~/Library/Logs/tonquant-desk.log         # лог прогонов (pull/desk/push)
-tail -f /tmp/ollama-serve.log                     # лог сервера Ollama
+osaurus status                                    # сервер Osaurus (:1337) жив?
+osaurus list                                      # какие MLX-модели скачаны
 cat ~/Projects/ton-quant/data/desk/verdicts.json  # последние вердикты
 launchctl list com.tonquant.desk                  # последний exit-код
 ```
@@ -68,8 +77,8 @@ launchctl list com.tonquant.desk                  # последний exit-ко
 
 - **`push failed`** в логе → проверь `ssh -T git@github.com` (должно «successfully
   authenticated»). Вердикты при этом закоммичены локально — Igor синхронизирует.
-- **Ollama не отвечает** → `ollama serve` (или `brew services start ollama`); проверь
-  `curl -s localhost:11434/api/version`.
+- **Osaurus не отвечает** → `osaurus serve` (или открой Osaurus.app); проверь
+  `curl -s localhost:1337/v1/models`. `desk_run.sh` сам поднимает сервер, если лежит.
 - **Memory pressure / своп** → только 4B-модели; уменьшай `wallet_limit`; агенты и так
   идут по одному в памяти.
 - **Пустой `/desk`** → деск ещё не пушил `verdicts.json`, либо сайт не передеплоен.

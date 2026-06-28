@@ -17,9 +17,12 @@
 Перенос v3.0 со спека в работающий рантайм. Сбор данных остаётся в облаке (Actions),
 деск читает закоммиченные `data/` и пишет вердикты обратно в репо.
 
-**Рантайм.** Ollama (Metal) + `qwen3:4b` (основная, ~2.5 ГБ) и `gemma3:4b` (альт).
-Под 8 ГБ: `OLLAMA_FLASH_ATTENTION=1`, `OLLAMA_KV_CACHE_TYPE=q8_0`. Оба отдают валидный
-JSON через `/api/generate` (`format:json`, `think:false`); qwen3 ~7 с/вызов.
+**Рантайм.** Бэкенд — **Osaurus** (нативный Apple-MLX, `:1337`), модель `qwen3-4b-4bit`:
+на M1 быстрее/легче Ollama (~3 с/вызов с `/no_think` против ~7 с) и отдаёт чистый JSON
+через OpenAI-совместимый `/v1/chat/completions` (`response_format: json_object`). Спек
+ошибочно считал MLX недоступным на 8 ГБ — на деле 4B-MLX идёт отлично. Ollama (`qwen3:4b`/
+`gemma3:4b`, `:11434`) остаётся запасным бэкендом; `desk.py` backend-agnostic (один
+OpenAI-клиент, выбор через `data/desk/config.json`).
 
 **Детерминированный слой фич (`scripts/desk_features.py`).** На roster-кошелёк/токен
 из существующих `data/` (без новых фетчей): `wash` (переиспользует ban-лист

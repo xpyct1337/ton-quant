@@ -1,10 +1,8 @@
 #!/bin/zsh
 # TON Quant v3.0 — AI Smart-Money Desk nightly runner (launchd, spec §11.5/E1).
-# pull -> ensure Ollama -> run desk -> commit & push verdicts. Never wedges:
+# pull -> ensure LLM server -> run desk -> commit & push verdicts. Never wedges:
 # every step tolerates failure so a bad night doesn't block the next.
-# Log: ~/Library/Logs/tonquant-desk.log
-export OLLAMA_FLASH_ATTENTION=1
-export OLLAMA_KV_CACHE_TYPE=q8_0
+# Backend: Osaurus (Apple-MLX, :1337) by default. Log: ~/Library/Logs/tonquant-desk.log
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
 
 REPO="$HOME/Projects/ton-quant"
@@ -13,12 +11,12 @@ cd "$REPO" || exit 0
 exec >> "$LOG" 2>&1
 echo "=== desk run $(date) ==="
 
-# ensure local Ollama server is up
-if ! curl -sf http://localhost:11434/api/version >/dev/null 2>&1; then
-  echo "starting ollama serve"
-  nohup ollama serve >/tmp/ollama-serve.log 2>&1 &
+# ensure local Osaurus (MLX) server is up on :1337
+if ! curl -sf http://localhost:1337/v1/models >/dev/null 2>&1; then
+  echo "starting osaurus serve"
+  nohup osaurus serve >/tmp/osaurus-serve.log 2>&1 &
   for i in {1..30}; do
-    curl -sf http://localhost:11434/api/version >/dev/null 2>&1 && break
+    curl -sf http://localhost:1337/v1/models >/dev/null 2>&1 && break
     sleep 1
   done
 fi
