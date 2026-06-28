@@ -184,11 +184,14 @@ def main():
     out = {"date": feats["date"], "model": model,
            "generated": time.strftime("%Y-%m-%dT%H:%M:%S"),
            "wallets": wv, "tokens": tv}
-    os.makedirs("data/desk", exist_ok=True)
-    with open("data/desk/verdicts.json", "w") as f:
+    os.makedirs("data/desk/verdicts", exist_ok=True)
+    with open("data/desk/verdicts.json", "w") as f:           # latest (витрина reads this)
+        json.dump(out, f, ensure_ascii=False, indent=2)
+    jpath = f"data/desk/verdicts/{feats['date']}.json"        # dated journal (calibration)
+    with open(jpath, "w") as f:
         json.dump(out, f, ensure_ascii=False, indent=2)
 
-    chk = json.load(open("data/desk/verdicts.json"))  # read-back
+    chk = json.load(open(jpath))  # read-back the journal copy
     high = sum(1 for x in chk["wallets"] if x["manip_risk"] == "high")
     print(f"wrote data/desk/verdicts.json: {len(chk['wallets'])} wallets "
           f"({high} high-risk), {len(chk['tokens'])} tokens", flush=True)
