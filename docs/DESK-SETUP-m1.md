@@ -41,32 +41,45 @@ python3 scripts/desk_test.py                # ассерты §10 на verdicts.
 Переключить на Ollama: `"endpoint":"http://localhost:11434/v1/chat/completions"`,
 `"model":"qwen3:4b"` (или env `DESK_ENDPOINT` / `DESK_MODEL`).
 
-## 2. launchd (ночной прогон + catch-up)
+## 1b. 24/7 worker (основной режим)
 
-Plist лежит в `~/Library/LaunchAgents/com.tonquant.desk.plist`. Запускает
-`scripts/desk_run.sh`: pull → поднять Ollama если не запущен → `desk.py` →
-`git add/commit/push data/desk/`. Никогда не падает (каждый шаг толерантен к ошибке).
+`scripts/desk_worker.py` (launchd `com.tonquant.worker`, KeepAlive) работает
+непрерывно: журналирует дневные вердикты (`data/desk/verdicts/<date>.json`),
+deep-вётит сущности ансамблем (чтобы модель не простаивала) и само-калибруется
+(`data/desk/calibration.json`) — под термо/энерго-governor (тяжёлая работа только от
+сети, бэк-офф при троттлинге). Коммитит **только** `data/desk/` батчами (~30 мин),
+`pull --rebase` + ретрай → не дерётся с Actions(облако)/PC. Каждый шаг толерантен —
+цикл не падает, KeepAlive поднимает после краша. Заменяет ночной `com.tonquant.desk`
+(оставлен выгруженным как fallback).
 
 ```sh
-# загрузить (один раз; и после правок plist — выгрузить, затем загрузить)
-launchctl unload ~/Library/LaunchAgents/com.tonquant.desk.plist 2>/dev/null
-launchctl load   ~/Library/LaunchAgents/com.tonquant.desk.plist
-
-launchctl list | grep tonquant          # статус (есть в списке = загружен)
-launchctl start com.tonquant.desk       # прогнать прямо сейчас (тест)
+launchctl load   ~/Library/LaunchAgents/com.tonquant.worker.plist   # запустить 24/7
+launchctl unload ~/Library/LaunchAgents/com.tonquant.worker.plist   # остановить
+tail -f ~/Library/Logs/tonquant-worker.log                          # смотреть
+python3 scripts/desk_worker.py --once                               # один проход (отладка)
+python3 scripts/desk_calibration.py --check                         # self-test калибровки
 ```
 
-- `RunAtLoad` → деск догоняет пропущенную ночь при первом включении/логине Mac.
-- `StartCalendarInterval` 03:30 → ночной батч (Air без кулера — не realtime).
+## 2. Ночной режим (fallback `com.tonquant.desk`)
+
+Старый plist `~/Library/LaunchAgents/com.tonquant.desk.plist` (`desk_run.sh`: pull →
+ensure Osaurus → `desk.py` → commit/push) оставлен **выгруженным** как запасной
+одноразовый ночной прогон. Грузить только если 24/7-worker не используется:
+
+```sh
+launchctl load ~/Library/LaunchAgents/com.tonquant.desk.plist
+launchctl list | grep tonquant
+```
 
 ## 3. Мониторинг
 
 ```sh
-tail -f ~/Library/Logs/tonquant-desk.log         # лог прогонов (pull/desk/push)
+tail -f ~/Library/Logs/tonquant-worker.log       # лог 24/7-воркера (основной)
 osaurus status                                    # сервер Osaurus (:1337) жив?
 osaurus list                                      # какие MLX-модели скачаны
-cat ~/Projects/ton-quant/data/desk/verdicts.json  # последние вердикты
-launchctl list com.tonquant.desk                  # последний exit-код
+cat ~/Projects/ton-quant/data/desk/verdicts.json     # последние вердикты
+cat ~/Projects/ton-quant/data/desk/calibration.json  # правота сигнала (forward-исходы)
+launchctl list com.tonquant.worker               # статус воркера / последний exit-код
 ```
 
 На сайте: страница **`/desk`** (после `deploy.bat`) показывает дату последнего
