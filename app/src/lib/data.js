@@ -155,6 +155,12 @@ export async function loadWallets() {
   return j(`${RAWB}/wallets.json`).catch(() => null);
 }
 
+// AI Smart-Money Desk: latest LLM verdicts (manipulation + smart-money vetting).
+// Written by scripts/desk.py on the M1; absent until the desk's first run.
+export async function loadDeskStatus() {
+  return j(`${RAWB}/desk/verdicts.json`).catch(() => null);
+}
+
 // XS-momentum live paper forward-test: realized track record + current open basket.
 // Both files are written daily by scripts/xs_forward.py (absent until first Actions run).
 export async function loadXsForward() {
