@@ -24,6 +24,7 @@ import json, os, sys, time, urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from desk_features import build_features, load  # noqa: E402
+import desk_factors  # noqa: E402
 
 # OpenAI-compatible chat endpoint — works for Osaurus (:1337, MLX, default) AND
 # Ollama (:11434/v1/chat/completions). Switch backend via DESK_ENDPOINT / config.
@@ -110,6 +111,11 @@ def agent1(model, f, is_token):
         risk = floor
     if fflag and fflag not in flags:
         flags = [fflag] + flags
+    if is_token and f.get("fields"):                  # active learned factors can only RAISE
+        frisk, fflags = desk_factors.apply_active(f["fields"])
+        if RISK_ORD[frisk] > RISK_ORD[risk]:
+            risk = frisk
+        flags = flags + [x for x in fflags if x not in flags]
     return {"manip_risk": risk, "flags": flags[:5], "reason": reason or "deterministic floor"}
 
 
