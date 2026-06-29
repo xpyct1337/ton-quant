@@ -165,8 +165,8 @@ def iterate():
     today_done = os.path.exists(f"data/desk/verdicts/{today()}.json")
     calib_stale = time.time() - state.get("last_calib", 0) > CALIB_EVERY
     revalidate_due = time.time() - state.get("last_revalidate", 0) > REVALIDATE_EVERY
-    v = load("data/desk/verdicts.json", {})
-    deep_pending = len(v.get("tokens", [])) if today_done else 0
+    v = load("data/desk/verdicts.json", {})           # un-vetted this cycle -> 0 lets research run
+    deep_pending = sum(1 for t in v.get("tokens", []) if "ensemble" not in t) if today_done else 0
     task = pick_task(today_done, calib_stale, deep_pending, revalidate_due)
     try:
         if task == "daily_verdicts":
