@@ -17,6 +17,7 @@ from desk_features import load, build_features  # noqa: E402
 import desk                                     # noqa: E402
 import desk_calibration                         # noqa: E402
 import desk_researcher                          # noqa: E402
+import desk_copytrade                            # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STATE = "data/desk/worker_state.json"
@@ -93,8 +94,9 @@ def run_daily_verdicts():
 
 def run_calibrate(state):
     desk_calibration.main()
+    desk_copytrade.main()                  # deterministic analytics, same cadence
     state["last_calib"] = int(time.time())
-    return "calibrate done"
+    return "calibrate+copytrade done"
 
 
 def run_research(state):
