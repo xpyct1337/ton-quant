@@ -18,11 +18,12 @@ def test_thermal_decision_normal_runs():
     assert d["run"] is True and d["sleep"] <= 60
 
 
-def test_pick_task_prioritizes_daily_then_calibrate_then_deep():
-    assert W.pick_task(today_done=False, calib_stale=True, deep_pending=5) == "daily_verdicts"
-    assert W.pick_task(today_done=True, calib_stale=True, deep_pending=5) == "calibrate"
-    assert W.pick_task(today_done=True, calib_stale=False, deep_pending=5) == "deep_vetting"
-    assert W.pick_task(today_done=True, calib_stale=False, deep_pending=0) is None
+def test_pick_task_priority_order():
+    assert W.pick_task(False, True, 5) == "daily_verdicts"
+    assert W.pick_task(True, True, 5) == "calibrate"
+    assert W.pick_task(True, False, 5, revalidate_due=True) == "revalidate"
+    assert W.pick_task(True, False, 5) == "deep_vetting"
+    assert W.pick_task(True, False, 0) == "research"   # idle-filler, never None
 
 
 if __name__ == "__main__":

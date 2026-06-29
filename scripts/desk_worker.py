@@ -16,11 +16,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from desk_features import load, build_features  # noqa: E402
 import desk                                     # noqa: E402
 import desk_calibration                         # noqa: E402
+import desk_researcher                          # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STATE = "data/desk/worker_state.json"
 COMMIT_EVERY = 1800          # seconds between batched pushes
 CALIB_EVERY = 6 * 3600       # recompute calibration at most this often
+REVALIDATE_EVERY = 12 * 3600  # re-validate active factors at most this often
 BASE_SLEEP = 20              # cooling pause between tasks when healthy
 
 
@@ -71,14 +73,16 @@ def today():
 
 
 # ---------- picker ----------
-def pick_task(today_done, calib_stale, deep_pending):
+def pick_task(today_done, calib_stale, deep_pending, revalidate_due=False):
     if not today_done:
         return "daily_verdicts"
     if calib_stale:
         return "calibrate"
+    if revalidate_due:
+        return "revalidate"
     if deep_pending > 0:
         return "deep_vetting"
-    return None
+    return "research"          # idle-filler: never out of work (always a factor to try)
 
 
 # ---------- task runners (each tolerant; return short status) ----------
@@ -91,6 +95,15 @@ def run_calibrate(state):
     desk_calibration.main()
     state["last_calib"] = int(time.time())
     return "calibrate done"
+
+
+def run_research(state):
+    return desk_researcher.research_once()
+
+
+def run_revalidate(state):
+    state["last_revalidate"] = int(time.time())
+    return desk_researcher.revalidate()
 
 
 def run_deep_vetting(state):
@@ -151,16 +164,21 @@ def iterate():
     state = get_state()
     today_done = os.path.exists(f"data/desk/verdicts/{today()}.json")
     calib_stale = time.time() - state.get("last_calib", 0) > CALIB_EVERY
+    revalidate_due = time.time() - state.get("last_revalidate", 0) > REVALIDATE_EVERY
     v = load("data/desk/verdicts.json", {})
     deep_pending = len(v.get("tokens", [])) if today_done else 0
-    task = pick_task(today_done, calib_stale, deep_pending)
+    task = pick_task(today_done, calib_stale, deep_pending, revalidate_due)
     try:
         if task == "daily_verdicts":
             msg = run_daily_verdicts()
         elif task == "calibrate":
             msg = run_calibrate(state)
+        elif task == "revalidate":
+            msg = run_revalidate(state)
         elif task == "deep_vetting":
             msg = run_deep_vetting(state)
+        elif task == "research":
+            msg = run_research(state)
         else:
             msg = "idle: nothing due"
     except Exception as e:                             # noqa: BLE001 — never crash loop
@@ -169,7 +187,7 @@ def iterate():
           flush=True)
     maybe_commit(state)
     put_state(state)
-    return dec["sleep"] if task else 300              # nothing due -> longer sleep
+    return dec["sleep"]                               # research is the idle-filler
 
 
 def main():
