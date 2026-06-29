@@ -1,9 +1,12 @@
 <script>
   import { onMount } from 'svelte';
-  import { loadDeskStatus } from '$lib/data.js';
+  import { loadDeskStatus, loadDeskCalibration, loadDeskFactors } from '$lib/data.js';
 
   let status = $state(undefined); // undefined=loading, null=not run yet, obj=ran
+  let calib = $state(undefined);
+  let factors = $state(undefined);
   const copy = (t) => navigator.clipboard?.writeText(t);
+  const pct = (x) => (x == null ? '—' : (x * 100 >= 0 ? '+' : '') + (x * 100).toFixed(1) + '%');
 
   let wallets = $derived(status?.wallets || []);
   let risk = $derived.by(() => {
@@ -12,6 +15,16 @@
     return r;
   });
   let copyOk = $derived(wallets.filter((w) => w.copy_ok).length);
+
+  // calibration: +7d avg excess return by risk bucket (high should be most negative)
+  let h7 = $derived(calib?.feature_backtest?.['+7d']);
+  // researcher: active learned factors + attempt counts from the history log
+  let active = $derived(factors?.active || []);
+  let fcount = $derived.by(() => {
+    const c = { proposed: 0, promoted: 0, rejected: 0, demoted: 0 };
+    for (const e of factors?.history || []) if (e.action in c) c[e.action]++;
+    return c;
+  });
 
   // conytail: best small models for 8GB M1 Air (research 27.06.2026) — 4B is the
   // sweet spot (7B swaps on 8GB; 2026 4B reasons better than 2025 7B).
@@ -30,7 +43,11 @@
     { t: 'Прогон деска (скрипт придёт с MVP)', cmds: ['python3 scripts/desk.py'] }
   ];
 
-  onMount(async () => { status = await loadDeskStatus(); });
+  onMount(async () => {
+    status = await loadDeskStatus();
+    calib = await loadDeskCalibration();
+    factors = await loadDeskFactors();
+  });
 </script>
 
 <svelte:head><title>TON Quant — AI Desk</title></svelte:head>
@@ -58,6 +75,48 @@
       <div class="kpi"><span class="kl">copy_ok</span><span class="kv up">{copyOk}</span></div>
       <div class="kpi"><span class="kl">риск L/M/H</span><span class="kv"><span class="up">{risk.low}</span>/<span class="amber">{risk.med}</span>/<span class="down">{risk.high}</span></span></div>
     </div>
+  {/if}
+</section>
+
+<section class="card">
+  <div class="ttl"><i class="ti ti-target-arrow"></i> Само-калибровка сигнала</div>
+  {#if calib === undefined}
+    <div class="muted pad">Загружаю…</div>
+  {:else if !calib || !h7}
+    <div class="muted">Калибровка ещё не посчитана (появится после прогона воркера). Проверяет: предсказывает ли <code>manip_risk</code> будущую просадку — сверяет вердикты с реальной forward-доходностью.</div>
+  {:else}
+    <div class="muted small">forward excess-доходность токенов через +7д по бакету риска. Гипотеза: <b>high &lt; med &lt; low</b> (рисковые проседают).</div>
+    <div class="kpis">
+      <div class="kpi"><span class="kl">снапшотов</span><span class="kv">{calib.snapshots}</span></div>
+      <div class="kpi"><span class="kl">low +7д</span><span class="kv up">{pct(h7.low?.avg)}</span></div>
+      <div class="kpi"><span class="kl">med +7д</span><span class="kv amber">{pct(h7.med?.avg)}</span></div>
+      <div class="kpi"><span class="kl">high +7д</span><span class="kv down">{pct(h7.high?.avg)}</span></div>
+      <div class="kpi"><span class="kl">сигнал разделяет</span><span class="kv" class:up={calib.signal_separates_at_7d} class:down={!calib.signal_separates_at_7d}>{calib.signal_separates_at_7d ? 'да' : 'нет'}</span></div>
+    </div>
+  {/if}
+</section>
+
+<section class="card">
+  <div class="ttl"><i class="ti ti-flask"></i> Агент-ресёрчер (факторы)</div>
+  {#if factors === undefined}
+    <div class="muted pad">Загружаю…</div>
+  {:else}
+    <div class="muted small">LLM 24/7 предлагает факторы → walk-forward OOS-гейт (анти-оверфит) → выжившие авто-вливаются в риск. Floors остаются жёсткими.</div>
+    <div class="kpis">
+      <div class="kpi"><span class="kl">активных</span><span class="kv up">{active.length}/8</span></div>
+      <div class="kpi"><span class="kl">попыток</span><span class="kv">{fcount.proposed}</span></div>
+      <div class="kpi"><span class="kl">промоут</span><span class="kv up">{fcount.promoted}</span></div>
+      <div class="kpi"><span class="kl">реджект</span><span class="kv muted">{fcount.rejected}</span></div>
+    </div>
+    {#if active.length}
+      <div class="models">
+        {#each active as f}
+          <div class="mrow"><span class="mname mono">{f.id}</span><span class="mram muted small">{f.direction}</span><span class="mnote muted small">oos_lo {f.metrics?.oos?.wilson_lo ?? '—'}</span></div>
+        {/each}
+      </div>
+    {:else}
+      <div class="muted small">Пока ни один фактор не прошёл гейт — это правильно: на малой истории строгий OOS-порог почти ничего не пропускает (анти-оверфит). Реальные факторы появятся по мере накопления снапшотов.</div>
+    {/if}
   {/if}
 </section>
 

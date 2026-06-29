@@ -161,6 +161,20 @@ export async function loadDeskStatus() {
   return j(`${RAWB}/desk/verdicts.json`).catch(() => null);
 }
 
+// AI Desk self-calibration: does manip_risk predict forward underperformance?
+export async function loadDeskCalibration() {
+  return j(`${RAWB}/desk/calibration.json`).catch(() => null);
+}
+
+// AI Desk researcher: learned active factors + the append-only attempt history.
+export async function loadDeskFactors() {
+  const [active, history] = await Promise.all([
+    j(`${RAWB}/desk/factors_active.json`).catch(() => []),
+    j(`${RAWB}/desk/factors_history.json`).catch(() => [])
+  ]);
+  return { active: active || [], history: history || [] };
+}
+
 // XS-momentum live paper forward-test: realized track record + current open basket.
 // Both files are written daily by scripts/xs_forward.py (absent until first Actions run).
 export async function loadXsForward() {
