@@ -33,13 +33,13 @@ RISK_ORD = {"low": 0, "med": 1, "high": 2}
 
 
 # ---------- LLM client (OpenAI-compatible) ----------
-def llm(model, system, user, timeout=120, retries=2):
+def llm(model, system, user, timeout=120, retries=2, temperature=0):
     body = {
         "model": model,
         "messages": [{"role": "system", "content": system},
                      {"role": "user", "content": user + " /no_think"}],  # Qwen3: no thinking
         "response_format": {"type": "json_object"},
-        "temperature": 0, "max_tokens": 300,
+        "temperature": temperature, "max_tokens": 300,
     }
     data = json.dumps(body).encode()
     last = None
