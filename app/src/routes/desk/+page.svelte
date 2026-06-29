@@ -1,10 +1,11 @@
 <script>
   import { onMount } from 'svelte';
-  import { loadDeskStatus, loadDeskCalibration, loadDeskFactors } from '$lib/data.js';
+  import { loadDeskStatus, loadDeskCalibration, loadDeskFactors, loadDeskCopytrade } from '$lib/data.js';
 
   let status = $state(undefined); // undefined=loading, null=not run yet, obj=ran
   let calib = $state(undefined);
   let factors = $state(undefined);
+  let copytrade = $state(undefined);
   const copy = (t) => navigator.clipboard?.writeText(t);
   const pct = (x) => (x == null ? '—' : (x * 100 >= 0 ? '+' : '') + (x * 100).toFixed(1) + '%');
 
@@ -47,6 +48,7 @@
     status = await loadDeskStatus();
     calib = await loadDeskCalibration();
     factors = await loadDeskFactors();
+    copytrade = await loadDeskCopytrade();
   });
 </script>
 
@@ -117,6 +119,23 @@
     {:else}
       <div class="muted small">Пока ни один фактор не прошёл гейт — это правильно: на малой истории строгий OOS-порог почти ничего не пропускает (анти-оверфит). Реальные факторы появятся по мере накопления снапшотов.</div>
     {/if}
+  {/if}
+</section>
+
+<section class="card">
+  <div class="ttl"><i class="ti ti-arrows-split"></i> Copy-trading: вётчено vs всё</div>
+  {#if copytrade === undefined}
+    <div class="muted pad">Загружаю…</div>
+  {:else if !copytrade}
+    <div class="muted">Ещё не посчитано (появится после прогона воркера). Сравнивает копирование всех roster-кошельков против только <code>copy_ok</code>-вётченных.</div>
+  {:else}
+    <div class="muted small">forward excess на +{copytrade.horizon}д. Сигнал = первый вход кошелька в токен. Вётчено кошельков: {copytrade.copyok_wallets}.</div>
+    <div class="kpis">
+      <div class="kpi"><span class="kl">copy-all n / avg</span><span class="kv">{copytrade.copy_all.n} / <span class={copytrade.copy_all.avg < 0 ? 'down' : 'up'}>{(copytrade.copy_all.avg * 100).toFixed(1)}%</span></span></div>
+      <div class="kpi"><span class="kl">copy-desk n / avg</span><span class="kv">{copytrade.copy_desk.n} / <span class={copytrade.copy_desk.avg < 0 ? 'down' : 'up'}>{(copytrade.copy_desk.avg * 100).toFixed(1)}%</span></span></div>
+      <div class="kpi"><span class="kl">edge (desk−all)</span><span class="kv" class:up={copytrade.edge >= 0} class:down={copytrade.edge < 0}>{(copytrade.edge * 100).toFixed(1)}%</span></div>
+    </div>
+    {#if copytrade.note}<div class="muted small">{copytrade.note}</div>{/if}
   {/if}
 </section>
 

@@ -175,6 +175,11 @@ export async function loadDeskFactors() {
   return { active: active || [], history: history || [] };
 }
 
+// AI Desk copy-trading proof: vetted (copy_ok) vs all-roster forward returns.
+export async function loadDeskCopytrade() {
+  return j(`${RAWB}/desk/copytrade.json`).catch(() => null);
+}
+
 // XS-momentum live paper forward-test: realized track record + current open basket.
 // Both files are written daily by scripts/xs_forward.py (absent until first Actions run).
 export async function loadXsForward() {
