@@ -1,7 +1,7 @@
 {
   "date": "2026-06-28",
   "model": "qwen3-4b-4bit",
-  "generated": "2026-06-28T08:13:52",
+  "generated": "2026-06-29T00:38:57",
   "wallets": [
     {
       "addr": "0:a8f641e2c97deabe8bef338d20387f07fa4ef71e2b0c7d27f9c6ae4c15378fd7",
@@ -112,12 +112,12 @@
       "manip_risk": "high",
       "flags": [
         "wash",
-        "co_entry",
+        "bundler",
         "conceal"
       ],
       "copy_ok": false,
       "conviction": 0.1,
-      "reason": "high manipulation risk and thin sample with weak conviction"
+      "reason": "high manipulation risk and weak conviction due to flags and negative edge"
     },
     {
       "addr": "0:2009400656991ac21b7160b31891f970844ba592be4d0b34d09e98f26fe22844",
@@ -142,7 +142,7 @@
       ],
       "copy_ok": false,
       "conviction": 0.67,
-      "reason": "weak conviction due to negative edge and flags; low sample size"
+      "reason": "weak conviction due to negative edge and flags indicating manipulation risk"
     },
     {
       "addr": "0:484b0ac9b4d429697b76a9adad8ee8886bb3b91e1d9728c608e65c51332431be",
@@ -150,12 +150,12 @@
       "manip_risk": "high",
       "flags": [
         "wash",
-        "bundler",
+        "co_entry",
         "conceal"
       ],
       "copy_ok": false,
       "conviction": 0.1,
-      "reason": "high manipulation risk and weak conviction due to negative edge and thin sample"
+      "reason": "high manipulation risk and weak conviction"
     },
     {
       "addr": "0:790ebf38ac74ed3ac1d9630068444234713e4a2e68623b6ff352718cc997fb20",
@@ -282,7 +282,7 @@
       ],
       "copy_ok": false,
       "conviction": 0.7,
-      "reason": "Moderate manipulation risk and thin sample size suggest caution."
+      "reason": "low conviction due to thin sample and medium manipulation risk"
     },
     {
       "addr": "0:55220019cb28d7da1a5f4ea1d7f69bc14d72b1d51289a81e8393f297b09bdb4c",
@@ -333,7 +333,7 @@
       ],
       "copy_ok": false,
       "conviction": 0.7,
-      "reason": "weak conviction due to low win rate and negative edge, with potential manipulation risks despite low risk flag"
+      "reason": "weak conviction due to low win rate and negative edge, despite low manipulation risk"
     },
     {
       "addr": "0:153068d0ba386b012128fa7d883219ec9edf500172a2d9c7f41f04719a0488b8",
@@ -371,7 +371,7 @@
       ],
       "copy_ok": false,
       "conviction": 0.1,
-      "reason": "high manipulation risk and thin sample"
+      "reason": "high manipulation risk and weak conviction due to flags and dispersion"
     },
     {
       "addr": "0:1f14a8ae11cd3b52fcb83d64a48e9d3f740472f1f6d64960c46d5417678dabe0",
@@ -397,7 +397,7 @@
       ],
       "copy_ok": false,
       "conviction": 0.1,
-      "reason": "high manipulation risk and weak conviction due to flags and dispersion"
+      "reason": "high manipulation risk and thin sample"
     },
     {
       "addr": "0:036aa1bb23e915113d446f4c6577d999bcd183144365408ad5ed57323eb13251",
@@ -600,15 +600,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "EQA61O71y4…",
@@ -617,15 +609,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "EQA69Mhu92…",
@@ -634,15 +618,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "GM",
@@ -652,15 +628,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is high, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "med",
-          "med",
-          "med"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is high, indicating low manipulation risk."
     },
     {
       "sym": "GRINCH",
@@ -670,15 +638,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is high, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "med",
-          "med",
-          "med"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is high, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "EQA6SJ9_U7…",
@@ -687,15 +647,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "EQA6VT7WUn…",
@@ -705,15 +657,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "High wash and co_entry indicate manipulation. Low vol_auth suggests hidden activity.",
-      "ensemble": {
-        "votes": [
-          "high",
-          "high",
-          "high"
-        ],
-        "stable": true
-      }
+      "reason": "High wash and co_entry indicate manipulation. Low vol_auth suggests hidden activity."
     },
     {
       "sym": "EQA6oZqfng…",
@@ -723,15 +667,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "High wash and co_entry indicate manipulation. Low vol_auth suggests hidden activity.",
-      "ensemble": {
-        "votes": [
-          "high",
-          "high",
-          "high"
-        ],
-        "stable": true
-      }
+      "reason": "High wash and co_entry indicate manipulation. Low vol_auth suggests hidden activity."
     },
     {
       "sym": "ТКР",
@@ -741,15 +677,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "High wash and co_entry indicate manipulation. Low vol_auth and high conc suggest hidden activity.",
-      "ensemble": {
-        "votes": [
-          "high",
-          "high",
-          "high"
-        ],
-        "stable": true
-      }
+      "reason": "High wash and co_entry indicate manipulation. Low vol_auth and high conc suggest hidden activity."
     },
     {
       "sym": "USDe",
@@ -758,15 +686,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is high, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is high, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "EQAJ8uWd7E…",
@@ -776,15 +696,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "High wash and co_entry indicate manipulation. Low vol_auth suggests hidden activity.",
-      "ensemble": {
-        "votes": [
-          "high",
-          "high",
-          "high"
-        ],
-        "stable": true
-      }
+      "reason": "High wash and co_entry indicate manipulation. Low vol_auth suggests hidden activity."
     },
     {
       "sym": "EQAKBA1_-w…",
@@ -793,15 +705,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "EGOR",
@@ -811,15 +715,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "High wash and co_entry indicate potential manipulation. Low vol_auth suggests reduced transparency, increasing risk.",
-      "ensemble": {
-        "votes": [
-          "high",
-          "high",
-          "high"
-        ],
-        "stable": true
-      }
+      "reason": "High wash and co_entry indicate potential manipulation. Low vol_auth suggests reduced transparency, increasing risk."
     },
     {
       "sym": "EQAOyf4n-7…",
@@ -828,15 +724,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "EQAQXlWJvG…",
@@ -845,15 +733,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "EQAX9J60va…",
@@ -862,15 +742,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "INTERNFUND",
@@ -880,15 +752,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "High wash and co_entry indicate manipulation. Low vol_auth and high conc suggest hidden activity.",
-      "ensemble": {
-        "votes": [
-          "high",
-          "high",
-          "high"
-        ],
-        "stable": true
-      }
+      "reason": "High wash and co_entry indicate manipulation. Low vol_auth and high conc suggest hidden activity."
     },
     {
       "sym": "MEMEGRAM",
@@ -898,15 +762,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is high, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "med",
-          "med",
-          "med"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is high, indicating low manipulation risk."
     },
     {
       "sym": "EQAmsYIAad…",
@@ -915,15 +771,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "EQAtwo6qMN…",
@@ -932,15 +780,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "NOT",
@@ -949,15 +789,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, which reduces manipulation risk. Vol_auth is high, indicating low manipulation risk. Conc is low, which also reduces manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, which reduces manipulation risk. Vol_auth is high, indicating low manipulation risk. Conc is low, which also reduces manipulation risk."
     },
     {
       "sym": "EQB5jqHoxZ…",
@@ -966,15 +798,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "EQBARQjzu8…",
@@ -983,15 +807,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "TAC",
@@ -1000,15 +816,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is high, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is high, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "EQBKMfjX_a…",
@@ -1017,15 +825,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "CHERRY",
@@ -1034,15 +834,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is high, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is high, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "EQBKyW3f79…",
@@ -1051,15 +843,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "EQBSCtnNQk…",
@@ -1069,15 +853,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "High wash and co_entry indicate manipulation. Low vol_auth suggests hidden activity.",
-      "ensemble": {
-        "votes": [
-          "high",
-          "high",
-          "high"
-        ],
-        "stable": true
-      }
+      "reason": "High wash and co_entry indicate manipulation. Low vol_auth suggests hidden activity."
     },
     {
       "sym": "EQBTeKZr8o…",
@@ -1087,15 +863,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "High wash and co_entry indicate manipulation. Low vol_auth suggests hidden activity.",
-      "ensemble": {
-        "votes": [
-          "high",
-          "high",
-          "high"
-        ],
-        "stable": true
-      }
+      "reason": "High wash and co_entry indicate manipulation. Low vol_auth suggests hidden activity."
     },
     {
       "sym": "REDO",
@@ -1104,15 +872,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "UTYA",
@@ -1121,15 +881,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is high, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is high, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "EQBiyZMUXv…",
@@ -1138,15 +890,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "FLYON",
@@ -1156,15 +900,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "High wash and co_entry indicate potential manipulation. Low vol_auth suggests limited market participation, increasing risk.",
-      "ensemble": {
-        "votes": [
-          "high",
-          "high",
-          "high"
-        ],
-        "stable": true
-      }
+      "reason": "High wash and co_entry indicate potential manipulation. Low vol_auth suggests limited market participation, increasing risk."
     },
     {
       "sym": "OINVD",
@@ -1174,15 +910,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is high, and conc is high, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "med",
-          "med",
-          "med"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is high, and conc is high, indicating low manipulation risk."
     },
     {
       "sym": "EQBsosmcZr…",
@@ -1191,15 +919,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "EQC-hAwmSV…",
@@ -1208,15 +928,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "EQC1fjsBMk…",
@@ -1225,15 +937,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "GRM",
@@ -1242,15 +946,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is high, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is high, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "COIN",
@@ -1260,15 +956,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "High wash and co_entry indicate manipulation. Low vol_auth suggests hidden activity.",
-      "ensemble": {
-        "votes": [
-          "high",
-          "high",
-          "high"
-        ],
-        "stable": true
-      }
+      "reason": "High wash and co_entry indicate manipulation. Low vol_auth suggests hidden activity."
     },
     {
       "sym": "Yoda",
@@ -1277,15 +965,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "tsTON",
@@ -1294,15 +974,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is high, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is high, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "PLUSHPEPE",
@@ -1312,15 +984,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is high, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "med",
-          "med",
-          "med"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is high, indicating low manipulation risk."
     },
     {
       "sym": "TEDDIE",
@@ -1330,15 +994,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is high, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "med",
-          "med",
-          "med"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is high, indicating low manipulation risk."
     },
     {
       "sym": "MAJOR",
@@ -1347,15 +1003,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is high, and conc is low, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is high, and conc is low, indicating low manipulation risk."
     },
     {
       "sym": "EQCvxJy4eG…",
@@ -1364,15 +1012,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "USD₮",
@@ -1381,15 +1021,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, which reduces manipulation risk. Vol_auth is moderate, and conc is low, suggesting minimal manipulation activity.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, which reduces manipulation risk. Vol_auth is moderate, and conc is low, suggesting minimal manipulation activity."
     },
     {
       "sym": "EQD-cvR0Nz…",
@@ -1398,15 +1030,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "EQD01TwE1p…",
@@ -1415,15 +1039,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "EQDE1iPrP8…",
@@ -1432,15 +1048,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "CAPS",
@@ -1450,15 +1058,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is high, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "med",
-          "med",
-          "med"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is high, indicating low manipulation risk."
     },
     {
       "sym": "tsUSDe",
@@ -1467,15 +1067,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is moderate, indicating low manipulation risk."
     },
     {
       "sym": "SCAT",
@@ -1485,15 +1077,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is moderate, and conc is high, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "med",
-          "med",
-          "med"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is moderate, and conc is high, indicating low manipulation risk."
     },
     {
       "sym": "MTONGA",
@@ -1502,15 +1086,7 @@
         "bundler",
         "conceal"
       ],
-      "reason": "Wash is low, vol_auth is high, and conc is moderate, indicating low manipulation risk.",
-      "ensemble": {
-        "votes": [
-          "low",
-          "low",
-          "low"
-        ],
-        "stable": true
-      }
+      "reason": "Wash is low, vol_auth is high, and conc is moderate, indicating low manipulation risk."
     }
   ]
 }
