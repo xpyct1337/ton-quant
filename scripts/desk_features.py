@@ -137,6 +137,9 @@ def build_features():
             "wash": token_wash(addr, wash_ban),
             "vol_auth": vol_auth(t) if t else 0.5,   # unknown -> neutral
             "conc": conc(t) if t else 0.5,
+            "fields": {k: t.get(k) for k in                 # raw snapshot fields for factors
+                       ("vol24", "tvl", "holders", "buys", "sells",
+                        "mcap", "supply", "price", "pools")} if t else {},
         }
 
     # ---- wallet features ----
