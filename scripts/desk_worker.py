@@ -99,10 +99,6 @@ def run_calibrate(state):
     return "calibrate+copytrade done"
 
 
-def run_research(state):
-    return desk_researcher.research_once()
-
-
 def run_revalidate(state):
     state["last_revalidate"] = int(time.time())
     return desk_researcher.revalidate()
@@ -180,7 +176,7 @@ def iterate():
         elif task == "deep_vetting":
             msg = run_deep_vetting(state)
         elif task == "research":
-            msg = run_research(state)
+            msg = desk_researcher.research_once()
         else:
             msg = "idle: nothing due"
     except Exception as e:                             # noqa: BLE001 — never crash loop

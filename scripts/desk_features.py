@@ -40,11 +40,6 @@ def clamp(x, lo=0.0, hi=1.0):
     return max(lo, min(hi, x))
 
 
-def _latest(globpat):
-    files = sorted(glob.glob(globpat))
-    return files[-1] if files else None
-
-
 # ---------- per-token features ----------
 def token_wash(addr, wash_ban):
     return 1.0 if addr in wash_ban else 0.0
@@ -116,8 +111,8 @@ def build_features():
     date = meta.get("date", "")
 
     idx = (load("data/index.json", {}) or {}).get("tokens", {})   # addr -> sym
-    snap_file = _latest("data/snapshots/*.json")
-    snap = (load(snap_file, {}) or {}).get("tokens", {}) if snap_file else {}
+    snap_files = sorted(glob.glob("data/snapshots/*.json"))
+    snap = (load(snap_files[-1], {}) or {}).get("tokens", {}) if snap_files else {}
     wash_ban = set((load("data/paper/bots.json", {}) or {}).get("wash_ban", {}).keys())
 
     # sym -> addrs (invert index, augment with snapshot)
