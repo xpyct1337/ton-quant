@@ -16,48 +16,10 @@ Run from repo root.  Self-check:  python3 scripts/desk_calibration.py --check
 import json, os, sys, glob
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from desk_features import load, vol_auth, conc  # noqa: E402
+from desk_features import load, vol_auth, conc, load_snaps, forward_excess  # noqa: E402
 from desk import floor_risk                      # noqa: E402
 
 HORIZONS = (1, 3, 7)
-
-
-def load_snaps():
-    """{date: snapshot_dict} for every data/snapshots/<date>.json."""
-    out = {}
-    for f in sorted(glob.glob("data/snapshots/*.json")):
-        out[os.path.basename(f)[:-5]] = load(f, {})
-    return out
-
-
-def _price(snaps, date, addr):
-    t = (snaps.get(date, {}).get("tokens", {}) or {}).get(addr)
-    return t.get("price") if t else None
-
-
-def forward_excess(snaps, date, addr, k):
-    """Forward EXCESS return of addr from `date` to the k-th later available date.
-
-    Excess = token raw return minus the mean raw return of all tokens priced on
-    both dates. Returns None if there is no k-th later snapshot or no price."""
-    dates = sorted(snaps)
-    if date not in dates:
-        return None
-    i = dates.index(date)
-    if i + k >= len(dates):
-        return None
-    d2 = dates[i + k]
-    p0, p1 = _price(snaps, date, addr), _price(snaps, d2, addr)
-    if not p0 or not p1:
-        return None
-    raw = p1 / p0 - 1.0
-    rets = []
-    for a in (snaps[date].get("tokens", {}) or {}):
-        a0, a1 = _price(snaps, date, a), _price(snaps, d2, a)
-        if a0 and a1:
-            rets.append(a1 / a0 - 1.0)
-    mean = sum(rets) / len(rets) if rets else 0.0
-    return raw - mean
 
 
 def banned_as_of(wash_ban, addr, date):

@@ -122,9 +122,12 @@ def agent1(model, f, is_token):
 # ---------- Agent 2: smart-money vetting ----------
 A2_SYS = (
     "You are a smart-money vetting analyst deciding if a wallet is safe to copy-trade. "
-    "Refuse (copy_ok=false) when manipulation risk is high, or the edge rests on a thin "
-    "sample (positive edge from very few names), or conviction is weak. Reward consistent "
-    "edge across many names. "
+    "'edge' is a STALE full-history average and can disagree with what just happened; "
+    "'recent_fwd' is the REAL measured forward return of copying this wallet's recent "
+    "entries — trust recent_fwd over edge when they conflict (regimes shift; recent_fwd "
+    "is ground truth, edge is not). Refuse (copy_ok=false) when manipulation risk is "
+    "high, or recent_fwd is missing/negative and edge is also negative (no evidence of "
+    "an edge at all), or the sample is thin (very few names) with weak conviction. "
     'Reply ONLY with JSON: {"copy_ok":true|false,"conviction":0.0-1.0,'
     '"reason":"<=2 sentence chain-of-thought"}.')
 
@@ -132,9 +135,11 @@ A2_SYS = (
 def agent2(model, w, v1):
     hard_block = v1["manip_risk"] == "high"
     thin = (w.get("ne") or 0) <= 2 and (w.get("edge") or 0) > 0
+    rf = w.get("recent_fwd")
+    no_evidence = (rf is None or rf <= 0) and (w.get("edge") or 0) <= 0
     user = json.dumps({
-        "conv": w.get("conv"), "edge": w.get("edge"), "win": w.get("win"),
-        "ne": w.get("ne"), "edge_dispersion": w.get("edge_dispersion"),
+        "conv": w.get("conv"), "edge": w.get("edge"), "recent_fwd": rf,
+        "win": w.get("win"), "ne": w.get("ne"), "edge_dispersion": w.get("edge_dispersion"),
         "manip_risk": v1["manip_risk"], "flags": v1["flags"],
     })
     try:
@@ -144,13 +149,15 @@ def agent2(model, w, v1):
         reason = str(out.get("reason", "")).strip()[:300]
     except Exception as e:                            # noqa: BLE001
         copy_ok, conv, reason = False, 0.0, f"llm_unavailable ({type(e).__name__}); floor"
-    if hard_block or thin:                            # hard gate: imitation-penalty cure
+    if hard_block or thin or no_evidence:              # hard gate: imitation-penalty cure
         copy_ok = False
         if hard_block:
             conv = min(conv, 0.1)
             reason = reason or "blocked: manip_risk=high"
+        elif thin:
+            reason = reason or "blocked: thin sample (high edge, few names)"
         elif not reason:
-            reason = "blocked: thin sample (high edge, few names)"
+            reason = "blocked: no evidence of edge (stale edge and recent_fwd both <=0)"
     return {"copy_ok": copy_ok, "conviction": round(conv, 3),
             "reason": reason or "no reason"}
 

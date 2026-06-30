@@ -40,6 +40,45 @@ def clamp(x, lo=0.0, hi=1.0):
     return max(lo, min(hi, x))
 
 
+# ---------- forward returns (shared by calibration / researcher / copytrade / desk) ----------
+def load_snaps():
+    """{date: snapshot_dict} for every data/snapshots/<date>.json."""
+    out = {}
+    for f in sorted(glob.glob("data/snapshots/*.json")):
+        out[os.path.basename(f)[:-5]] = load(f, {})
+    return out
+
+
+def _price(snaps, date, addr):
+    t = (snaps.get(date, {}).get("tokens", {}) or {}).get(addr)
+    return t.get("price") if t else None
+
+
+def forward_excess(snaps, date, addr, k):
+    """Forward EXCESS return of addr from `date` to the k-th later available date.
+
+    Excess = token raw return minus the mean raw return of all tokens priced on
+    both dates. Returns None if there is no k-th later snapshot or no price."""
+    dates = sorted(snaps)
+    if date not in dates:
+        return None
+    i = dates.index(date)
+    if i + k >= len(dates):
+        return None
+    d2 = dates[i + k]
+    p0, p1 = _price(snaps, date, addr), _price(snaps, d2, addr)
+    if not p0 or not p1:
+        return None
+    raw = p1 / p0 - 1.0
+    rets = []
+    for a in (snaps[date].get("tokens", {}) or {}):
+        a0, a1 = _price(snaps, date, a), _price(snaps, d2, a)
+        if a0 and a1:
+            rets.append(a1 / a0 - 1.0)
+    mean = sum(rets) / len(rets) if rets else 0.0
+    return raw - mean
+
+
 # ---------- per-token features ----------
 def token_wash(addr, wash_ban):
     return 1.0 if addr in wash_ban else 0.0
@@ -125,6 +164,18 @@ def build_features():
 
     roster_addrs = {w["addr"] for w in roster}
     ce_scores, first = co_entry_scores(roster_addrs)
+    snaps = load_snaps()                              # for recent_fwd (real measured outcome)
+
+    def recent_fwd(waddr, horizon=3):
+        """Avg forward EXCESS return of this wallet's first-entries (realized only).
+
+        Unlike the roster 'edge' field (a stale, full-window average — can disagree
+        with what actually just happened), this is the same forward math the
+        copytrade book uses: a recency-true read of whether following this wallet
+        would have paid off lately. None if no entry has a realized outcome yet."""
+        exs = [forward_excess(snaps, d, a, horizon) for a, d in first.get(waddr, {}).items()]
+        exs = [e for e in exs if e is not None]
+        return round(sum(exs) / len(exs), 4) if exs else None
 
     def tok_feats(addr):
         t = snap.get(addr, {})
@@ -157,6 +208,7 @@ def build_features():
             "vol_auth": round(min([vol_auth(snap[a]) for a in present] or [1.0]), 3),
             "conc": round(max([conc(snap[a]) for a in present] or [0.0]), 3),
             "edge_dispersion": edge_dispersion(w.get("ne")),
+            "recent_fwd": recent_fwd(w["addr"]),
         })
 
     # ---- token features (roster tokens ∪ wash-banned) ----
