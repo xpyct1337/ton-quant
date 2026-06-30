@@ -1,12 +1,22 @@
 <script>
+  import { onMount } from 'svelte';
   import { base } from '$app/paths';
-  import { loadCompare } from '$lib/data.js';
+  import { loadCompare, loadUniverse } from '$lib/data.js';
   import { fmtUsd, fmtNum } from '$lib/format.js';
 
-  let addr = $state('');
+  let query = $state('');
+  let universe = $state([]);
   let toks = $state([]);
   let busy = $state(false);
   let err = $state('');
+
+  onMount(() => { loadUniverse().then((u) => (universe = u.tokens || [])); });
+
+  let matches = $derived.by(() => {
+    const q = query.trim().toLowerCase();
+    if (!q || /^(eq|uq|0:)/i.test(q)) return [];               // address typed -> no dropdown
+    return universe.filter((t) => t.sym.toLowerCase().includes(q)).slice(0, 8);
+  });
 
   const rows = [
     ['Price', (t) => fmtUsd(t.price)],
@@ -20,14 +30,16 @@
     ['Mint renounced', (t) => (t.adminZero ? '✓' : '—')]
   ];
 
-  async function add() {
-    const a = addr.trim();
+  async function addByAddr(a) {
+    a = a.trim();
     if (!a || toks.some((t) => t.addr === a) || busy) return;
     busy = true; err = '';
-    try { toks = [...toks, await loadCompare(a)]; addr = ''; }
+    try { toks = [...toks, await loadCompare(a)]; query = ''; }
     catch (e) { err = 'Не удалось загрузить: ' + e.message; }
     busy = false;
   }
+  // Enter with a dropdown match -> pick the top match; otherwise treat input as a raw address.
+  const onEnter = () => addByAddr(matches.length ? matches[0].addr : query);
   const remove = (a) => (toks = toks.filter((t) => t.addr !== a));
 </script>
 
@@ -35,13 +47,24 @@
 <header class="hd"><h1>Compare</h1><span class="muted">сравнение жетонов бок о бок</span></header>
 
 <div class="addbar">
-  <input class="search" placeholder="Адрес жетона (EQ…)" bind:value={addr} onkeydown={(e) => e.key === 'Enter' && add()} />
-  <button class="btn" onclick={add} disabled={busy}>{busy ? '…' : 'Добавить'}</button>
+  <div class="searchwrap">
+    <input class="search" placeholder="Название жетона (REDO…) или адрес (EQ…)" bind:value={query} onkeydown={(e) => e.key === 'Enter' && onEnter()} />
+    {#if matches.length}
+      <div class="dropdown">
+        {#each matches as m}
+          <button class="opt" onclick={() => addByAddr(m.addr)}>
+            <span class="osym">{m.sym}</span><span class="muted small">{fmtUsd(m.price)}</span>
+          </button>
+        {/each}
+      </div>
+    {/if}
+  </div>
+  <button class="btn" onclick={onEnter} disabled={busy}>{busy ? '…' : 'Добавить'}</button>
 </div>
 {#if err}<div class="muted err">{err}</div>{/if}
 
 {#if !toks.length}
-  <div class="muted pad">Добавь 2+ жетона по адресу, чтобы сравнить. Адреса — со страницы Markets/Screener.</div>
+  <div class="muted pad">Добавь 2+ жетона по названию или адресу, чтобы сравнить.</div>
 {:else}
   <div class="card tw">
     <table>
@@ -60,7 +83,15 @@
 <style>
   .hd{display:flex;align-items:baseline;gap:12px;margin-bottom:16px}h1{font-size:24px}
   .addbar{display:flex;gap:10px;margin-bottom:10px}
-  .search{flex:1;background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:9px;padding:9px 12px;font-size:13px}
+  .searchwrap{position:relative;flex:1}
+  .search{width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:9px;padding:9px 12px;font-size:13px}
+  .dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:10;background:var(--card2);
+    border:1px solid var(--border);border-radius:9px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+  .opt{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;
+    background:none;border:none;color:var(--text);padding:8px 12px;font-size:13px;cursor:pointer}
+  .opt:hover{background:rgba(255,255,255,.05)}
+  .osym{font-weight:600}
+  .small{font-size:11px}
   .btn{background:var(--accent);color:#04223b;border:none;border-radius:9px;padding:0 18px;font-weight:500;cursor:pointer}
   .btn:disabled{opacity:.5}.err{font-size:12px;margin-bottom:10px}.pad{padding:30px 0}
   .tw{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px}

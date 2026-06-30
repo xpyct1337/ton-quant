@@ -21,6 +21,15 @@
     return prev > 0 ? (cur / prev - 1) * 100 : null;
   });
 
+  // cross-DEX arbitrage spread: same liquid/active pools as the slippage table, no new fetch
+  let dexSpread = $derived.by(() => {
+    const ps = (d?.pairs || [])
+      .filter((p) => p.baseToken?.address === d.addr && (p.liquidity?.usd || 0) > 5000 && (p.volume?.h24 || 0) > 100 && p.priceUsd)
+      .map((p) => parseFloat(p.priceUsd));
+    if (ps.length < 2) return null;
+    return { pct: (Math.max(...ps) - Math.min(...ps)) / Math.min(...ps) * 100, n: ps.length };
+  });
+
   let thesis = $derived.by(() => {
     if (!d) return '';
     const parts = [];
@@ -134,7 +143,12 @@
 
   {#if d.pairs.length}
     <section class="card tw">
-      <div class="sec-title">DEX-ликвидность и слиппедж</div>
+      <div class="sec-title">DEX-ликвидность и слиппедж
+        {#if dexSpread}
+          <span class="muted sm" style="font-weight:400">· спред {dexSpread.pct.toFixed(2)}% across {dexSpread.n} pools</span>
+          {#if dexSpread.pct > 2}<span class="pill warn">arb?</span>{/if}
+        {/if}
+      </div>
       <table>
         <thead><tr><th>Пул</th><th class="r">Liquidity</th><th class="r">Vol 24h</th><th class="r">$1K</th><th class="r">$10K</th><th class="r">Max &lt;1%</th></tr></thead>
         <tbody>

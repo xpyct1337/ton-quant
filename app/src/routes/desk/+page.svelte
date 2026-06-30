@@ -199,10 +199,10 @@
 
   .muted { color: var(--muted) }
   .small { font-size: 12px }
-  .mono { font-family: var(--font-mono) }
+  .mono { font-family: var(--mono) }
   .pad { padding: 14px 0 }
   .good { color: var(--good) } .bad { color: var(--bad) } .warn { color: var(--warn) }
-  code { font-family: var(--font-mono); font-size: .92em; color: var(--ink) }
+  code { font-family: var(--mono); font-size: .92em; color: var(--text) }
 
   /* hero */
   .hero { margin: 4px 0 22px }
@@ -210,25 +210,25 @@
     letter-spacing: .12em; color: var(--good); text-transform: uppercase; margin-bottom: 12px }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); animation: pulse 2s infinite }
   @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(22,199,132,.5) } 70% { box-shadow: 0 0 0 9px rgba(22,199,132,0) } 100% { box-shadow: 0 0 0 0 rgba(22,199,132,0) } }
-  h1 { font-family: var(--font-display); font-size: clamp(30px, 6vw, 46px); font-weight: 800;
+  h1 { font-family: var(--head); font-size: clamp(30px, 6vw, 46px); font-weight: 800;
     line-height: 1.02; letter-spacing: -.02em; margin: 0 }
   .grad { background: linear-gradient(100deg, var(--accent), var(--good)); -webkit-background-clip: text;
     background-clip: text; color: transparent }
   .lede { color: var(--muted); font-size: 15px; line-height: 1.55; max-width: 60ch; margin: 12px 0 0 }
   .meta { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 14px; font-size: 13px }
-  .meta b { color: var(--ink) }
+  .meta b { color: var(--text) }
 
   /* proof */
-  .proof { background: linear-gradient(160deg, var(--card-2), var(--card));
-    border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-bottom: 16px;
-    box-shadow: var(--shadow); position: relative; overflow: hidden }
+  .proof { background: linear-gradient(160deg, var(--card2), var(--card));
+    border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 16px;
+    position: relative; overflow: hidden }
   .proof::before { content: ''; position: absolute; inset: 0 0 auto 0; height: 2px;
     background: linear-gradient(90deg, var(--accent), var(--good), transparent) }
   .proof-head { display: flex; flex-direction: column; gap: 3px; margin-bottom: 16px }
-  .kicker { font-family: var(--font-display); font-size: 13px; font-weight: 700; color: var(--ink) }
+  .kicker { font-family: var(--head); font-size: 13px; font-weight: 700; color: var(--text) }
   .proof-grid { display: grid; grid-template-columns: minmax(150px, .8fr) 1.4fr; gap: 22px; align-items: center }
   .bignum { display: flex; flex-direction: column; gap: 4px }
-  .big { font-family: var(--font-display); font-size: clamp(34px, 7vw, 52px); font-weight: 800; line-height: 1; letter-spacing: -.03em }
+  .big { font-family: var(--head); font-size: clamp(34px, 7vw, 52px); font-weight: 800; line-height: 1; letter-spacing: -.03em }
   .big-cap { font-size: 12px; color: var(--muted) }
   .verdict { font-size: 12px; font-weight: 700; margin-top: 6px }
   .bars { display: flex; flex-direction: column; gap: 9px }
@@ -237,26 +237,26 @@
   .r-low { color: var(--good) } .r-med { color: var(--warn) } .r-high { color: var(--bad) }
   .btrack { height: 8px; background: rgba(255,255,255,.05); border-radius: 6px; overflow: hidden }
   .bfill { height: 100%; border-radius: 6px }
-  .bfill.good { background: linear-gradient(90deg, var(--good-soft), var(--good)) }
-  .bfill.bad { background: linear-gradient(90deg, var(--bad-soft), var(--bad)) }
+  .bfill.good { background: linear-gradient(90deg, rgba(22,199,132,.25), var(--good)) }
+  .bfill.bad { background: linear-gradient(90deg, rgba(246,70,93,.25), var(--bad)) }
   .bval { font-size: 13px; font-weight: 700; text-align: right }
   .bn { font-size: 11px; text-align: right }
   .note-line { margin: 14px 0 0 }
 
   /* kpi strip */
   .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 16px }
-  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
+  .kpi { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
     display: flex; flex-direction: column; gap: 4px }
   .kl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em }
-  .kv { font-family: var(--font-display); font-size: 22px; font-weight: 700 }
-  .sep { color: var(--line); margin: 0 2px }
+  .kv { font-family: var(--head); font-size: 22px; font-weight: 700 }
+  .sep { color: var(--border); margin: 0 2px }
 
   /* two-column cards */
   .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px }
   @media (max-width: 680px) { .cols { grid-template-columns: 1fr } .proof-grid { grid-template-columns: 1fr } }
-  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 15px 16px; margin-bottom: 16px }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 15px 16px; margin-bottom: 16px }
   .cols .card { margin-bottom: 0 }
-  .ttl { font-family: var(--font-display); font-size: 14px; font-weight: 700; display: flex; align-items: center;
+  .ttl { font-family: var(--head); font-size: 14px; font-weight: 700; display: flex; align-items: center;
     gap: 8px; margin-bottom: 12px }
   .ttl .small { font-weight: 400 }
 
@@ -264,7 +264,7 @@
   .duel { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; margin: 6px 0 12px }
   .side { display: flex; flex-direction: column; gap: 3px; text-align: center }
   .sl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em }
-  .sv { font-family: var(--font-display); font-size: 26px; font-weight: 800 }
+  .sv { font-family: var(--head); font-size: 26px; font-weight: 800 }
   .sn { font-size: 11px }
   .vs { font-size: 11px; color: var(--muted); font-weight: 700 }
   .edge { text-align: center; font-size: 13px; font-weight: 700; padding: 8px; border-radius: 9px;
@@ -272,18 +272,18 @@
 
   /* researcher */
   .rstats { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px }
-  .chip { font-size: 12px; padding: 4px 9px; border-radius: 20px; background: var(--card-2); border: 1px solid var(--line) }
-  .chip b { font-family: var(--font-display) }
+  .chip { font-size: 12px; padding: 4px 9px; border-radius: 20px; background: var(--card2); border: 1px solid var(--border) }
+  .chip b { font-family: var(--head) }
   .flist { display: flex; flex-direction: column; gap: 6px }
-  .frow { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13px }
+  .frow { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px }
   .frow:last-child { border-bottom: none }
 
   /* flagged tokens */
   .chips { display: flex; flex-wrap: wrap; gap: 8px }
   .tok { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600;
-    padding: 5px 10px; border-radius: 9px; background: var(--bad-soft); color: var(--ink); border: 1px solid rgba(246,70,93,.25) }
-  .tok .tflags { font-family: var(--font-mono); font-size: 10px; color: var(--bad); font-weight: 500 }
-  .tok.more { background: var(--card-2); color: var(--muted); border-color: var(--line) }
+    padding: 5px 10px; border-radius: 9px; background: rgba(246,70,93,.14); color: var(--text); border: 1px solid rgba(246,70,93,.25) }
+  .tok .tflags { font-family: var(--mono); font-size: 10px; color: var(--bad); font-weight: 500 }
+  .tok.more { background: var(--card2); color: var(--muted); border-color: var(--border) }
 
-  .foot { margin-top: 8px; line-height: 1.6; border-top: 1px solid var(--line); padding-top: 14px }
+  .foot { margin-top: 8px; line-height: 1.6; border-top: 1px solid var(--border); padding-top: 14px }
 </style>
