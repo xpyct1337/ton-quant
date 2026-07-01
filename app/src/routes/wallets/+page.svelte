@@ -1,17 +1,29 @@
 <script>
   import { onMount } from 'svelte';
-  import { loadWallets } from '$lib/data.js';
+  import { loadWallets, loadDeskStatus } from '$lib/data.js';
 
   let st = $state('loading');
   let data = $state(null);
+  let verdicts = $state(null); // null until loaded / absent -> page degrades gracefully (no risk layer)
   let sort = $state('smart'); // combined who-to-copy rank (default); 'edge'=skill, 'breadth'=conviction
 
   const short = (a) => a.slice(0, 4) + '…' + a.slice(-4);
   const tv = (a) => 'https://tonviewer.com/' + a;
   const fmtEdge = (e) => (e == null ? '—' : (e > 0 ? '+' : '') + e + '%');
 
-  let roster = $derived(
-    [...(data?.roster || [])].sort((a, b) =>
+  let vByAddr = $derived.by(() => {
+    const m = new Map();
+    for (const w of verdicts?.wallets || []) m.set(w.addr, w);
+    return m;
+  });
+  let riskBySym = $derived.by(() => {
+    const m = new Map();
+    for (const t of verdicts?.tokens || []) m.set(t.sym, t);
+    return m;
+  });
+
+  let roster = $derived.by(() => {
+    const byMetric = (a, b) =>
       sort === 'smart'
         ? (b.smart ?? -1e9) - (a.smart ?? -1e9) || b.n - a.n
         : sort === 'edge'
@@ -20,9 +32,17 @@
             ? (b.win ?? -1) - (a.win ?? -1) || (b.edge ?? -1e9) - (a.edge ?? -1e9)
             : sort === 'conv'
               ? (b.conv ?? -1) - (a.conv ?? -1) || b.n - a.n
-              : b.n - a.n
-    )
-  );
+              : b.n - a.n;
+    const sorted = [...(data?.roster || [])].sort(byMetric);
+    if (!vByAddr.size) return sorted;   // no desk verdicts -> plain sort, no risk layer
+    // desk-vetted: copy_ok wallets float to the top, flagged (copy_ok=false) sink to
+    // the bottom; wallets the desk hasn't scored (yet) stay in the middle, untouched.
+    const bucket = (w) => { const v = vByAddr.get(w.addr); return v ? (v.copy_ok ? 0 : 2) : 1; };
+    return sorted
+      .map((w, i) => ({ w, i }))
+      .sort((x, y) => bucket(x.w) - bucket(y.w) || x.i - y.i)
+      .map(({ w }) => w);
+  });
   let signals = $derived(roster.filter((w) => w.new && w.new.length));
 
   onMount(async () => {
@@ -32,6 +52,7 @@
     } catch (e) {
       st = 'error';
     }
+    loadDeskStatus().then((v) => (verdicts = v)).catch(() => {});
   });
 </script>
 
@@ -78,6 +99,7 @@
       <div class="fav-h"><i class="ti ti-flame"></i> Топ токенов у умных денег</div>
       <div class="muted small">консенсус «умных денег» по экосистеме: <b>⚖cons</b> = rank-взвешенное число держателей ростера (топ-холдер весит больше хвоста), <b>N×</b> = сырое число держателей. edge = средняя {data.edge_days || 7}-дн. доходность этих держателей</div>
       {#each data.favorites.slice(0, 15) as f}
+        {@const tokV = riskBySym.get(f.sym)}
         <div class="fav-row">
           <span class="chip fav-tok">{f.sym}</span>
           <span class="fav-bar"><span class="fav-fill" style="width:{((f.cons ?? f.holders) / (data.favorites[0].cons ?? data.favorites[0].holders)) * 100}%"></span></span>
@@ -85,6 +107,7 @@
           <span class="fav-n mono" title="сырое число держателей ростера">{f.holders}×</span>
           {#if f.avg_edge != null}<span class="edge mono" class:up={f.avg_edge > 0} class:down={f.avg_edge < 0}>{fmtEdge(f.avg_edge)}</span>{/if}
           {#if f.new}<span class="chip new">+{f.new}</span>{/if}
+          {#if tokV?.manip_risk === 'high'}<span class="risk high" title="AI Desk: {tokV.reason || 'высокий риск манипуляции'}">⚠ risk</span>{/if}
         </div>
       {/each}
     </section>
@@ -92,10 +115,14 @@
 
   <div class="grid">
     {#each roster as w, i}
-      <div class="card wc">
+      {@const v = vByAddr.get(w.addr)}
+      <div class="card wc" class:dirty={v && !v.copy_ok}>
         <div class="wc-top">
           <span class="rank mono">#{i + 1}</span>
           <a class="addr mono" href={tv(w.addr)} target="_blank" rel="noopener" title={w.addr}>{w.name || short(w.addr)}</a>
+          {#if v}
+            <span class="risk {v.manip_risk}" title="AI Desk vetting{v.copy_ok ? ' — можно копировать' : ' — не копировать'} (conviction {v.conviction}): {v.reason}">{v.manip_risk}</span>
+          {/if}
           {#if w.smart != null}
             <span class="smart mono" class:up={w.smart > 0} class:down={w.smart < 0}
               title="smart-score — единый рейтинг «кого копировать»: shrunk edge × hit-rate × breadth-бонус (edge·ne/(ne+3)·win/100·(1+0.1·(n−2))). Тонкая выборка и непостоянство тянут вниз; отрицательный edge → отрицательный скор">★{w.smart}</span>
@@ -151,6 +178,12 @@
   .win{font-size:12px;color:var(--muted);background:rgba(255,255,255,.06);border-radius:6px;padding:1px 7px}
   .win.up{color:#41d68a;background:rgba(65,214,138,.12)}
   .win.down{color:#ffae57;background:rgba(255,174,87,.12)}
+  .risk{font-size:11px;font-weight:600;text-transform:uppercase;border-radius:6px;padding:1px 7px;cursor:help}
+  .risk.low{color:#41d68a;background:rgba(65,214,138,.12)}
+  .risk.med{color:#ffae57;background:rgba(255,174,87,.12)}
+  .risk.high{color:#ff6b6b;background:rgba(255,107,107,.16)}
+  .wc.dirty{opacity:.55}
+  .wc.dirty:hover{opacity:.9}
   .sortbar{display:flex;align-items:center;gap:8px;margin-top:10px}
   .sb{font-size:12px;color:var(--muted);background:var(--card);border:1px solid var(--border);border-radius:8px;padding:3px 10px;cursor:pointer}
   .sb.on{color:var(--accent);border-color:rgba(34,167,255,.5);background:rgba(34,167,255,.08)}
