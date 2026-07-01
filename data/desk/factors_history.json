@@ -1,107 +1,5 @@
 [
   {
-    "ts": "2026-06-30T15:09:44",
-    "action": "proposed",
-    "factor": {
-      "id": "f_e4a084c7",
-      "expr": {
-        "op": "sub",
-        "a": "tvl",
-        "b": "mcap"
-      },
-      "direction": "high_is_bad",
-      "threshold": 0.5,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-06-30T15:09:44",
-    "action": "rejected",
-    "factor": {
-      "id": "f_e4a084c7",
-      "expr": {
-        "op": "sub",
-        "a": "tvl",
-        "b": "mcap"
-      },
-      "direction": "high_is_bad",
-      "threshold": 0.5,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 0,
-        "losers": 0,
-        "wilson_lo": null,
-        "sign_p": null,
-        "avg": 0.0
-      },
-      "oos": {
-        "n": 0,
-        "losers": 0,
-        "wilson_lo": null,
-        "sign_p": null,
-        "avg": 0.0
-      },
-      "bar": 0.0007,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-06-30T15:10:07",
-    "action": "proposed",
-    "factor": {
-      "id": "f_e4a084c7",
-      "expr": {
-        "op": "sub",
-        "a": "tvl",
-        "b": "mcap"
-      },
-      "direction": "high_is_bad",
-      "threshold": 0.5,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-06-30T15:10:07",
-    "action": "rejected",
-    "factor": {
-      "id": "f_e4a084c7",
-      "expr": {
-        "op": "sub",
-        "a": "tvl",
-        "b": "mcap"
-      },
-      "direction": "high_is_bad",
-      "threshold": 0.5,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 0,
-        "losers": 0,
-        "wilson_lo": null,
-        "sign_p": null,
-        "avg": 0.0
-      },
-      "oos": {
-        "n": 0,
-        "losers": 0,
-        "wilson_lo": null,
-        "sign_p": null,
-        "avg": 0.0
-      },
-      "bar": 0.0007,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
     "ts": "2026-06-30T15:10:30",
     "action": "proposed",
     "factor": {
@@ -25486,6 +25384,108 @@
         "wilson_lo": null,
         "sign_p": null,
         "avg": 0.0
+      },
+      "oos": {
+        "n": 0,
+        "losers": 0,
+        "wilson_lo": null,
+        "sign_p": null,
+        "avg": 0.0
+      },
+      "bar": 0.0121,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-06-30T18:37:37",
+    "action": "proposed",
+    "factor": {
+      "id": "f_b075b734",
+      "expr": {
+        "op": "sub",
+        "a": "tvl",
+        "b": "supply"
+      },
+      "direction": "high_is_bad",
+      "threshold": 1000000,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-06-30T18:37:37",
+    "action": "rejected",
+    "factor": {
+      "id": "f_b075b734",
+      "expr": {
+        "op": "sub",
+        "a": "tvl",
+        "b": "supply"
+      },
+      "direction": "high_is_bad",
+      "threshold": 1000000,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 0,
+        "losers": 0,
+        "wilson_lo": null,
+        "sign_p": null,
+        "avg": 0.0
+      },
+      "oos": {
+        "n": 0,
+        "losers": 0,
+        "wilson_lo": null,
+        "sign_p": null,
+        "avg": 0.0
+      },
+      "bar": 0.0121,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-06-30T18:38:03",
+    "action": "proposed",
+    "factor": {
+      "id": "f_66758d2a",
+      "expr": {
+        "op": "div",
+        "a": "vol24",
+        "b": "tvl"
+      },
+      "direction": "high_is_bad",
+      "threshold": 0.5,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-06-30T18:38:03",
+    "action": "rejected",
+    "factor": {
+      "id": "f_66758d2a",
+      "expr": {
+        "op": "div",
+        "a": "vol24",
+        "b": "tvl"
+      },
+      "direction": "high_is_bad",
+      "threshold": 0.5,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 25,
+        "losers": 12,
+        "wilson_lo": 30.0,
+        "sign_p": 1.0,
+        "avg": -0.0185
       },
       "oos": {
         "n": 0,
