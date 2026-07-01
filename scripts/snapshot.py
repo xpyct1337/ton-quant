@@ -65,6 +65,9 @@ def main():
             j = get("https://tonapi.io/v2/jettons/" + a, ton=True)
             rec["holders"] = j.get("holders_count", 0)
             rec["supply"] = j.get("total_supply", "0")
+            # deployer registry seed (same response, zero extra calls): admin address,
+            # None once renounced. History accumulates -> repeat-offender scoring later.
+            rec["admin"] = (j.get("admin") or {}).get("address")
             dec = int(j.get("metadata", {}).get("decimals", 9))
             r = rates.get(a, {})
             rec["price"] = (r.get("prices") or {}).get("USD")
@@ -77,10 +80,33 @@ def main():
             rec["buys"] = sum((p.get("txns", {}).get("h24") or {}).get("buys") or 0 for p in pairs)
             rec["sells"] = sum((p.get("txns", {}).get("h24") or {}).get("sells") or 0 for p in pairs)
             rec["pools"] = len(pairs)
+            # pool-structure signals from the SAME pairs response (zero extra calls):
+            # spread = cross-DEX price dispersion (manipulation/fragmentation),
+            # top_pool = TVL share of the biggest pool (fragility), age_d = token age.
+            liq = [p for p in pairs if p.get("baseToken", {}).get("address") == a
+                   and (p.get("liquidity", {}).get("usd") or 0) > 5000
+                   and (p.get("volume", {}).get("h24") or 0) > 100 and p.get("priceUsd")]
+            if len(liq) >= 2:
+                ps = [float(p["priceUsd"]) for p in liq]
+                rec["spread"] = round((max(ps) - min(ps)) / min(ps) * 100, 3)
+            if rec["tvl"] > 0:
+                rec["top_pool"] = round(max(p.get("liquidity", {}).get("usd") or 0 for p in pairs) / rec["tvl"], 3)
+            created = [p.get("pairCreatedAt") for p in pairs if p.get("pairCreatedAt")]
+            if created:
+                rec["age_d"] = int((time.time() * 1000 - min(created)) / 86400000)
         except Exception as e:
             rec["error"] = str(e)[:120]
         out["tokens"][a] = rec
         time.sleep(0.4)
+    if os.environ.get("INTRADAY"):
+        # second daily sample (intraday.yml, 15:10 UTC) -> separate dir so the daily
+        # snapshot semantics (one 03:10 UTC slice/day, all return windows) stay intact.
+        # Doubles time-series resolution for momentum features as history accumulates.
+        os.makedirs("data/intraday", exist_ok=True)
+        with open("data/intraday/" + today + ".json", "w") as f:
+            json.dump(out, f, separators=(",", ":"))
+        print("intraday", today, "tokens:", len(out["tokens"]), "errors:", sum(1 for t in out["tokens"].values() if "error" in t))
+        return
     os.makedirs("data/snapshots", exist_ok=True)
     with open("data/snapshots/" + today + ".json", "w") as f:
         json.dump(out, f, separators=(",", ":"))

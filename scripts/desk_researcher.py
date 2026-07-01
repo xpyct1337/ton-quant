@@ -17,9 +17,10 @@ import json, os, sys, hashlib
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from score import wilson_lo, sign_test_p                       # noqa: E402
 from desk_calibration import load_snaps, forward_excess        # noqa: E402
-from desk_features import series_feats, SERIES_FIELDS          # noqa: E402
-from desk_factors import (factor_signal, fires, FIELDS, DERIVED, OPS, load, HISTORY,  # noqa: E402
-                          load_active, promote, demote, history_append, trials_count)
+from desk_features import series_feats, SERIES_FIELDS, load_aux  # noqa: E402
+from desk_factors import (factor_signal, fires, FIELDS, DERIVED, AUX_FIELDS, OPS,  # noqa: E402
+                          load, HISTORY, load_active, promote, demote,
+                          history_append, trials_count)
 from desk import llm                                           # noqa: E402
 
 BASE_P = 0.05
@@ -35,11 +36,12 @@ def _stats(ex):
             "avg": round(sum(ex) / n, 4) if n else 0.0}
 
 
-def _collect(spec, snaps, dates):
+def _collect(spec, snaps, dates, aux):
     ex = []
     for d in dates:
         for addr, t in (snaps[d].get("tokens", {}) or {}).items():
-            feat = {**t, **series_feats(snaps, d, addr)}   # as-of-date time-series for the factor
+            # as-of-date time-series + Track-B aux (holders/flows) for the factor
+            feat = {**t, **series_feats(snaps, d, addr), **aux.get(d, {}).get(addr, {})}
             if fires(spec, factor_signal(spec, feat)):
                 e = forward_excess(snaps, d, addr, spec.get("horizon", 7))
                 if e is not None:
@@ -52,9 +54,10 @@ def gate(spec, snaps, trials):
     dates = sorted(snaps)
     if len(dates) < 6:
         return None
+    aux = load_aux()
     cut = int(len(dates) * 0.6)
-    si = _stats(_collect(spec, snaps, dates[:cut]))
-    so = _stats(_collect(spec, snaps, dates[cut:]))
+    si = _stats(_collect(spec, snaps, dates[:cut], aux))
+    so = _stats(_collect(spec, snaps, dates[cut:], aux))
     bar = BASE_P / (trials ** 0.5 if trials > 0 else 1)
     def sig(s):                                  # majority underperform, significant, neg avg
         return (s["n"] >= MIN_FIRED and s["wilson_lo"] is not None and s["wilson_lo"] > 50.0
@@ -89,6 +92,11 @@ FOCUSES = (
     ("volume anomaly", ["vol_z", "vol_tvl", "rvol"]),
     ("short-term reversal", ["ret_1d", "price"]),
     ("holder dynamics", ["holders", "hgrow_7d"]),
+    # Track B (fields appear as the cloud collectors accumulate history):
+    ("holder concentration", ["top10", "top25", "hhi"]),
+    ("organic vs bot buyer flow", ["ubuyers", "buyer_conc", "buy_share"]),
+    ("pool structure & age", ["spread", "top_pool", "age_d"]),
+    ("social attention", ["mentions", "hgrow_7d", "ubuyers"]),
 )
 
 
@@ -118,7 +126,7 @@ def propose():
     if _depth(out["expr"]) > 3:                        # reject runaway nesting
         return None, "expr too deep"
     # validate it evaluates on a sample (rejects unknown fields/ops safely)
-    if factor_signal(out, {k: 1.0 for k in FIELDS + SERIES_FIELDS}) is None:
+    if factor_signal(out, {k: 1.0 for k in FIELDS + SERIES_FIELDS + AUX_FIELDS}) is None:
         return None, "invalid expr"
     out["direction"] = out.get("direction") if out.get("direction") in (
         "high_is_bad", "low_is_bad") else "high_is_bad"

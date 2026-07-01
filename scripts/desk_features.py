@@ -130,6 +130,21 @@ def series_feats(snaps, date, addr):
     return {k: round(v, 4) if isinstance(v, float) else v for k, v in f.items()}
 
 
+# ---------- Track B aux data (holders concentration + trade flows) ----------
+def load_aux():
+    """{date: {token_addr: fields}} merged from data/holders/ and data/flows/
+    (cloud Track-B collectors). Empty until they've run — features simply absent,
+    factors referencing them won't fire (honest degradation)."""
+    out = {}
+    for d in ("data/holders", "data/flows", "data/social"):
+        for f in glob.glob(d + "/*.json"):
+            doc = load(f, {})
+            day = os.path.basename(f)[:-5]
+            for a, m in (doc.get("tokens") or {}).items():
+                out.setdefault(day, {}).setdefault(a, {}).update(m)
+    return out
+
+
 # ---------- per-token features ----------
 def token_wash(addr, wash_ban):
     return 1.0 if addr in wash_ban else 0.0
@@ -229,14 +244,17 @@ def build_features():
         return round(sum(exs) / len(exs), 4) if exs else None
 
     latest = sorted(snaps)[-1] if snaps else date
+    aux_latest = load_aux().get(latest, {})           # Track B: holders conc + trade flows
 
     def tok_feats(addr):
         t = snap.get(addr, {})
         fields = {k: t.get(k) for k in
                   ("vol24", "tvl", "holders", "buys", "sells",
-                   "mcap", "supply", "price", "pools")} if t else {}
+                   "mcap", "supply", "price", "pools", "spread", "top_pool", "age_d")
+                  if t.get(k) is not None} if t else {}
         if t:
             fields.update(series_feats(snaps, latest, addr))   # +time-series for factors
+            fields.update(aux_latest.get(addr, {}))            # +holder conc / flow metrics
         return {
             "wash": token_wash(addr, wash_ban),
             "vol_auth": vol_auth(t) if t else 0.5,   # unknown -> neutral

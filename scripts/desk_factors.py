@@ -18,6 +18,12 @@ MAX_ACTIVE = 8
 MAX_HISTORY = 1000   # ring buffer size for the append-only audit log
 FIELDS = ("vol24", "tvl", "holders", "buys", "sells", "mcap", "supply", "price", "pools")
 DERIVED = ("buy_sell_skew", "vol_tvl")
+# Track B collectors (present once the cloud has run them; factors referencing a
+# missing field simply don't fire): snapshot pool-structure + holders + trade flows.
+AUX_FIELDS = ("spread", "top_pool", "age_d",          # snapshot.py pool structure
+              "top10", "top25", "hhi",                # wallets.py holder concentration
+              "ubuyers", "buyer_conc", "buy_share",   # flows.py trade flows
+              "mentions")                             # social.py Telegram cashtags
 OPS = ("div", "mul", "sub", "add", "abs", "min", "max", "const")
 
 

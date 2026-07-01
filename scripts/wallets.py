@@ -49,6 +49,7 @@ def main():
     toks = {t["addr"]: t["sym"] for t in uni["tokens"] if t.get("tracked")}
     today = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
     held = {}  # owner_addr -> {"name":.., "toks":{addr:rank}}
+    hbal = {}  # token addr -> top-N holder balances (raw units) — for concentration metrics
     ok = 0
     for a in toks:
         try:
@@ -56,6 +57,7 @@ def main():
         except Exception:
             continue
         ok += 1
+        hbal[a] = sorted((int(hh.get("balance") or 0) for hh in d.get("addresses", [])), reverse=True)
         for rank, hh in enumerate(d.get("addresses", []), 1):
             o = hh.get("owner") or {}
             w = o.get("address")
@@ -135,9 +137,33 @@ def main():
     json.dump(out, open(D + "/wallets.json", "w"), separators=(",", ":"))
     json.dump({"date": today, "held": {w: {"name": e["name"], "toks": e["toks"]} for w, e in held.items()}},
               open(f"{D}/wallets/{today}.json", "w"), separators=(",", ":"))
+
+    # holder-concentration metrics from the SAME holders responses (zero extra calls):
+    # top10/top25 = supply share of top holders, hhi = Herfindahl over the top-N sample
+    # (a lower bound on the true HHI — fine as a cross-sectional risk ranking).
+    # Supply comes from today's snapshot (snapshot.py runs earlier in the workflow).
+    try:
+        supply = {a: int(t.get("supply") or 0)
+                  for a, t in json.load(open(f"{D}/snapshots/{today}.json"))["tokens"].items()}
+    except Exception:
+        supply = {}
+    hold = {}
+    for a, bals in hbal.items():
+        s = supply.get(a, 0)
+        if s <= 0 or not bals:
+            continue
+        sh = [b / s for b in bals]
+        hold[a] = {"top10": round(min(1.0, sum(sh[:10])), 4),
+                   "top25": round(min(1.0, sum(sh[:25])), 4),
+                   "hhi": round(sum(x * x for x in sh), 5)}
+    if hold:
+        os.makedirs(D + "/holders", exist_ok=True)
+        json.dump({"date": today, "tokens": hold}, open(f"{D}/holders/{today}.json", "w"), separators=(",", ":"))
+        json.dump({"date": today, "tokens": hold}, open(D + "/holders.json", "w"), separators=(",", ":"))
+
     print(f"wallets {today}: scanned {ok}/{len(toks)} toks, {len(held)} wallets, "
           f"roster {len(out_roster)}, favorites {len(favorites)}, "
-          f"new-entry signals {sum(len(r['new']) for r in out_roster)}")
+          f"new-entry signals {sum(len(r['new']) for r in out_roster)}, holders-metrics {len(hold)}")
 
 if __name__ == "__main__":
     main()

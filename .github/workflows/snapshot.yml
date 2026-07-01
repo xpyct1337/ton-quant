@@ -20,6 +20,8 @@ jobs:
       - run: python scripts/altsnapshot.py
       - run: python scripts/altpaper.py
       - run: python scripts/wallets.py
+      - run: python scripts/flows.py || true   # non-fatal: trade-flow metrics (GeckoTerminal)
+      - run: python scripts/social.py || true  # non-fatal: Telegram mention counts (t.me/s public previews)
       - run: pip install --quiet numpy pandas requests
       - run: python scripts/xs_forward.py || true   # non-fatal: never break the snapshot
       - run: |
