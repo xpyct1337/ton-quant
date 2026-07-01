@@ -145,6 +145,19 @@ def load_aux():
     return out
 
 
+def mention_velocity():
+    """{addr: m_vel} = latest social day's mentions minus the previous day's.
+    0-defaulted: a token absent from an EXISTING social file had 0 mentions that
+    day (unlike holders/flows, absence there means 'not measured')."""
+    files = sorted(glob.glob("data/social/*.json"))
+    if len(files) < 2:
+        return {}
+    prev, cur = load(files[-2], {}), load(files[-1], {})
+    pt, ct = prev.get("tokens", {}) or {}, cur.get("tokens", {}) or {}
+    return {a: ct.get(a, {}).get("mentions", 0) - pt.get(a, {}).get("mentions", 0)
+            for a in set(ct) | set(pt)}
+
+
 # ---------- per-token features ----------
 def token_wash(addr, wash_ban):
     return 1.0 if addr in wash_ban else 0.0
@@ -245,6 +258,8 @@ def build_features():
 
     latest = sorted(snaps)[-1] if snaps else date
     aux_latest = load_aux().get(latest, {})           # Track B: holders conc + trade flows
+    dep_rug = (load("data/desk/deployers.json", {}) or {}).get("by_token", {})
+    m_vel = mention_velocity()                        # live-only evidence for agent-1
 
     def tok_feats(addr):
         t = snap.get(addr, {})
@@ -255,6 +270,10 @@ def build_features():
         if t:
             fields.update(series_feats(snaps, latest, addr))   # +time-series for factors
             fields.update(aux_latest.get(addr, {}))            # +holder conc / flow metrics
+            if addr in dep_rug:
+                fields["dep_rug"] = dep_rug[addr]              # deployer track record
+            if addr in m_vel:
+                fields["m_vel"] = m_vel[addr]                  # mention velocity (social)
         return {
             "wash": token_wash(addr, wash_ban),
             "vol_auth": vol_auth(t) if t else 0.5,   # unknown -> neutral

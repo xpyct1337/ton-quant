@@ -81,17 +81,33 @@ def floor_risk(f):
     return "low", None
 
 
+# extra Track-B evidence forwarded to agent-1 when the collectors have it
+_RICH = ("top10", "hhi", "buyer_conc", "ubuyers", "spread", "age_d", "mentions",
+         "dep_rug", "m_vel")
+
+
 def _compact(f, is_token):
     keys = ("wash", "vol_auth", "conc") if is_token else \
            ("wash", "co_entry", "vol_auth", "conc", "edge_dispersion")
-    return {k: f.get(k) for k in keys}
+    out = {k: f.get(k) for k in keys}
+    if is_token:
+        fields = f.get("fields") or {}
+        out.update({k: fields[k] for k in _RICH if fields.get(k) is not None})
+    return out
 
 
 # ---------- Agent 1: manipulation analyst ----------
 A1_SYS = (
-    "You are a crypto manipulation analyst. You receive normalized 0..1 features. "
-    "Higher wash, higher co_entry, LOWER vol_auth, higher conc => higher manipulation "
-    "risk. Mark high when wash is high AND co_entry is high AND vol_auth is low. "
+    "You are a crypto manipulation analyst. Core features are normalized 0..1: higher "
+    "wash, higher co_entry, LOWER vol_auth, higher conc => higher manipulation risk. "
+    "Mark high when wash is high AND co_entry is high AND vol_auth is low. "
+    "Extra on-chain evidence may be present: top10/hhi (supply share of top holders — "
+    ">0.6 is dangerous concentration), buyer_conc (top-10 buyers' share of buy volume — "
+    ">0.8 suggests bot-driven washing), ubuyers (unique buyers — low = thin interest), "
+    "spread (cross-DEX price gap %), age_d (token age in days — very young = launch "
+    "risk), mentions (Telegram cashtags), dep_rug (deployer's historical rug rate 0..1 "
+    "— their previous tokens collapsed), m_vel (mention velocity day-over-day; price up "
+    "while mentions fall = distribution warning). Weigh them when present. "
     'Reply ONLY with JSON: {"manip_risk":"low|med|high","flags":["wash"|"bundler"|'
     '"conceal"|...],"reason":"<=2 sentence chain-of-thought"}.')
 
