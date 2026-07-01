@@ -22,7 +22,7 @@ Features:
 
 Run from repo root. stdlib only. Self-check:  python3 scripts/desk_features.py --check
 """
-import json, os, sys, math, glob
+import json, os, sys, math, glob, statistics
 from collections import defaultdict
 
 CO_ENTRY_K = 2   # >=K roster wallets entering a token in one slice = coordinated
@@ -77,6 +77,57 @@ def forward_excess(snaps, date, addr, k):
             rets.append(a1 / a0 - 1.0)
     mean = sum(rets) / len(rets) if rets else 0.0
     return raw - mean
+
+
+# ---------- backward-looking daily-series features (for the researcher DSL) ----------
+# Daily resolution only — the pipeline commits daily snapshots, no intraday data.
+SERIES_FIELDS = ("ret_1d", "mom_3d", "mom_7d", "vol_z", "rvol", "trend", "hgrow_7d")
+
+
+def _series(snaps, date, addr, key):
+    """Values of `key` for addr from oldest snapshot up to `date` inclusive (gaps dropped)."""
+    out = []
+    for d in sorted(snaps):
+        if d > date:
+            break
+        t = (snaps.get(d, {}).get("tokens", {}) or {}).get(addr)
+        v = t.get(key) if t else None
+        if v:
+            out.append(v)
+    return out
+
+
+def series_feats(snaps, date, addr):
+    """Time-series features as-of `date` from committed snapshots. Returns only keys
+    with enough history — a factor referencing a missing one just won't fire on that
+    token/date (eval raises -> no signal), the honest behaviour on thin history.
+    Indices are observations-back (snapshots are ~daily and mostly contiguous)."""
+    px = _series(snaps, date, addr, "price")
+    vol = _series(snaps, date, addr, "vol24")
+    hol = _series(snaps, date, addr, "holders")
+    f = {}
+    if len(px) >= 2:
+        f["ret_1d"] = px[-1] / px[-2] - 1.0            # short reversal (low last-ret tends to outperform)
+    if len(px) >= 4:
+        f["mom_3d"] = px[-1] / px[-4] - 1.0            # cross-sectional momentum
+    if len(px) >= 8:
+        f["mom_7d"] = px[-1] / px[-8] - 1.0
+    if len(px) >= 5:
+        w = px[-10:]
+        m = sum(w) / len(w)
+        if m:
+            f["trend"] = px[-1] / m - 1.0              # price vs recent mean
+        rets = [w[i] / w[i - 1] - 1.0 for i in range(1, len(w)) if w[i - 1]]
+        if len(rets) >= 2:
+            f["rvol"] = round(statistics.pstdev(rets), 4)   # realized volatility (risk/sizing)
+    if len(vol) >= 5:
+        w = vol[-10:]
+        sd = statistics.pstdev(w)
+        if sd > 0:
+            f["vol_z"] = round((vol[-1] - sum(w) / len(w)) / sd, 3)   # volume anomaly (pump trigger)
+    if len(hol) >= 8 and hol[-8]:
+        f["hgrow_7d"] = hol[-1] / hol[-8] - 1.0        # holder growth (organic interest proxy)
+    return {k: round(v, 4) if isinstance(v, float) else v for k, v in f.items()}
 
 
 # ---------- per-token features ----------
@@ -177,15 +228,20 @@ def build_features():
         exs = [e for e in exs if e is not None]
         return round(sum(exs) / len(exs), 4) if exs else None
 
+    latest = sorted(snaps)[-1] if snaps else date
+
     def tok_feats(addr):
         t = snap.get(addr, {})
+        fields = {k: t.get(k) for k in
+                  ("vol24", "tvl", "holders", "buys", "sells",
+                   "mcap", "supply", "price", "pools")} if t else {}
+        if t:
+            fields.update(series_feats(snaps, latest, addr))   # +time-series for factors
         return {
             "wash": token_wash(addr, wash_ban),
             "vol_auth": vol_auth(t) if t else 0.5,   # unknown -> neutral
             "conc": conc(t) if t else 0.5,
-            "fields": {k: t.get(k) for k in                 # raw snapshot fields for factors
-                       ("vol24", "tvl", "holders", "buys", "sells",
-                        "mcap", "supply", "price", "pools")} if t else {},
+            "fields": fields,
         }
 
     # ---- wallet features ----

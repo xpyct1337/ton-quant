@@ -17,6 +17,7 @@ import json, os, sys, hashlib
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from score import wilson_lo, sign_test_p                       # noqa: E402
 from desk_calibration import load_snaps, forward_excess        # noqa: E402
+from desk_features import series_feats, SERIES_FIELDS          # noqa: E402
 from desk_factors import (factor_signal, fires, FIELDS, DERIVED, OPS, load, HISTORY,  # noqa: E402
                           load_active, promote, demote, history_append, trials_count)
 from desk import llm                                           # noqa: E402
@@ -38,7 +39,8 @@ def _collect(spec, snaps, dates):
     ex = []
     for d in dates:
         for addr, t in (snaps[d].get("tokens", {}) or {}).items():
-            if fires(spec, factor_signal(spec, t)):
+            feat = {**t, **series_feats(snaps, d, addr)}   # as-of-date time-series for the factor
+            if fires(spec, factor_signal(spec, feat)):
                 e = forward_excess(snaps, d, addr, spec.get("horizon", 7))
                 if e is not None:
                     ex.append(e)
@@ -78,23 +80,37 @@ def _recent_exprs(limit=12):
     return list(dict.fromkeys(seen))
 
 
-def _research_sys(active_exprs):
+# (label, field menu) rotated deterministically each pass — a weak model can't be
+# steered by a soft hint, so we hand it ONLY this round's fields to force coverage.
+FOCUSES = (
+    ("liquidity vs size", ["tvl", "mcap", "vol24"]),
+    ("buy/sell flow imbalance", ["buys", "sells", "buy_sell_skew"]),
+    ("price momentum & trend", ["mom_3d", "mom_7d", "trend"]),
+    ("volume anomaly", ["vol_z", "vol_tvl", "rvol"]),
+    ("short-term reversal", ["ret_1d", "price"]),
+    ("holder dynamics", ["holders", "hgrow_7d"]),
+)
+
+
+def _research_sys(active_exprs, label, menu):
     avoid = "; ".join(active_exprs) or "none"
     return (
-        "You are a quant factor researcher. Propose ONE candidate factor that predicts a "
-        "token's FUTURE underperformance (manipulation/dump risk) from snapshot fields: "
-        + ", ".join(FIELDS + DERIVED) + ". Allowed ops: " + ", ".join(OPS) + ". "
-        "Keep expr SHALLOW: ONE op over two fields/numbers, max depth 2. Do NOT deeply nest. "
-        'Examples: {"op":"div","a":"vol24","b":"tvl"} or {"op":"mul","a":"buy_sell_skew","b":"vol_tvl"}. '
-        'Reply ONLY JSON: {"id":"f_shortname","expr":{"op":..,"a":..,"b":..},'
+        "You are a quant factor researcher hunting a factor that predicts a token's FUTURE "
+        "underperformance (manipulation/dump risk). THIS ROUND theme: " + label + ". "
+        "Build the expr using ONLY these fields: " + ", ".join(menu) + " (and numeric "
+        "constants). Allowed ops: " + ", ".join(OPS) + ". "
+        "Keep expr SHALLOW: ONE op over two of those fields (or a field and a number), max "
+        "depth 2. Do NOT use fields outside the list. Do NOT deeply nest. "
+        'Reply ONLY JSON: {"id":"f_x","expr":{"op":..,"a":..,"b":..},'
         '"direction":"high_is_bad"|"low_is_bad","threshold":<number>,"horizon":7}. '
         "Avoid these existing exprs: " + avoid)
 
 
 def propose():
+    label, menu = FOCUSES[trials_count() % len(FOCUSES)]   # rotate family each pass
     try:                                              # temp>0 -> explores varied factors
-        out = llm(MODEL, _research_sys(_recent_exprs()), "Propose one new factor.",
-                  temperature=0.8)
+        out = llm(MODEL, _research_sys(_recent_exprs(), label, menu),
+                  "Propose one new factor.", temperature=0.8)
     except Exception as e:                            # noqa: BLE001
         return None, f"llm_unavailable: {type(e).__name__}"
     if not isinstance(out, dict) or "expr" not in out:
@@ -102,7 +118,7 @@ def propose():
     if _depth(out["expr"]) > 3:                        # reject runaway nesting
         return None, "expr too deep"
     # validate it evaluates on a sample (rejects unknown fields/ops safely)
-    if factor_signal(out, {k: 1.0 for k in FIELDS}) is None:
+    if factor_signal(out, {k: 1.0 for k in FIELDS + SERIES_FIELDS}) is None:
         return None, "invalid expr"
     out["direction"] = out.get("direction") if out.get("direction") in (
         "high_is_bad", "low_is_bad") else "high_is_bad"

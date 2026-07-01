@@ -38,6 +38,22 @@ def test_deflated_bar_tightens_with_trials():
     assert g100["bar"] < g1["bar"]   # more trials -> stricter
 
 
+def test_series_feats_momentum_and_reversal():
+    # rising price: last-day return + momentum positive
+    snaps = {}
+    for i in range(10):
+        snaps[f"2026-05-{i+1:02d}"] = {"tokens": {"A": {"price": 100.0 + i * 10, "vol24": 1000, "holders": 500 + i}}}
+    sf = R.series_feats(snaps, "2026-05-10", "A")
+    assert sf["ret_1d"] > 0 and sf["mom_3d"] > 0 and sf["mom_7d"] > 0
+    assert sf["trend"] > 0 and sf["hgrow_7d"] > 0
+
+
+def test_series_feats_thin_history_omits_keys():
+    snaps = {"2026-05-01": {"tokens": {"A": {"price": 100.0}}}}
+    sf = R.series_feats(snaps, "2026-05-01", "A")
+    assert "mom_7d" not in sf and "ret_1d" not in sf   # <2 obs -> nothing, factor won't fire
+
+
 if __name__ == "__main__":
     for n, fn in sorted(globals().items()):
         if n.startswith("test_"):
