@@ -13,6 +13,7 @@ daily history (mention_velocity = d(mentions)/dt; price-vs-mentions divergence).
 Writes data/social/<date>.json keyed by token ADDR (merge-ready for desk load_aux).
 Non-fatal workflow step. stdlib only.
 """
+import html as htmllib
 import json, os, re, time, datetime, urllib.request
 
 UA = {"User-Agent": "Mozilla/5.0", "Accept": "text/html"}
@@ -20,9 +21,11 @@ UA = {"User-Agent": "Mozilla/5.0", "Accept": "text/html"}
 
 def fetch_channel(slug):
     req = urllib.request.Request(f"https://t.me/s/{slug}", headers=UA)
-    html = urllib.request.urlopen(req, timeout=30).read().decode("utf-8", "ignore")
-    msgs = re.findall(r'tgme_widget_message_text[^>]*>(.*?)</div>', html, re.S)
-    return [re.sub(r"<[^>]+>", " ", m) for m in msgs]
+    page = urllib.request.urlopen(req, timeout=30).read().decode("utf-8", "ignore")
+    msgs = re.findall(r'tgme_widget_message_text[^>]*>(.*?)</div>', page, re.S)
+    # unescape AFTER tag-stripping: Telegram encodes '$' as &#036;, so cashtags
+    # are invisible until entities are decoded.
+    return [htmllib.unescape(re.sub(r"<[^>]+>", " ", m)) for m in msgs]
 
 
 def count_mentions(texts, syms):
@@ -66,6 +69,9 @@ if __name__ == "__main__":
         texts = ["Buy $REDO now!! $redo to the moon", "This is not about tokens", "#UTYA breakout"]
         m = count_mentions(texts, ["REDO", "NOT", "UTYA"])
         assert m == {"REDO": 2, "UTYA": 1}, m       # bare word "not" must NOT count
+        # entity-encoded cashtag must survive the pipeline (Telegram sends &#036; for $)
+        deent = htmllib.unescape(re.sub(r"<[^>]+>", " ", "<b>&#036;MIKEY</b> +1 call"))
+        assert count_mentions([deent], ["MIKEY"]) == {"MIKEY": 1}
         print("selftest OK", m)
     else:
         main()
