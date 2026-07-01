@@ -94,6 +94,7 @@ FOCUSES = (
     ("holder dynamics", ["holders", "hgrow_7d"]),
     # Track B (fields appear as the cloud collectors accumulate history):
     ("holder concentration", ["top10", "top25", "hhi"]),
+    ("coordinated funding (bundles)", ["bundle", "max_cluster", "top10"]),
     ("organic vs bot buyer flow", ["ubuyers", "buyer_conc", "buy_share"]),
     ("pool structure & age", ["spread", "top_pool", "age_d"]),
     ("social attention", ["mentions", "hgrow_7d", "ubuyers"]),

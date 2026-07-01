@@ -23,7 +23,8 @@ DERIVED = ("buy_sell_skew", "vol_tvl")
 AUX_FIELDS = ("spread", "top_pool", "age_d",          # snapshot.py pool structure
               "top10", "top25", "hhi",                # wallets.py holder concentration
               "ubuyers", "buyer_conc", "buy_share",   # flows.py trade flows
-              "mentions")                             # social.py Telegram cashtags
+              "mentions",                             # social.py Telegram cashtags
+              "bundle", "max_cluster")                # forensics.py funding clusters
 OPS = ("div", "mul", "sub", "add", "abs", "min", "max", "const")
 
 

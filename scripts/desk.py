@@ -83,7 +83,7 @@ def floor_risk(f):
 
 # extra Track-B evidence forwarded to agent-1 when the collectors have it
 _RICH = ("top10", "hhi", "buyer_conc", "ubuyers", "spread", "age_d", "mentions",
-         "dep_rug", "m_vel")
+         "dep_rug", "m_vel", "bundle", "max_cluster")
 
 
 def _compact(f, is_token):
@@ -107,7 +107,10 @@ A1_SYS = (
     "spread (cross-DEX price gap %), age_d (token age in days — very young = launch "
     "risk), mentions (Telegram cashtags), dep_rug (deployer's historical rug rate 0..1 "
     "— their previous tokens collapsed), m_vel (mention velocity day-over-day; price up "
-    "while mentions fall = distribution warning). Weigh them when present. "
+    "while mentions fall = distribution warning), bundle (share of top-holder balance in "
+    "wallets sharing one funding source — >0.3 = coordinated supply masquerading as "
+    "distributed, strong bundler evidence), max_cluster (largest such wallet group). "
+    "Weigh them when present. "
     'Reply ONLY with JSON: {"manip_risk":"low|med|high","flags":["wash"|"bundler"|'
     '"conceal"|...],"reason":"<=2 sentence chain-of-thought"}.')
 

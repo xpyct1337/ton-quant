@@ -136,7 +136,7 @@ def load_aux():
     (cloud Track-B collectors). Empty until they've run — features simply absent,
     factors referencing them won't fire (honest degradation)."""
     out = {}
-    for d in ("data/holders", "data/flows", "data/social"):
+    for d in ("data/holders", "data/flows", "data/social", "data/forensics"):
         for f in glob.glob(d + "/*.json"):
             doc = load(f, {})
             day = os.path.basename(f)[:-5]
