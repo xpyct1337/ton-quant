@@ -10,7 +10,7 @@ Fault-tolerant: every task runs in try/except; the loop never dies (KeepAlive al
 restarts on crash). Run: python3 scripts/desk_worker.py   (one pass: --once)
 stdlib + urllib only.
 """
-import json, os, sys, time, subprocess, datetime, glob  # noqa: F401
+import json, os, sys, time, subprocess, datetime, glob, urllib.request  # noqa: F401
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from desk_features import load, build_features  # noqa: E402
@@ -56,6 +56,30 @@ def thermal_decision(on_ac, speed_limit):
     if speed_limit < 80:
         return {"run": True, "sleep": 90}            # throttled: work but cool longer
     return {"run": True, "sleep": BASE_SLEEP}
+
+
+def ensure_osaurus():
+    """Start Osaurus if the LLM server isn't responding. The daemon is long-lived
+    (unlike the old cron-based desk_run.sh, which re-checked on every fresh
+    invocation) — Osaurus can crash or a cold boot can arrive with it not running,
+    so every iteration re-checks rather than assuming it stays up forever."""
+    try:
+        urllib.request.urlopen("http://localhost:1337/v1/models", timeout=3)
+        return True
+    except Exception:                                 # noqa: BLE001
+        pass
+    try:
+        subprocess.Popen(["osaurus", "serve"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:                                 # noqa: BLE001
+        return False
+    for _ in range(15):
+        time.sleep(2)
+        try:
+            urllib.request.urlopen("http://localhost:1337/v1/models", timeout=3)
+            return True
+        except Exception:                             # noqa: BLE001
+            continue
+    return False
 
 
 # ---------- state ----------
@@ -158,6 +182,9 @@ def iterate():
     dec = thermal_decision(on_ac, speed)
     if not dec["run"]:
         print(f"governor: idle (ac={on_ac} speed={speed})", flush=True)
+        return dec["sleep"]
+    if not ensure_osaurus():
+        print("osaurus unreachable and failed to start; skipping this cycle", flush=True)
         return dec["sleep"]
     state = get_state()
     today_done = os.path.exists(f"data/desk/verdicts/{today()}.json")

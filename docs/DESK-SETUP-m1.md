@@ -13,7 +13,7 @@
 - Бэкенд/модель меняются в `data/desk/config.json` (`endpoint`, `model`) без правки кода.
 - SSH-ключ `~/.ssh/id_ed25519` (в keychain) добавлен на GitHub → clone/push работают.
 - Репо: `~/Projects/ton-quant`. Python 3.11 (stdlib + urllib, без зависимостей).
-- launchd-агент `com.tonquant.desk` (ночь 03:30 + RunAtLoad catch-up).
+- launchd-агент `com.tonquant.worker` (24/7, KeepAlive + RunAtLoad).
 
 ## 1. Ручной прогон
 
@@ -41,16 +41,18 @@ python3 scripts/desk_test.py                # ассерты §10 на verdicts.
 Переключить на Ollama: `"endpoint":"http://localhost:11434/v1/chat/completions"`,
 `"model":"qwen3:4b"` (или env `DESK_ENDPOINT` / `DESK_MODEL`).
 
-## 1b. 24/7 worker (основной режим)
+## 2. 24/7 worker (единственный режим)
 
 `scripts/desk_worker.py` (launchd `com.tonquant.worker`, KeepAlive) работает
 непрерывно: журналирует дневные вердикты (`data/desk/verdicts/<date>.json`),
-deep-вётит сущности ансамблем (чтобы модель не простаивала) и само-калибруется
-(`data/desk/calibration.json`) — под термо/энерго-governor (тяжёлая работа только от
-сети, бэк-офф при троттлинге). Коммитит **только** `data/desk/` батчами (~30 мин),
-`pull --rebase` + ретрай → не дерётся с Actions(облако)/PC. Каждый шаг толерантен —
-цикл не падает, KeepAlive поднимает после краша. Заменяет ночной `com.tonquant.desk`
-(оставлен выгруженным как fallback).
+deep-вётит сущности ансамблем (чтобы модель не простаивала), само-калибруется
+(`data/desk/calibration.json`) и ищет факторы (`data/desk/factors_*.json`) — под
+термо/энерго-governor (тяжёлая работа только от сети, бэк-офф при троттлинге).
+Коммитит **только** `data/desk/` батчами (~30 мин), `pull --rebase` + ретрай →
+не дерётся с Actions(облако)/PC. Каждый шаг толерантен — цикл не падает, KeepAlive
+поднимает после краша (проверено многократно живьём). Ночной одноразовый
+`com.tonquant.desk`/`desk_run.sh` выведен из эксплуатации 30.06.2026 — воркер
+полностью его заменяет.
 
 ```sh
 launchctl load   ~/Library/LaunchAgents/com.tonquant.worker.plist   # запустить 24/7
@@ -58,17 +60,6 @@ launchctl unload ~/Library/LaunchAgents/com.tonquant.worker.plist   # остан
 tail -f ~/Library/Logs/tonquant-worker.log                          # смотреть
 python3 scripts/desk_worker.py --once                               # один проход (отладка)
 python3 scripts/desk_calibration.py --check                         # self-test калибровки
-```
-
-## 2. Ночной режим (fallback `com.tonquant.desk`)
-
-Старый plist `~/Library/LaunchAgents/com.tonquant.desk.plist` (`desk_run.sh`: pull →
-ensure Osaurus → `desk.py` → commit/push) оставлен **выгруженным** как запасной
-одноразовый ночной прогон. Грузить только если 24/7-worker не используется:
-
-```sh
-launchctl load ~/Library/LaunchAgents/com.tonquant.desk.plist
-launchctl list | grep tonquant
 ```
 
 ## 3. Мониторинг
@@ -91,7 +82,7 @@ launchctl list com.tonquant.worker               # статус воркера /
 - **`push failed`** в логе → проверь `ssh -T git@github.com` (должно «successfully
   authenticated»). Вердикты при этом закоммичены локально — Igor синхронизирует.
 - **Osaurus не отвечает** → `osaurus serve` (или открой Osaurus.app); проверь
-  `curl -s localhost:1337/v1/models`. `desk_run.sh` сам поднимает сервер, если лежит.
+  `curl -s localhost:1337/v1/models`. `desk_worker.py` сам поднимает сервер, если лежит.
 - **Memory pressure / своп** → только 4B-модели; уменьшай `wallet_limit`; агенты и так
   идут по одному в памяти.
 - **Пустой `/desk`** → деск ещё не пушил `verdicts.json`, либо сайт не передеплоен.
