@@ -6,7 +6,7 @@ executed code. desk_researcher.py discovers them; desk.py applies the active set
 Active factors can only RAISE a token's risk (max with floor), never lower it.
 
 Active set: data/desk/factors_active.json   (cap MAX_ACTIVE)
-Audit log : data/desk/factors_history.json  (append-only)
+Audit log : data/desk/factors_history.json  (append-only, ring buffer of MAX_HISTORY)
 CLI: python3 scripts/desk_factors.py --list | --disable <id> [--note "..."]
 Run from repo root. Self-test: scripts/desk_factors_test.py
 """
@@ -15,6 +15,7 @@ import json, os, sys, time
 ACTIVE = "data/desk/factors_active.json"
 HISTORY = "data/desk/factors_history.json"
 MAX_ACTIVE = 8
+MAX_HISTORY = 1000   # ring buffer size for the append-only audit log
 FIELDS = ("vol24", "tvl", "holders", "buys", "sells", "mcap", "supply", "price", "pools")
 DERIVED = ("buy_sell_skew", "vol_tvl")
 OPS = ("div", "mul", "sub", "add", "abs", "min", "max", "const")
@@ -102,13 +103,21 @@ def history_append(action, factor, metrics=None, reason=""):
     h = load(HISTORY, [])
     h.append({"ts": time.strftime("%Y-%m-%dT%H:%M:%S"), "action": action,
               "factor": factor, "metrics": metrics or {}, "reason": reason})
+    h = h[-MAX_HISTORY:]          # conytail: ring buffer — bounds file size / git churn
     os.makedirs("data/desk", exist_ok=True)
     with open(HISTORY, "w") as f:
         json.dump(h, f, ensure_ascii=False, indent=2)
 
 
 def trials_count():
-    return sum(1 for e in load(HISTORY, []) if e["action"] == "proposed")
+    """Count of DISTINCT proposed factor expressions, not raw attempts. The
+    anti-overfit deflated bar should tighten with genuinely new ideas tried, not
+    with how many times the LLM re-proposed the same handful of exprs (it will,
+    at temperature>0, over a 24/7 idle-filler loop) — else the bar collapses
+    toward an unreachable p-value and the gate closes forever."""
+    seen = {json.dumps(e["factor"].get("expr"), sort_keys=True)
+            for e in load(HISTORY, []) if e["action"] == "proposed"}
+    return len(seen)
 
 
 def promote(spec, metrics, reason="auto"):

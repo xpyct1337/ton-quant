@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Plain-assert tests for desk_factors (run with python3)."""
+import os, tempfile
 import desk_factors as F
 
 SPEC = {"id": "f_voltvl", "expr": {"op": "div", "a": "vol24", "b": "tvl"},
@@ -54,6 +55,41 @@ def test_apply_active_only_raises_to_med_then_high():
 def test_derived_fields():
     d = F.derived({"buys": 8, "sells": 2, "vol24": 50, "tvl": 25})
     assert abs(d["buy_sell_skew"] - 0.6) < 1e-9 and d["vol_tvl"] == 2.0
+
+
+def _with_temp_history(fn):
+    """Run fn() with F.HISTORY pointed at a scratch file; restore after."""
+    orig = F.HISTORY
+    fd, path = tempfile.mkstemp(suffix=".json")
+    os.close(fd); os.remove(path)          # start from "file absent" -> load() default []
+    F.HISTORY = path
+    try:
+        fn()
+    finally:
+        F.HISTORY = orig
+        if os.path.exists(path):
+            os.remove(path)
+
+
+def test_trials_count_counts_distinct_exprs_not_attempts():
+    def run():
+        e1 = {"op": "div", "a": "vol24", "b": "tvl"}
+        e2 = {"op": "sub", "a": "tvl", "b": "mcap"}
+        for _ in range(50):                                    # same idea proposed 50x
+            F.history_append("proposed", {"id": "f_a", "expr": e1})
+        F.history_append("proposed", {"id": "f_b", "expr": e2})  # one distinct new idea
+        assert F.trials_count() == 2, F.trials_count()
+    _with_temp_history(run)
+
+
+def test_history_append_caps_at_max_history():
+    def run():
+        F.MAX_HISTORY = 10
+        for i in range(25):
+            F.history_append("proposed", {"id": f"f_{i}", "expr": {"op": "const", "value": i}})
+        assert len(F.load(F.HISTORY, [])) == 10
+        F.MAX_HISTORY = 1000
+    _with_temp_history(run)
 
 
 if __name__ == "__main__":
