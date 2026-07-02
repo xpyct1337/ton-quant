@@ -12,10 +12,13 @@
 
   onMount(() => { loadUniverse().then((u) => (universe = u.tokens || [])); });
 
+  // full address shape only — a symbol like "EQUAL" must still hit the dropdown
+  const isAddr = (s) => /^(EQ|UQ)[A-Za-z0-9_-]{46}$/.test(s) || /^-?\d+:[0-9a-fA-F]{64}$/.test(s);
+
   let matches = $derived.by(() => {
-    const q = query.trim().toLowerCase();
-    if (!q || /^(eq|uq|0:)/i.test(q)) return [];               // address typed -> no dropdown
-    return universe.filter((t) => t.sym.toLowerCase().includes(q)).slice(0, 8);
+    const q = query.trim();
+    if (!q || isAddr(q)) return [];               // address typed -> no dropdown
+    return universe.filter((t) => t.sym.toLowerCase().includes(q.toLowerCase())).slice(0, 8);
   });
 
   const rows = [
@@ -24,7 +27,7 @@
     ['Holders', (t) => fmtNum(t.holders)],
     ['Liquidity', (t) => fmtUsd(t.liq)],
     ['Volume 24h', (t) => fmtUsd(t.vol)],
-    ['TON Quant Score', (t) => t.score + ' / 100'],
+    ['TON Quant Score ≈', (t) => '≈' + t.score + ' / 100'],
     ['Age (days)', (t) => t.ageDays ?? '—'],
     ['Verified', (t) => (t.verification === 'whitelist' ? '✓' : '—')],
     ['Mint renounced', (t) => (t.adminZero ? '✓' : '—')]
@@ -78,6 +81,7 @@
       </tbody>
     </table>
   </div>
+  <p class="muted note">≈ скор здесь приблизительный: ради скорости не фетчится состав холдеров и налог на трансфер — точный TON Quant Score смотри на странице токена.</p>
 {/if}
 
 <style>
@@ -94,6 +98,7 @@
   .small{font-size:11px}
   .btn{background:var(--accent);color:#04223b;border:none;border-radius:9px;padding:0 18px;font-weight:500;cursor:pointer}
   .btn:disabled{opacity:.5}.err{font-size:12px;margin-bottom:10px}.pad{padding:30px 0}
+  .note{font-size:11px;margin-top:10px;line-height:1.5}
   .tw{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px}
   th{color:var(--dim);font-weight:400;text-align:left;padding:8px 12px;font-size:12px;white-space:nowrap}
   td{padding:9px 12px;border-top:1px solid var(--border);white-space:nowrap}

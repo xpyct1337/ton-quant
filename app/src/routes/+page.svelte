@@ -1,13 +1,14 @@
 <script>
   import { onMount } from 'svelte';
   import { loadAll, loadSignals, liveRates } from '$lib/data.js';
-  import { coreIndex, breadth, pctChange } from '$lib/metrics.js';
+  import { coreIndex, breadth, overlayPrices } from '$lib/metrics.js';
   import { buildAgents } from '$lib/agents.js';
   import { buildUnlocks } from '$lib/unlocks.js';
   import { fmtUsd, fmtPct } from '$lib/format.js';
   import Treemap from '$lib/components/Treemap.svelte';
   import AgentCard from '$lib/components/AgentCard.svelte';
   import JettonTable from '$lib/components/JettonTable.svelte';
+  import StaleBanner from '$lib/components/StaleBanner.svelte';
 
   let state = $state('loading');
   let rows = $state([]);
@@ -15,6 +16,7 @@
   let agents = $state([]);
   let unlocks = $state([]);
   let cat = $state('all');
+  let snaps = [];
 
   const cats = [
     { id: 'all', label: 'Все' }, { id: 'meme', label: 'Memes' }, { id: 'defi', label: 'DeFi' },
@@ -32,32 +34,45 @@
   );
   let tableRows = $derived(cat === 'all' ? rows : rows.filter((r) => r.cat === cat));
 
-  onMount(async () => {
-    try {
-      const [d, sig] = await Promise.all([loadAll(), loadSignals()]);
-      // live price overlay — scale price/mcap by live/snap ratio; degrades silently
-      const live = await liveRates(d.rows.map((r) => r.addr));
-      for (const r of d.rows) {
-        const p = live[r.addr];
-        if (p && r.price > 0) { r.mcap *= p / r.price; r.price = p; }
+  // live price overlay — d1/d7 re-based to the snapshots nearest 24h/7d back,
+  // so the shown price and the shown change always agree. Degrades silently.
+  async function refreshLive() {
+    if (!rows.length) return;
+    const live = await liveRates(rows.map((r) => r.addr));
+    const n = overlayPrices(rows, (a) => live[a], snaps, Date.now() / 1000);
+    meta.live = n;
+    meta.liveAt = n ? Date.now() : meta.liveAt;
+  }
+
+  onMount(() => {
+    (async () => {
+      try {
+        const [d, sig] = await Promise.all([loadAll(), loadSignals()]);
+        rows = d.rows;
+        snaps = d.snaps;
+        meta = { updated: d.updated, snaps: d.snapCount, intraday: d.intraday, curTs: d.curTs, live: 0 };
+        agents = buildAgents({ rows: d.rows, signals: sig });
+        unlocks = buildUnlocks(d.rows);
+        state = 'ready';
+        await refreshLive();
+      } catch (e) {
+        state = 'error';
+        meta = { err: String(e.message || e) };
       }
-      rows = d.rows;
-      meta = { updated: d.updated, snaps: d.snapCount, live: Object.keys(live).length };
-      agents = buildAgents({ rows: d.rows, signals: sig });
-      unlocks = buildUnlocks(d.rows);
-      state = 'ready';
-    } catch (e) {
-      state = 'error';
-      meta = { err: String(e.message || e) };
-    }
+    })();
+    const iv = setInterval(() => { if (!document.hidden) refreshLive(); }, 60000);
+    const onVis = () => { if (!document.hidden) refreshLive(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onVis); };
   });
 </script>
 
 <header class="hd">
   <div class="hd-top">
     <h1>Markets</h1>
-    <span class="live"><span class="dot"></span>live</span>
-    {#if meta.updated}<span class="muted upd">snapshot {meta.updated} · {meta.snaps} дней{meta.live ? ' · live цены' : ''}</span>{/if}
+    {#if meta.live}<span class="live"><span class="dot"></span>live · 60s</span>
+    {:else}<span class="live off">daily</span>{/if}
+    {#if meta.updated}<span class="muted upd">snapshot {meta.updated}{meta.intraday ? ' +intraday' : ''} · {meta.snaps} дней{meta.live ? ' · live цены' : ''}</span>{/if}
   </div>
   <div class="tabs">
     {#each cats as c}
@@ -71,6 +86,7 @@
 {:else if state === 'error'}
   <div class="card bad">Не удалось загрузить данные: {meta.err}</div>
 {:else}
+  <StaleBanner when={meta.curTs} />
   <!-- Zone 1: bento overview -->
   <section class="bento">
     <div class="kpis">
@@ -83,8 +99,9 @@
       <div class="sec-title">Market map · CORE, площадь ≈ √mcap, цвет = 7d</div>
       <Treemap {rows} />
       <div class="movers">
-        {#each movers.slice(0, 3) as m}<span class="mv good">{m.sym} {fmtPct(m.d7)}</span>{/each}
-        {#each movers.slice(-3).reverse() as m}<span class="mv bad">{m.sym} {fmtPct(m.d7)}</span>{/each}
+        {#each [...movers.slice(0, 3), ...movers.slice(-3).reverse()] as m}
+          <span class="mv" class:good={m.d7 > 0} class:bad={m.d7 < 0}>{m.sym} {fmtPct(m.d7)}</span>
+        {/each}
       </div>
     </div>
   </section>
@@ -129,6 +146,7 @@
   .hd-top{display:flex;align-items:center;gap:12px}
   h1{font-size:24px}
   .live{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--accent);background:rgba(34,167,255,.12);padding:3px 9px;border-radius:6px}
+  .live.off{color:var(--muted);background:rgba(255,255,255,.06)}
   .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
   .upd{font-size:12px;margin-left:2px}
   .tabs{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}

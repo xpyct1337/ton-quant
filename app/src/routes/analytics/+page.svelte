@@ -1,25 +1,40 @@
 <script>
   import { onMount } from 'svelte';
   import { loadAll, liveRates } from '$lib/data.js';
+  import { overlayPrices } from '$lib/metrics.js';
   import { WIDGETS, GROUPS, PRESETS } from '$lib/widgets.js';
   import { prefs, toggle, showAll, hideAll, applyPreset } from '$lib/dashboardPrefs.svelte.js';
+  import StaleBanner from '$lib/components/StaleBanner.svelte';
 
   let state = $state('loading');
   let rows = $state([]);
   let meta = $state({});
+  let snaps = [];
 
-  onMount(async () => {
-    try {
-      const d = await loadAll(40); // full snapshot history → longer sparks for analytics
-      const live = await liveRates(d.rows.map((r) => r.addr));
-      for (const r of d.rows) { const p = live[r.addr]; if (p && r.price > 0) { r.mcap *= p / r.price; r.price = p; } }
-      rows = d.rows;
-      meta = { updated: d.updated, snaps: d.snapCount };
-      state = 'ready';
-    } catch (e) {
-      state = 'error';
-      meta = { err: String(e.message || e) };
-    }
+  async function refreshLive() {
+    if (!rows.length) return;
+    const live = await liveRates(rows.map((r) => r.addr));
+    overlayPrices(rows, (a) => live[a], snaps, Date.now() / 1000);
+  }
+
+  onMount(() => {
+    (async () => {
+      try {
+        const d = await loadAll(40); // full snapshot history → longer sparks for analytics
+        rows = d.rows;
+        snaps = d.snaps;
+        meta = { updated: d.updated, snaps: d.snapCount, curTs: d.curTs };
+        state = 'ready';
+        await refreshLive();
+      } catch (e) {
+        state = 'error';
+        meta = { err: String(e.message || e) };
+      }
+    })();
+    const iv = setInterval(() => { if (!document.hidden) refreshLive(); }, 60000);
+    const onVis = () => { if (!document.hidden) refreshLive(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onVis); };
   });
 
   let visible = $derived(WIDGETS.filter((w) => w.ready && prefs.visible.has(w.id)));
@@ -42,6 +57,7 @@
 {:else if state === 'error'}
   <div class="card bad">Не удалось загрузить данные: {meta.err}</div>
 {:else}
+  <StaleBanner when={meta.curTs} />
   <!-- Control bar: presets + show/hide all -->
   <section class="ctl card">
     <div class="ctl-row">

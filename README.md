@@ -1,9 +1,14 @@
-# TON Quant — MTONGA Dashboard
+# TON Quant
 
-Live analytics dashboard for MTONGA (Make TON Great Again) on TON.
+Analytics for the TON ecosystem: markets, screener, token deep-dives, smart-money
+wallets, paper bots, momentum forward-test and an AI smart-money desk.
 
-- Data: [TONAPI.io](https://tonapi.io) + [STON.fi API](https://api.ston.fi) — public endpoints, fetched client-side
-- Auto-refresh every 60s, baked-in snapshot fallback
-- Single self-contained `index.html`, no build step
+- Site: SvelteKit static build in `app/` (deployed to GitHub Pages by `deploy.yml`)
+- Data: daily GitHub Actions collectors (`scripts/*.py` → `data/*.json`), an intraday
+  slice at 15:10 UTC, plus a 24/7 M1 desk worker writing `data/desk/`
+- Live layer: pages overlay live TONAPI prices every 60s on top of the baked
+  snapshots; percent-changes are re-based so price and change always agree
+- APIs: [TONAPI.io](https://tonapi.io), DexScreener, [STON.fi](https://api.ston.fi),
+  GeckoTerminal — public endpoints, fetched client-side
 
-Part of **TON Quant** — analytics for the TON ecosystem. Not financial advice.
+Not financial advice.

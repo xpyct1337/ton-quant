@@ -210,7 +210,7 @@ def main():
     tv = []
     for t in tokens:
         v1 = agent1(model, t, is_token=True)
-        tv.append({"sym": t["sym"], "manip_risk": v1["manip_risk"],
+        tv.append({"sym": t["sym"], "addr": t.get("addr"), "manip_risk": v1["manip_risk"],
                    "flags": v1["flags"], "reason": v1["reason"]})
 
     out = {"date": feats["date"], "model": model,

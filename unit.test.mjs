@@ -1,9 +1,7 @@
-// ===== UNIT TESTS: still-vanilla pages (token.html). Pure fns from the new
-// SvelteKit main page are tested in app/src/lib/*.test.js. =====
-import fs from 'fs';
+// ===== UNIT TESTS: reference implementations of formulas shared with the site.
+// Pure fns from the SvelteKit app are tested in app/src/lib/*.test.js. =====
 let pass=0,fail=0;
 const t=(name,cond,info="")=>{ if(cond){pass++;} else {fail++; console.log("FAIL:",name,info);} };
-const _tokP=process.env.TQ_TOK||'token-old.html'; const tok=fs.existsSync(_tokP)?fs.readFileSync(_tokP,'utf8'):'';
 const F={};
 F.pearson=(a,b)=>{if(!a||a.length<3)return null;const n=a.length,ma=a.reduce((s,x)=>s+x,0)/n,mb=b.reduce((s,x)=>s+x,0)/n;let num=0,da=0,db=0;for(let i=0;i<n;i++){const ea=a[i]-ma,eb=b[i]-mb;num+=ea*eb;da+=ea*ea;db+=eb*eb;}return da&&db?num/Math.sqrt(da*db):0;};
 F.esc2=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -75,27 +73,6 @@ const pts=[1,2,3,4,5,6,7,8,9,10];
 const cur=7.5; const below=pts.filter(x=>x<cur).length/pts.length*100;
 t('pctBelow manual', below===70);
 
-// --- volatility / beta helpers (extracted from token.html) ---
-if(tok){
-  const grabLine=re=>tok.match(re)[0];
-  const src=[/^const logRets=.*$/m,/^const stdev=.*$/m,/^const betaCorr=.*$/m].map(grabLine).join('\n');
-  const {logRets,stdev,betaCorr}=new Function(src+'\nreturn {logRets,stdev,betaCorr};')();
-  t('logRets length n-1', logRets([1,2,4,8]).length===3);
-  t('logRets value=ln2', Math.abs(logRets([1,2])[0]-Math.log(2))<1e-12);
-  t('logRets skips nonpositive', logRets([1,0,2,4]).length===1);
-  t('stdev flat=0', stdev(logRets([5,5,5,5]))===0);
-  t('stdev symmetric=a', Math.abs(stdev([0.1,-0.1])-0.1)<1e-12);
-  const r=[0.02,-0.01,0.03,-0.02,0.01];
-  const bc=betaCorr(r,r);
-  t('beta self=1', Math.abs(bc.beta-1)<1e-9);
-  t('corr self=1', Math.abs(bc.corr-1)<1e-9);
-  const bc2=betaCorr(r.map(x=>2*x),r);
-  t('beta 2x=2', Math.abs(bc2.beta-2)<1e-9);
-  t('corr 2x=1', Math.abs(bc2.corr-1)<1e-9);
-  t('corr anti=-1', Math.abs(betaCorr(r.map(x=>-x),r).corr+1)<1e-9);
-  t('betaCorr too short->null', betaCorr([0.1],[0.2]).beta===null);
-}
-
 // --- netArb: realizable cross-DEX arb after costs ---
 // independent reference implementation (gas = 0.05 TON, tonUsd fallback 3 => $0.15)
 function refNetArb(spreadFrac,cheapLiq,expLiq){
@@ -148,13 +125,6 @@ t('snapDiv exit (h-,p-) => bad', snapDivLabel(-0.5,-2).cls==="bad");
 t('snapDiv stable h near-zero => muted', snapDivLabel(0.05,2).cls==="muted");
 t('snapDiv stable p near-zero => good or muted', ['good','muted'].includes(snapDivLabel(0.5,0).cls));
 
-
-if(tok){ // --- regression guards: holder/liq history card wiring ---
-t('snapHist reads idxD.dates (not dead .snapshots-only)', /idxD\.dates/.test(tok));
-t('snapHist renders liquidity column', tok.includes('\u0394 Liq'));
-t('snapHist has liquidity-trend verdict pills', /Liq draining/.test(tok)&&/Liq inflow/.test(tok));
-t('snapHist computes per-day TVL delta', /const dt=prev\.tvl>0\?/.test(tok));
-}
 
 console.log(`\nUNIT: ${pass} passed, ${fail} failed`);
 process.exit(fail?1:0);

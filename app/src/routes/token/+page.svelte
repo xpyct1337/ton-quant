@@ -2,9 +2,9 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { base } from '$app/paths';
-  import { loadToken, loadTrades } from '$lib/data.js';
+  import { loadToken, loadTrades, liveRates } from '$lib/data.js';
   import { fmtUsd, fmtPct, fmtNum, shortAddr } from '$lib/format.js';
-  import { human } from '$lib/token.js';
+  import { human, chartChange24 } from '$lib/token.js';
   import PriceChart from '$lib/components/PriceChart.svelte';
   import StackedBar from '$lib/components/StackedBar.svelte';
 
@@ -15,20 +15,8 @@
   let unitTon = $state(false);
   let trades = $state([]);
 
-  let d24 = $derived.by(() => {
-    const c = d?.chart || []; if (c.length < 2) return null;
-    const cur = c[c.length - 1].v, prev = c[Math.max(0, c.length - 2)].v;
-    return prev > 0 ? (cur / prev - 1) * 100 : null;
-  });
-
-  // cross-DEX arbitrage spread: same liquid/active pools as the slippage table, no new fetch
-  let dexSpread = $derived.by(() => {
-    const ps = (d?.pairs || [])
-      .filter((p) => p.baseToken?.address === d.addr && (p.liquidity?.usd || 0) > 5000 && (p.volume?.h24 || 0) > 100 && p.priceUsd)
-      .map((p) => parseFloat(p.priceUsd));
-    if (ps.length < 2) return null;
-    return { pct: (Math.max(...ps) - Math.min(...ps)) / Math.min(...ps) * 100, n: ps.length };
-  });
+  // 24h change strictly from the ts-aware chart (same source as the plotted line)
+  let d24 = $derived(chartChange24(d?.chart));
 
   let thesis = $derived.by(() => {
     if (!d) return '';
@@ -43,10 +31,28 @@
 
   const ago = (ts) => { const s = (Date.now() - new Date(ts).getTime()) / 1000; return s < 60 ? Math.round(s) + 's' : s < 3600 ? Math.round(s / 60) + 'm' : s < 86400 ? Math.round(s / 3600) + 'h' : Math.round(s / 86400) + 'd'; };
 
-  onMount(async () => {
+  // live price/mcap refresh — chart, holders etc. stay as loaded
+  async function refreshLive(a) {
+    if (!d) return;
+    const r = await liveRates([a]);
+    const p = r[a];
+    if (p > 0) {
+      if (d.price > 0) d.mcap = d.mcap * p / d.price;
+      d.price = p;
+      d.priceTon = d.tonUsd ? p / d.tonUsd : d.priceTon;
+    }
+  }
+
+  onMount(() => {
     const a = $page.url.searchParams.get('a');
     if (!a) { st = 'noaddr'; return; }
-    try { d = await loadToken(a); st = 'ready'; loadTrades(a).then((t) => (trades = t)).catch(() => {}); } catch (e) { err = e.message; st = 'error'; }
+    (async () => {
+      try { d = await loadToken(a); st = 'ready'; loadTrades(a).then((t) => (trades = t)).catch(() => {}); } catch (e) { err = e.message; st = 'error'; }
+    })();
+    const iv = setInterval(() => { if (!document.hidden) refreshLive(a); }, 60000);
+    const onVis = () => { if (!document.hidden) refreshLive(a); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onVis); };
   });
 </script>
 
@@ -79,7 +85,7 @@
       <div class="price">
         <button class="unit" onclick={() => (unitTon = !unitTon)}>{unitTon ? 'TON' : 'USD'}</button>
         <div class="pv mono">{unitTon ? (d.priceTon != null ? d.priceTon.toPrecision(4) + ' TON' : '—') : fmtUsd(d.price)}</div>
-        {#if d24 != null}<div class="pd mono" class:good={d24 > 0} class:bad={d24 < 0}>{fmtPct(d24)}</div>{/if}
+        {#if d24 != null}<div class="pd mono" class:good={d24 > 0} class:bad={d24 < 0} title="изменение за ~24ч по чарту цены">{fmtPct(d24)} 24h</div>{/if}
       </div>
     </div>
   </header>
@@ -126,6 +132,30 @@
     <StackedBar buckets={d.tiers.buckets} />
   </section>
 
+  {#if d.collect && (d.collect.flow || d.collect.spread != null || d.collect.topPool != null || d.collect.mentions != null)}
+    <section class="card">
+      <div class="sec-title">Поток и структура <span class="muted">· дневной сбор{d.collect.flowDate ? ' · ' + d.collect.flowDate : ''}</span></div>
+      <div class="cgrid">
+        {#if d.collect.flow}
+          <div class="ci"><div class="kl">Уник. покупателей 24h</div><div class="kv mono">{d.collect.flow.ubuyers}</div><div class="kd muted">{d.collect.flow.trades_n} сделок</div></div>
+          <div class="ci"><div class="kl" title="доля объёма покупок у топ-покупателей: ~1.0 = один-два кошелька крутят весь объём (боты), низкая = органика">Концентрация покупателей</div>
+            <div class="kv mono" class:bad={d.collect.flow.buyer_conc >= 0.9} class:warn={d.collect.flow.buyer_conc >= 0.7 && d.collect.flow.buyer_conc < 0.9}>{(d.collect.flow.buyer_conc * 100).toFixed(0)}%</div>
+            <div class="kd muted">{d.collect.flow.buyer_conc >= 0.9 ? 'весь объём — пара кошельков' : d.collect.flow.buyer_conc >= 0.7 ? 'узкий круг покупателей' : 'органика'}</div></div>
+          <div class="ci"><div class="kl">Buy share</div><div class="kv mono">{(d.collect.flow.buy_share * 100).toFixed(0)}%</div><div class="kd muted">доля покупок в объёме</div></div>
+        {/if}
+        {#if d.collect.spread != null}
+          <div class="ci"><div class="kl" title="разброс цены между DEX-пулами — высокий = фрагментация/манипуляция">Межпуловый спред</div><div class="kv mono" class:warn={d.collect.spread > 2}>{d.collect.spread.toFixed(2)}%</div></div>
+        {/if}
+        {#if d.collect.topPool != null}
+          <div class="ci"><div class="kl" title="доля TVL в крупнейшем пуле — ~100% = вся ликвидность в одном месте (хрупкость)">Доля топ-пула</div><div class="kv mono" class:warn={d.collect.topPool > 0.95}>{(d.collect.topPool * 100).toFixed(0)}%</div></div>
+        {/if}
+        {#if d.collect.mentions != null}
+          <div class="ci"><div class="kl">TG-упоминания</div><div class="kv mono">{d.collect.mentions}</div><div class="kd muted">кэштеги за день{d.collect.socialDate ? ' · ' + d.collect.socialDate : ''}</div></div>
+        {/if}
+      </div>
+    </section>
+  {/if}
+
   <section class="card tw">
     <div class="sec-title">Топ держателей <span class="muted">· из топ-100 сэмпла</span></div>
     <table>
@@ -144,10 +174,7 @@
   {#if d.pairs.length}
     <section class="card tw">
       <div class="sec-title">DEX-ликвидность и слиппедж
-        {#if dexSpread}
-          <span class="muted sm" style="font-weight:400">· спред {dexSpread.pct.toFixed(2)}% across {dexSpread.n} pools</span>
-          {#if dexSpread.pct > 2}<span class="pill warn">arb?</span>{/if}
-        {/if}
+        <a class="arblink" href="{base}/arb">межпуловый арбитраж →</a>
       </div>
       <table>
         <thead><tr><th>Пул</th><th class="r">Liquidity</th><th class="r">Vol 24h</th><th class="r">$1K</th><th class="r">$10K</th><th class="r">Max &lt;1%</th></tr></thead>
@@ -203,6 +230,11 @@
   .kc{background:var(--card2);border-radius:11px;padding:11px 13px}
   .kl{color:var(--muted);font-size:11px;margin-bottom:5px}.kv{font-size:17px}.kd{font-size:11px;margin-top:4px}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+  .ci{background:var(--card2);border-radius:10px;padding:10px 12px}
+  .ci .kv{font-size:18px;margin-top:2px}
+  .ci .kd{font-size:11px;margin-top:3px}
+  .kv.warn{color:var(--warn)}.kv.bad{color:var(--bad)}
   .big{font-size:34px;margin:4px 0 6px}.sm{font-size:13px;line-height:1.5}
   .profitbar{height:8px;border-radius:5px;background:rgba(255,255,255,.08);overflow:hidden;margin:8px 0 5px}.pf{height:100%;background:var(--good)}
   .edge{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px}
@@ -213,6 +245,7 @@
   td{padding:8px 9px;border-top:1px solid var(--border);white-space:nowrap}
   .r{text-align:right}.sym{font-weight:500}
   .more{margin-top:10px;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:7px 14px;font-size:12px;cursor:pointer}
+  .arblink{font-size:12px;color:var(--accent);font-weight:400;margin-left:8px}
   .foot{font-size:11px;margin-top:18px}
   code{background:var(--card2);padding:1px 6px;border-radius:5px;font-family:var(--mono)}
   @media(max-width:720px){.kpis{grid-template-columns:repeat(3,1fr)}.grid2{grid-template-columns:1fr}}

@@ -42,3 +42,20 @@ test('paperTrack filters by addr and tallies', () => {
   const r = paperTrack(bots, 'X');
   assert.equal(r.n, 1); assert.equal(r.wins, 1); assert.equal(r.realized, 5); assert.equal(r.positions.length, 1);
 });
+
+// ---- chartChange24 ----
+import { chartChange24 } from './token.js';
+
+test('chartChange24: base is the point nearest 24h back, not just the previous one', () => {
+  const D = 86400, t0 = 1700000000;
+  // hourly tail: previous point is 1h old — naive last-vs-prev would report ~0.1%
+  const pts = [
+    { t: t0 - 2 * D, v: 1.0 }, { t: t0 - D, v: 2.0 },
+    { t: t0 - 3600, v: 2.997 }, { t: t0, v: 3.0 }
+  ];
+  assert.equal(chartChange24(pts).toFixed(0), '50'); // 2.0 → 3.0 vs the true 24h base
+  // all points bunched inside 12h → refuse to call it a daily change
+  assert.equal(chartChange24([{ t: t0 - 3600, v: 1 }, { t: t0, v: 2 }]), null);
+  assert.equal(chartChange24([]), null);
+  assert.equal(chartChange24(null), null);
+});

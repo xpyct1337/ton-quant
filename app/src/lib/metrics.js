@@ -357,3 +357,61 @@ export function equalWeightIndex(rows, n) {
 // Fake market cap: a big claimed cap that liquidity can't back (e.g. FARM $7.5B on $7K liq).
 // conytail: mcap/liq ratio heuristic — real tokens sit ~10-2000x; fakes are 10000x+.
 export const isFakeCap = (mcap, tvl) => mcap > 50e6 && tvl > 0 && mcap / tvl > 10000;
+
+// ---- Live / intraday price overlay (keeps d1/d7 windows honest) ----
+
+// Pick the snapshots whose age is closest to 24h / 7d behind curTs (unix seconds).
+// snaps = [{ ts, tokens }] oldest→newest.
+export function pickBases(snaps, curTs) {
+  const pick = (target) => {
+    let best = null;
+    for (const s of snaps || []) {
+      if (!s?.ts || s.ts >= curTs) continue;
+      if (!best || Math.abs(curTs - s.ts - target) < Math.abs(curTs - best.ts - target)) best = s;
+    }
+    return best;
+  };
+  return { b1: pick(86400), b7: pick(7 * 86400) };
+}
+
+// Overwrite each row's current price (and mcap, scaled) with priceOf(addr), then
+// recompute d1/d7 against the snapshots nearest to 24h/7d before curTs — so a
+// live price never gets paired with a stale percent-change. Returns rows touched.
+export function overlayPrices(rows, priceOf, snaps, curTs) {
+  const { b1, b7 } = pickBases(snaps, curTs);
+  let n = 0;
+  for (const r of rows) {
+    const p = priceOf(r.addr);
+    if (!(p > 0)) continue;
+    if (r.price > 0) r.mcap = r.mcap * p / r.price;
+    r.price = p;
+    r.d1 = pctChange(b1?.tokens?.[r.addr]?.price, p);
+    r.d7 = pctChange(b7?.tokens?.[r.addr]?.price, p);
+    n++;
+  }
+  return n;
+}
+
+// Merge a newer intraday slice (same shape as a daily snapshot) into rows:
+// all current-state fields refresh, d1/d7 re-based via overlayPrices.
+export function overlayIntraday(rows, intra, snaps) {
+  if (!intra?.tokens || !intra.ts) return 0;
+  for (const r of rows) {
+    const t = intra.tokens[r.addr];
+    if (!t || !(t.price > 0)) continue;
+    r.tvl = t.tvl ?? r.tvl;
+    r.vol24 = t.vol24 ?? r.vol24;
+    r.holders = t.holders ?? r.holders;
+    r.buys = t.buys ?? r.buys;
+    r.sells = t.sells ?? r.sells;
+    r.volTvl = r.tvl > 0 ? r.vol24 / r.tvl : 0;
+  }
+  return overlayPrices(rows, (a) => intra.tokens[a]?.price, snaps, intra.ts);
+}
+
+// Hours since an ISO date's daily collection run (03:10 UTC), or since a unix ts.
+export function staleHours(dateOrTs, now = Date.now()) {
+  if (dateOrTs == null) return null;
+  const ms = typeof dateOrTs === 'number' ? dateOrTs * 1000 : new Date(dateOrTs + 'T03:10:00Z').getTime();
+  return isFinite(ms) ? (now - ms) / 3600000 : null;
+}

@@ -67,6 +67,22 @@ export function mvrvLite(points) {
   const cur = v[v.length - 1], avg = v.reduce((a, b) => a + b, 0) / v.length;
   return avg > 0 ? cur / avg : null;
 }
+// 24h change from a ts-aware chart: last point vs the point closest to 24h before
+// it (chart granularity varies, so "previous point" is NOT necessarily 24h ago).
+// null when the best base is under 12h old — too close to call it a daily change.
+export function chartChange24(points) {
+  const pts = (points || []).filter((p) => p.t > 0 && p.v > 0);
+  if (pts.length < 2) return null;
+  const last = pts[pts.length - 1];
+  let base = null;
+  for (const p of pts) {
+    if (p.t >= last.t) break;
+    if (!base || Math.abs(last.t - p.t - 86400) < Math.abs(last.t - base.t - 86400)) base = p;
+  }
+  if (!base || last.t - base.t < 43200) return null;
+  return (last.v / base.v - 1) * 100;
+}
+
 // Share of the window priced below current = rough "% supply in profit".
 export function inProfitPct(points) {
   const v = (points || []).map((p) => p.v ?? p[1]).filter((x) => x > 0);

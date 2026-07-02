@@ -1,8 +1,9 @@
 <script>
   import { onMount } from 'svelte';
   import { base } from '$app/paths';
-  import { loadUniverse } from '$lib/data.js';
+  import { loadUniverse, liveRates } from '$lib/data.js';
   import { fmtUsd, fmtPct } from '$lib/format.js';
+  import StaleBanner from '$lib/components/StaleBanner.svelte';
 
   let st = $state('loading');
   let toks = $state([]);
@@ -10,6 +11,7 @@
   let cat = $state('all');
   let sort = $state('vol24');
   let q = $state('');
+  let live = $state(0);
 
   const cats = [['all', 'Все'], ['meme', 'Memes'], ['defi', 'DeFi'], ['stable', 'Stables'], ['staking', 'Staking']];
   const sorts = [['vol24', 'Vol 24h'], ['mcap', 'MCap'], ['liq', 'Liquidity'], ['d1', '24h %']];
@@ -20,23 +22,44 @@
       .sort((a, b) => (b[sort] ?? -Infinity) - (a[sort] ?? -Infinity))
   );
 
-  onMount(async () => {
-    const u = await loadUniverse();
-    toks = u.tokens || []; updated = u.updated || '';
-    st = toks.length ? 'ready' : 'empty';
+  // universe.json has no history, so d1 stays "at collection time" (header says so);
+  // price/mcap get the live overlay.
+  async function refreshLive() {
+    if (!toks.length) return;
+    const r = await liveRates(toks.map((t) => t.addr));
+    let n = 0;
+    for (const t of toks) {
+      const p = r[t.addr];
+      if (p > 0) { if (t.price > 0) t.mcap = t.mcap * p / t.price; t.price = p; n++; }
+    }
+    live = n;
+  }
+
+  onMount(() => {
+    (async () => {
+      const u = await loadUniverse();
+      toks = u.tokens || []; updated = u.updated || '';
+      st = toks.length ? 'ready' : 'empty';
+      await refreshLive();
+    })();
+    const iv = setInterval(() => { if (!document.hidden) refreshLive(); }, 60000);
+    const onVis = () => { if (!document.hidden) refreshLive(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onVis); };
   });
 </script>
 
 <svelte:head><title>Screener — TON Quant</title></svelte:head>
 
 <header class="hd">
-  <div class="hd-top"><h1>Screener</h1><span class="muted">вся ликвидная TON-вселенная · авто-дискавери</span>{#if updated}<span class="muted upd">обновлено {updated}</span>{/if}</div>
+  <div class="hd-top"><h1>Screener</h1><span class="muted">вся ликвидная TON-вселенная · авто-дискавери</span>{#if updated}<span class="muted upd">обновлено {updated}{live ? ' · live цены (60s)' : ''}</span>{/if}</div>
   <div class="tabs">{#each cats as [id, label]}<button class="tab" class:on={cat === id} onclick={() => (cat = id)}>{label}</button>{/each}</div>
 </header>
 
 {#if st === 'loading'}<div class="muted pad">Загружаю вселенную…</div>
 {:else if st === 'empty'}<div class="muted pad">universe.json пуст — запусти scripts/universe.py.</div>
 {:else}
+  <StaleBanner when={updated} what="сбор вселенной" />
   <div class="ctrl">
     <input class="search" placeholder="Поиск по тикеру или адресу…" bind:value={q} />
     <div class="sorts">{#each sorts as [id, label]}<button class="chip" class:on={sort === id} onclick={() => (sort = id)}>{label}</button>{/each}</div>
@@ -44,7 +67,7 @@
   </div>
   <div class="card tw">
     <table>
-      <thead><tr><th>Jetton</th><th>Кат.</th><th class="r">Price</th><th class="r">24h</th><th class="r">MCap</th><th class="r">Liquidity</th><th class="r">Vol 24h</th></tr></thead>
+      <thead><tr><th>Jetton</th><th>Кат.</th><th class="r">Price</th><th class="r" title="изменение за 24ч на момент дневного сбора — не пересчитывается live">24h*</th><th class="r">MCap</th><th class="r">Liquidity</th><th class="r">Vol 24h</th></tr></thead>
       <tbody>
         {#each view as t}
           <tr>

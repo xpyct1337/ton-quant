@@ -1,11 +1,31 @@
 <script>
   import { onMount } from 'svelte';
-  import { loadDeskStatus, loadDeskCalibration, loadDeskFactors, loadDeskCopytrade } from '$lib/data.js';
+  import { base } from '$app/paths';
+  import { loadDeskStatus, loadDeskCalibration, loadDeskFactors, loadDeskCopytrade, loadUniverse } from '$lib/data.js';
+  import { staleHours } from '$lib/metrics.js';
 
   let status = $state(undefined);   // undefined=loading, null=not run, obj=ran
   let calib = $state(undefined);
   let factors = $state(undefined);
   let copytrade = $state(undefined);
+  let universe = $state([]);
+
+  // Old desk runs wrote truncated addresses ("EQA6VT7WUn…") as sym; resolve them to
+  // real tickers via the universe (prefix match) or the addr field newer runs carry.
+  let byAddr = $derived(new Map(universe.map((t) => [t.addr, t.sym])));
+  function tokName(t) {
+    if (t.addr && byAddr.get(t.addr)) return byAddr.get(t.addr);
+    if (!/^[EU]Q.{7,}…$/.test(t.sym)) return t.sym;
+    const pre = t.sym.slice(0, -1);
+    const hit = universe.find((u) => u.addr.startsWith(pre));
+    return hit ? hit.sym : t.sym;
+  }
+  function tokAddr(t) {
+    if (t.addr) return t.addr;
+    if (!/^[EU]Q.{7,}…$/.test(t.sym)) return null;
+    const pre = t.sym.slice(0, -1);
+    return universe.find((u) => u.addr.startsWith(pre))?.addr || null;
+  }
 
   const pct = (x) => (x == null ? '—' : (x >= 0 ? '+' : '') + (x * 100).toFixed(1) + '%');
   const sign = (x) => (x == null ? '' : x >= 0 ? 'good' : 'bad');
@@ -19,6 +39,11 @@
     return r;
   });
   let highTokens = $derived(tokens.filter((t) => t.manip_risk === 'high'));
+  // the LIVE badge must not lie: if the last run is >48h old, the worker is silent
+  let silentH = $derived.by(() => {
+    const h = status?.date ? staleHours(status.date) : null;
+    return h != null && h > 48 ? Math.round(h) : null;
+  });
 
   // calibration headline: +7d avg excess return by risk bucket
   let h7 = $derived(calib?.feature_backtest?.['+7d']);
@@ -39,6 +64,7 @@
   });
 
   onMount(async () => {
+    loadUniverse().then((u) => (universe = u.tokens || [])).catch(() => {});
     status = await loadDeskStatus();
     calib = await loadDeskCalibration();
     factors = await loadDeskFactors();
@@ -51,7 +77,11 @@
 <div class="desk">
   <!-- HERO -->
   <header class="hero">
-    <div class="eyebrow"><span class="dot"></span> LIVE · 24/7 worker</div>
+    {#if silentH}
+      <div class="eyebrow off"><span class="dot off"></span> WORKER SILENT · последний прогон {silentH}ч назад</div>
+    {:else}
+      <div class="eyebrow"><span class="dot"></span> LIVE · 24/7 worker</div>
+    {/if}
     <h1>AI Smart-Money <span class="grad">Desk</span></h1>
     <p class="lede">Локальный LLM на MacBook M1 круглосуточно вётит smart-money кошельки,
       режет манипуляцию и сам ищет альфа-факторы под статистическим гейтом.</p>
@@ -172,7 +202,12 @@
     {:else}
       <div class="chips">
         {#each highTokens.slice(0, 24) as t}
-          <span class="tok" title={t.reason || ''}>{t.sym}{#if t.flags?.length}<span class="tflags">{t.flags.slice(0, 2).join(' ')}</span>{/if}</span>
+          {@const a = tokAddr(t)}
+          {#if a}
+            <a class="tok" href="{base}/token?a={a}" title={t.reason || ''}>{tokName(t)}{#if t.flags?.length}<span class="tflags">{t.flags.slice(0, 2).join(' ')}</span>{/if}</a>
+          {:else}
+            <span class="tok" title={t.reason || ''}>{tokName(t)}{#if t.flags?.length}<span class="tflags">{t.flags.slice(0, 2).join(' ')}</span>{/if}</span>
+          {/if}
         {/each}
         {#if highTokens.length > 24}<span class="tok more">+{highTokens.length - 24}</span>{/if}
       </div>
@@ -209,6 +244,8 @@
   .eyebrow { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 700;
     letter-spacing: .12em; color: var(--good); text-transform: uppercase; margin-bottom: 12px }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); animation: pulse 2s infinite }
+  .eyebrow.off { color: var(--warn) }
+  .dot.off { background: var(--warn); animation: none }
   @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(22,199,132,.5) } 70% { box-shadow: 0 0 0 9px rgba(22,199,132,0) } 100% { box-shadow: 0 0 0 0 rgba(22,199,132,0) } }
   h1 { font-family: var(--head); font-size: clamp(30px, 6vw, 46px); font-weight: 800;
     line-height: 1.02; letter-spacing: -.02em; margin: 0 }

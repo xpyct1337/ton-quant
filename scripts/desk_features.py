@@ -229,6 +229,10 @@ def build_features():
     date = meta.get("date", "")
 
     idx = (load("data/index.json", {}) or {}).get("tokens", {})   # addr -> sym
+    # universe covers the wider discovery set — resolves names for non-tracked tokens
+    for t in (load("data/universe.json", {}) or {}).get("tokens", []):
+        if t.get("addr") and t.get("sym"):
+            idx.setdefault(t["addr"], t["sym"])
     snap_files = sorted(glob.glob("data/snapshots/*.json"))
     snap = (load(snap_files[-1], {}) or {}).get("tokens", {}) if snap_files else {}
     wash_ban = set((load("data/paper/bots.json", {}) or {}).get("wash_ban", {}).keys())

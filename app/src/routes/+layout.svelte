@@ -1,11 +1,13 @@
 <script>
   import '$lib/style.css';
   import { base } from '$app/paths';
+  import { page } from '$app/stores';
   let { children } = $props();
   const nav = [
-    { href: base + '/', label: 'Markets', icon: 'ti-home', active: true },
+    { href: base + '/', label: 'Markets', icon: 'ti-home' },
     { href: base + '/analytics', label: 'Analytics', icon: 'ti-chart-dots' },
     { href: base + '/screener', label: 'Screener', icon: 'ti-list-search' },
+    { href: base + '/arb', label: 'Arbitrage', icon: 'ti-arrows-left-right' },
     { href: base + '/compare', label: 'Compare', icon: 'ti-arrows-diff' },
     { href: base + '/portfolio', label: 'Portfolio', icon: 'ti-wallet' },
     { href: base + '/wallets', label: 'Smart money', icon: 'ti-users-group' },
@@ -13,6 +15,9 @@
     { href: base + '/paper', label: 'Paper bot', icon: 'ti-robot' },
     { href: base + '/desk', label: 'AI Desk', icon: 'ti-cpu' }
   ];
+  const norm = (p) => (p.replace(/\/+$/, '') || '/');
+  let current = $derived(norm($page.url.pathname));
+  const isActive = (href) => norm(href) === current;
 </script>
 
 <svelte:head>
@@ -25,7 +30,7 @@
     <div class="logo"><span class="mark">Q</span><span class="name">TON Quant</span></div>
     <nav>
       {#each nav as n}
-        <a class="navlink" class:active={n.active} href={n.href}><i class="ti {n.icon}"></i><span>{n.label}</span></a>
+        <a class="navlink" class:active={isActive(n.href)} href={n.href}><i class="ti {n.icon}"></i><span>{n.label}</span></a>
       {/each}
     </nav>
     <div class="side-foot muted">v2 · live onchain</div>
@@ -51,8 +56,11 @@
     .shell{display:block}
     .side{position:fixed;inset:auto 0 0 0;width:auto;height:auto;flex-direction:row;border-right:none;border-top:1px solid var(--border);padding:4px 2px;gap:0;z-index:50;background:#0a0e16}
     .logo,.side-foot{display:none}
-    .side nav{display:flex;flex-direction:row;width:100%}
-    .navlink{flex:1;flex-direction:column;gap:2px;padding:7px 2px;font-size:10px;min-height:48px;align-items:center;justify-content:center;text-align:center}
+    /* горизонтальный скролл со snap: пунктов больше, чем влезает в экран */
+    .side nav{display:flex;flex-direction:row;width:100%;overflow-x:auto;scroll-snap-type:x proximity;
+      -webkit-overflow-scrolling:touch;scrollbar-width:none}
+    .side nav::-webkit-scrollbar{display:none}
+    .navlink{flex:0 0 auto;min-width:62px;scroll-snap-align:start;flex-direction:column;gap:2px;padding:7px 6px;font-size:10px;min-height:48px;align-items:center;justify-content:center;text-align:center}
     .navlink i{font-size:19px}
     .navlink span{font-size:10px;line-height:1.05}
     main{padding:14px 14px 66px;max-width:none}

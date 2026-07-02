@@ -34,17 +34,26 @@
     const wr = tr.length ? Math.round((tr.filter((t) => t.pnl > 0).length / tr.length) * 100) : null;
     return { cur, d: (cur / 1000 - 1) * 100, closed: tr.length, wr, open: (b.positions || []).length };
   }
-  const sc = (s) => scores?.per_sig?.[s];
   const pnlOf = (p) => { const cur = live[p.addr]; return cur && p.entry_eff ? (cur / p.entry_eff - 1) * 100 : null; };
 
-  onMount(async () => {
-    try {
-      const [p, rb] = await Promise.all([loadPaper(), loadRegimeBench()]);
-      bots = p.bots; scores = p.scores; regime = rb.regime; bench = rb.bench;
-      const addrs = positions.map((p) => p.addr);
-      if (addrs.length) live = await liveRates([...new Set(addrs)]);
-      st = Object.keys(bots).length ? 'ready' : 'empty';
-    } catch (e) { st = 'error'; bots = { err: e.message }; }
+  async function refreshLive() {
+    const addrs = [...new Set(positions.map((p) => p.addr))];
+    if (addrs.length) live = await liveRates(addrs);
+  }
+
+  onMount(() => {
+    (async () => {
+      try {
+        const [p, rb] = await Promise.all([loadPaper(), loadRegimeBench()]);
+        bots = p.bots; scores = p.scores; regime = rb.regime; bench = rb.bench;
+        st = Object.keys(bots).length ? 'ready' : 'empty';
+        await refreshLive();
+      } catch (e) { st = 'error'; bots = { err: e.message }; }
+    })();
+    const iv = setInterval(() => { if (!document.hidden) refreshLive(); }, 60000);
+    const onVis = () => { if (!document.hidden) refreshLive(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onVis); };
   });
 </script>
 

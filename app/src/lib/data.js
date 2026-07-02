@@ -1,4 +1,4 @@
-import { pctChange, holderGrowth, isFakeCap } from './metrics.js';
+import { pctChange, holderGrowth, isFakeCap, overlayIntraday } from './metrics.js';
 
 const RAW = 'https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data';
 const TONAPI = 'https://tonapi.io/v2';
@@ -7,6 +7,17 @@ const TONAPI_KEY = 'AEUCH5S5SBNE64AAAAAMCL5S6MOL6AFR42PEXAR3OL2K2VJTQS77IQCN7I3O
 const STAKING = new Set(['stable', 'staking']);
 
 const j = (url, opt) => fetch(url, opt).then((r) => { if (!r.ok) throw new Error(r.status + ' ' + url); return r.json(); });
+
+// Newest intraday slice (15:10 UTC, written by intraday.yml) that is newer than
+// `after` (unix seconds). Tries the two dates it could live under; null if none.
+async function latestIntraday(after) {
+  const day = (off) => new Date(Date.now() - off * 86400000).toISOString().slice(0, 10);
+  for (const d of [day(0), day(1)]) {
+    const s = await j(`${RAW}/intraday/${d}.json`).catch(() => null);
+    if (s?.ts > after) return s;
+  }
+  return null;
+}
 
 // Load baked snapshots + signals + scores and assemble per-token rows.
 export async function loadAll(days = 8) {
@@ -35,7 +46,13 @@ export async function loadAll(days = 8) {
       avgPrice, hist, growth: holderGrowth(hist)
     };
   });
-  return { rows, dates: have, ton_usd: idx.ton_usd, updated: last.date, snapCount: data.length };
+  // fold in a newer intraday slice (halves staleness; d1/d7 re-based to real windows)
+  const intra = await latestIntraday(last.ts || 0).catch(() => null);
+  if (intra) overlayIntraday(rows, intra, data);
+  return {
+    rows, dates: have, ton_usd: last.ton_usd ?? null, updated: last.date,
+    snapCount: data.length, snaps: data, curTs: intra?.ts || last.ts || null, intraday: !!intra
+  };
 }
 
 export async function loadSignals() {
@@ -66,7 +83,7 @@ export async function liveRates(addrs) {
 
 import { computeMarketRegime, buildBenchmark } from './metrics.js';
 
-const RAWB = 'https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data';
+const RAWB = RAW;
 
 // Paper bots: cons/aggr (+ alt) state, plus signal scoreboard.
 export async function loadPaper() {
@@ -92,7 +109,7 @@ import { tonQuantScore, hhiOf, topNShare, tiersOf, mvrvLite, inProfitPct, signal
 // Full token page payload for any jetton address.
 export async function loadToken(addr) {
   const H = { Authorization: 'Bearer ' + TONAPI_KEY };
-  const [info, holders, rates, chartR, dex, ston, all, paper, sig] = await Promise.all([
+  const [info, holders, rates, chartR, dex, ston, all, paper, sig, flowsD, socialD] = await Promise.all([
     j(`${TONAPI}/jettons/${addr}`, { headers: H }),
     j(`${TONAPI}/jettons/${addr}/holders?limit=100`, { headers: H }).catch(() => ({ addresses: [], total: 0 })),
     j(`${TONAPI}/rates?tokens=${addr}%2CTON&currencies=usd`, { headers: H }).catch(() => ({ rates: {} })),
@@ -101,7 +118,9 @@ export async function loadToken(addr) {
     j(`https://api.ston.fi/v1/assets/${addr}`).catch(() => null),
     loadAll().catch(() => ({ rows: [] })),
     loadPaper().catch(() => ({ bots: {} })),
-    loadSignals().catch(() => ({}))
+    loadSignals().catch(() => ({})),
+    j(`${RAW}/flows.json`).catch(() => null),
+    j(`${RAW}/social.json`).catch(() => null)
   ]);
 
   const decimals = Number(info.metadata?.decimals ?? 9);
@@ -126,11 +145,20 @@ export async function loadToken(addr) {
   const verification = info.verification || 'none';
 
   const top10 = topNShare(addrList, supplyRaw, 10);
-  const chart = (chartR.points || []).map((p) => ({ d: new Date(p[0] * 1000).toISOString().slice(0, 10), v: p[1] }))
+  const chart = (chartR.points || []).map((p) => ({ t: p[0], d: new Date(p[0] * 1000).toISOString().slice(0, 10), v: p[1] }))
     .filter((p) => p.v > 0);
 
   const curatedRow = (all.rows || []).find((r) => r.addr === addr);
   const score = tonQuantScore({ verification, adminZero, liq, top10, holders: totalHolders, ageDays, taxable });
+
+  // collector extras (Track B): pool structure from the latest curated snapshot,
+  // trade flows + social mentions from the daily collector files. All optional.
+  const snapT = curatedRow?.hist?.[curatedRow.hist.length - 1];
+  const collect = {
+    spread: snapT?.spread ?? null, topPool: snapT?.top_pool ?? null,
+    flow: flowsD?.tokens?.[addr] || null, flowDate: flowsD?.date || null,
+    mentions: socialD?.tokens?.[addr]?.mentions ?? null, socialDate: socialD?.date || null
+  };
 
   return {
     addr, name: info.metadata?.name || addr.slice(0, 6), symbol: info.metadata?.symbol || '',
@@ -141,7 +169,7 @@ export async function loadToken(addr) {
     chart, mvrv: mvrvLite(chart), inProfit: inProfitPct(chart), score,
     curated: !!curatedRow, hist: curatedRow?.hist || [], growth: curatedRow?.growth || null,
     edge: signalEdge(curatedRow?.hist || [], sig.today?.signals, sig.scores, addr),
-    track: paperTrack(paper.bots, addr), tonUsd
+    track: paperTrack(paper.bots, addr), tonUsd, collect
   };
 }
 

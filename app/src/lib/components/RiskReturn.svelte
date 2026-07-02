@@ -64,7 +64,7 @@
       </tbody>
     </table>
   </div>
-  <div class="note">Лучший risk-adjusted: <strong>{model.rk[0].sym}</strong> (Sharpe {model.rk[0].sh.toFixed(2)}). Худший: <strong>{model.rk[model.rk.length - 1].sym}</strong> (Sharpe {model.rk[model.rk.length - 1].sh.toFixed(2)}). {model.n} токенов, ~40 дневных закрытий, rf=0. Площадь пузыря ∝ mcap.</div>
+  <div class="note">Лучший risk-adjusted: <strong>{model.rk[0].sym}</strong> (Sharpe {model.rk[0].sh.toFixed(2)}). Худший: <strong>{model.rk[model.rk.length - 1].sym}</strong> (Sharpe {model.rk[model.rk.length - 1].sh.toFixed(2)}). {model.n} токенов, дневные закрытия за окно снапшотов, rf=0. Площадь пузыря ∝ mcap.</div>
 {/if}
 
 <style>

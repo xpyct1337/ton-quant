@@ -234,3 +234,61 @@ test('isFakeCap flags inflated cap, spares real tokens', () => {
   assert.equal(isFakeCap(16e6, 667000), false);  // UTYA
   assert.equal(isFakeCap(1e6, 50), false);       // small thin token, not big-fake
 });
+
+// ---- live/intraday overlay + staleness ----
+import { pickBases, overlayPrices, overlayIntraday, staleHours } from './metrics.js';
+
+test('pickBases: nearest to 24h/7d behind curTs, never the future', () => {
+  const D = 86400, cur = 2000000000;
+  // snapshots at 8/7/3/2/1 days ago; price = age in days for easy assertions
+  const snaps = [8, 7, 3, 2, 1].map((k) => ({ ts: cur - k * D, tokens: { a: { price: k } } }));
+  const { b1, b7 } = pickBases(snaps, cur);
+  assert.equal(b1.tokens.a.price, 1); // nearest to 24h back
+  assert.equal(b7.tokens.a.price, 7); // nearest to 7d back
+  // future snapshots excluded
+  const { b1: f1 } = pickBases([{ ts: cur + D, tokens: {} }], cur);
+  assert.equal(f1, null);
+});
+
+test('overlayPrices: price+mcap scale, d1/d7 re-based to real windows', () => {
+  const D = 86400, now = 2000000;
+  const snaps = [
+    { ts: now - 7 * D, tokens: { a: { price: 1.0 } } },
+    { ts: now - 1 * D, tokens: { a: { price: 2.0 } } }
+  ];
+  const rows = [{ addr: 'a', price: 2.0, mcap: 200, d1: 99, d7: 99 }];
+  const n = overlayPrices(rows, () => 3.0, snaps, now);
+  assert.equal(n, 1);
+  assert.equal(rows[0].price, 3.0);
+  assert.equal(rows[0].mcap, 300);            // scaled by 1.5x
+  assert.equal(rows[0].d1.toFixed(0), '50');  // 2.0 → 3.0
+  assert.equal(rows[0].d7.toFixed(0), '200'); // 1.0 → 3.0
+  // no live price → row untouched
+  const rows2 = [{ addr: 'b', price: 5, mcap: 50, d1: 1, d7: 2 }];
+  assert.equal(overlayPrices(rows2, () => null, snaps, now), 0);
+  assert.equal(rows2[0].d1, 1);
+});
+
+test('overlayIntraday: refreshes state fields and re-bases changes', () => {
+  const D = 86400, ts = 3000000;
+  const snaps = [
+    { ts: ts - 2 * D, tokens: { a: { price: 1.0 } } },
+    { ts: ts - D, tokens: { a: { price: 2.0 } } }
+  ];
+  const rows = [{ addr: 'a', price: 2.0, mcap: 200, tvl: 100, vol24: 50, holders: 10, buys: 1, sells: 1, volTvl: 0.5, d1: 0, d7: 0 }];
+  const intra = { ts, tokens: { a: { price: 4.0, tvl: 200, vol24: 100, holders: 12, buys: 5, sells: 3 } } };
+  overlayIntraday(rows, intra, snaps);
+  assert.equal(rows[0].price, 4.0);
+  assert.equal(rows[0].tvl, 200);
+  assert.equal(rows[0].holders, 12);
+  assert.equal(rows[0].volTvl, 0.5);
+  assert.equal(rows[0].d1.toFixed(0), '100'); // vs 1d-back snapshot (2.0 → 4.0)
+  assert.equal(overlayIntraday(rows, null, snaps), 0);
+});
+
+test('staleHours: ISO date anchors at 03:10 UTC; unix ts passes through', () => {
+  const now = Date.parse('2026-07-02T03:10:00Z');
+  assert.equal(Math.round(staleHours('2026-07-01', now)), 24);
+  assert.equal(Math.round(staleHours(now / 1000 - 7200, now)), 2);
+  assert.equal(staleHours(null), null);
+});
