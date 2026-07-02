@@ -16,17 +16,18 @@ import json, os, time, datetime, urllib.request
 
 GT = "https://api.geckoterminal.com/api/v2/networks/ton"
 PACE = 2.2      # seconds between calls (limit ~30/min, 2 calls per token)
+DEADLINE = 300  # bail out after 5 min so the workflow step never hangs
 
 
 def get(url):
     h = {"Accept": "application/json", "User-Agent": "tonquant-flows"}
-    for i in range(3):
+    for i in range(2):
         try:
-            return json.load(urllib.request.urlopen(urllib.request.Request(url, headers=h), timeout=30))
+            return json.load(urllib.request.urlopen(urllib.request.Request(url, headers=h), timeout=10))
         except Exception:
-            if i == 2:
+            if i == 1:
                 raise
-            time.sleep(5 * (i + 1))
+            time.sleep(3)
 
 
 def flow_metrics(trades):
@@ -57,8 +58,12 @@ def main():
     today = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
     uni = json.load(open("data/universe.json"))
     toks = [t["addr"] for t in uni["tokens"] if t.get("tracked")]
-    out, errs = {}, 0
+    out, errs, skipped = {}, 0, 0
+    t0 = time.monotonic()
     for a in toks:
+        if time.monotonic() - t0 > DEADLINE:
+            skipped = len(toks) - len(out) - errs
+            break
         try:
             pools = get(f"{GT}/tokens/{a}/pools")
             time.sleep(PACE)
@@ -77,7 +82,8 @@ def main():
         doc = {"date": today, "tokens": out}
         json.dump(doc, open(f"data/flows/{today}.json", "w"), separators=(",", ":"))
         json.dump(doc, open("data/flows.json", "w"), separators=(",", ":"))
-    print(f"flows {today}: {len(out)}/{len(toks)} tokens, errors {errs}")
+    elapsed = round(time.monotonic() - t0)
+    print(f"flows {today}: {len(out)}/{len(toks)} tokens, errors {errs}, skipped {skipped}, elapsed {elapsed}s")
 
 
 if __name__ == "__main__":
