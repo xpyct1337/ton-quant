@@ -98,6 +98,16 @@ def today():
     return datetime.date.today().isoformat()
 
 
+def data_date():
+    """Date of the latest data the desk actually has (wallets.json's own date),
+    NOT the system clock. If the cloud collector lags or fails for a day, the
+    system date and the data date diverge — checking against today() would make
+    'today_done' never become true, re-running the full LLM pass every single
+    iteration forever until the cloud catches up (observed live: 59 full reruns
+    in one stalled day). Falls back to today() only if wallets.json is unreadable."""
+    return load("data/wallets.json", {}).get("date") or today()
+
+
 # ---------- picker ----------
 def pick_task(today_done, calib_stale, deep_pending, revalidate_due=False):
     if not today_done:
@@ -189,7 +199,7 @@ def iterate():
         print("osaurus unreachable and failed to start; skipping this cycle", flush=True)
         return dec["sleep"]
     state = get_state()
-    today_done = os.path.exists(f"data/desk/verdicts/{today()}.json")
+    today_done = os.path.exists(f"data/desk/verdicts/{data_date()}.json")
     calib_stale = time.time() - state.get("last_calib", 0) > CALIB_EVERY
     revalidate_due = time.time() - state.get("last_revalidate", 0) > REVALIDATE_EVERY
     v = load("data/desk/verdicts.json", {})           # un-vetted this cycle -> 0 lets research run

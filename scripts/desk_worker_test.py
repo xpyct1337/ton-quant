@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Plain-assert tests for desk_worker pure helpers (no daemon, no LLM)."""
+import json, os, tempfile
 import desk_worker as W
 
 
@@ -24,6 +25,32 @@ def test_pick_task_priority_order():
     assert W.pick_task(True, False, 5, revalidate_due=True) == "revalidate"
     assert W.pick_task(True, False, 5) == "deep_vetting"
     assert W.pick_task(True, False, 0) == "research"   # idle-filler, never None
+
+
+def test_data_date_uses_wallets_json_not_system_clock():
+    # regression: stale cloud data must not make today_done permanently False
+    # (observed live: 59 full daily_verdicts reruns in one day when cloud lagged)
+    orig = os.getcwd()
+    tmp = tempfile.mkdtemp()
+    try:
+        os.chdir(tmp)
+        os.makedirs("data", exist_ok=True)
+        json.dump({"date": "2020-01-01"}, open("data/wallets.json", "w"))
+        assert W.data_date() == "2020-01-01"          # NOT today()'s real date
+    finally:
+        os.chdir(orig)
+        import shutil; shutil.rmtree(tmp, ignore_errors=True)
+
+
+def test_data_date_falls_back_to_today_if_unreadable():
+    orig = os.getcwd()
+    tmp = tempfile.mkdtemp()
+    try:
+        os.chdir(tmp)          # no data/wallets.json here
+        assert W.data_date() == W.today()
+    finally:
+        os.chdir(orig)
+        import shutil; shutil.rmtree(tmp, ignore_errors=True)
 
 
 if __name__ == "__main__":
