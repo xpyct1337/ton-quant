@@ -208,6 +208,12 @@ export async function loadDeskCopytrade() {
   return j(`${RAWB}/desk/copytrade.json`).catch(() => null);
 }
 
+// Perp-signal collector: parsed signals from @perptools_ai_bot via Telethon.
+// Written every 4h by scripts/perp_signals.py (absent until TG secrets are set).
+export async function loadPerpSignals() {
+  return j(`${RAWB}/perp_signals.json`).catch(() => null);
+}
+
 // XS-momentum live paper forward-test: realized track record + current open basket.
 // Both files are written daily by scripts/xs_forward.py (absent until first Actions run).
 export async function loadXsForward() {
