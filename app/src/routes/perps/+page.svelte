@@ -9,6 +9,9 @@
   // недоступны, считаем свои эвристики на тех же рыночных данных.
   const HL = 'https://api.hyperliquid.xyz/info';
   const FOCUS = 'TON';
+  // Собранные коллектором сигналы @perptools_ai_bot (scripts/perp_signals.py,
+  // перезаливается воркфлоу perp-signals.yml). Файла нет → секция скрыта.
+  const SIGNALS_URL = 'https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data/perp_signals.json';
 
   let st = $state('loading');
   let err = $state('');
@@ -18,6 +21,7 @@
   let ton = $state(null);
   let spark = $state('');
   let updatedAt = $state(null);
+  let bot = $state(null);
   let busy = false;
 
   const info = (body) =>
@@ -52,8 +56,16 @@
     } catch { /* спарклайн опционален */ }
   }
 
+  async function loadBotSignals() {
+    try {
+      const d = await fetch(SIGNALS_URL).then((r) => (r.ok ? r.json() : null));
+      if (d?.signals?.length) bot = d;
+    } catch { /* секция опциональна */ }
+  }
+
   onMount(() => {
     refresh().then(loadSpark);
+    loadBotSignals();
     const iv = setInterval(() => { if (!document.hidden) refresh(); }, 60000);
     const onVis = () => { if (!document.hidden) refresh(); };
     document.addEventListener('visibilitychange', onVis);
@@ -103,6 +115,31 @@
       </div>
     {/if}
   </section>
+
+  <!-- @perptools_ai_bot signals (collector-fed, optional) -->
+  {#if bot}
+    <section class="card tw">
+      <div class="sec-title">Сигналы @perptools_ai_bot
+        <span class="muted">· из личного чата с ботом · обновлено {new Date(bot.updated).toLocaleString()}</span></div>
+      <table>
+        <thead><tr><th>Время</th><th>Coin</th><th>Side</th><th class="r">Entry</th>
+          <th class="r">Targets</th><th class="r">Stop</th><th class="r">Lev</th></tr></thead>
+        <tbody>
+          {#each bot.signals.slice(0, 20) as s}
+            <tr>
+              <td class="muted">{new Date(s.ts * 1000).toLocaleString()}</td>
+              <td><span class="sym">{s.coin}</span></td>
+              <td class="{s.side === 'long' ? 'good' : 'bad'}">{s.side.toUpperCase()}</td>
+              <td class="r mono">{s.entry ?? '—'}</td>
+              <td class="r mono">{s.tps?.join(' / ') ?? '—'}</td>
+              <td class="r mono">{s.sl ?? '—'}</td>
+              <td class="r mono">{s.lev ? s.lev + 'x' : '—'}</td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+    </section>
+  {/if}
 
   <!-- Signals -->
   <div class="cols">
@@ -169,8 +206,9 @@
   <p class="muted foot">Данные — публичный info-API Hyperliquid (mark, prevDay, funding, OI, объём, premium),
     без ключей, прямо из браузера. Score = 45% моментум 24ч + 35% контр-фандинг (перегретые лонги платят
     положительный фандинг → тилт в шорт) + 20% mark-oracle premium; насыщение на ±100. Это наши эвристики,
-    а не сигналы @perptools_ai_bot — у бота нет публичного API. Funding APR = часовая ставка × 24 × 365.
-    Не финансовый совет.</p>
+    а не сигналы @perptools_ai_bot — у бота нет публичного API. Сигналы самого бота (если секция видна)
+    собираются коллектором scripts/perp_signals.py из личного чата с ботом через Telethon и парсятся
+    best-effort. Funding APR = часовая ставка × 24 × 365. Не финансовый совет.</p>
 {/if}
 
 <style>
