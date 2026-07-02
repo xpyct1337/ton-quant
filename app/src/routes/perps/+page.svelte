@@ -5,10 +5,10 @@
 
   // Hyperliquid public info API: без ключа, CORS открыт, POST-запросы.
   // ponytail: 2 запроса на обновление (метаданные+контексты всех перпов одним
-  // вызовом, свечи только для TON) — сигналы закрытого @perptools_ai_bot
+  // вызовом, свечи только для GRAM (ex-TON)) — сигналы закрытого @perptools_ai_bot
   // недоступны, считаем свои эвристики на тех же рыночных данных.
   const HL = 'https://api.hyperliquid.xyz/info';
-  const FOCUS = 'TON';
+  const FOCUS = 'GRAM'; // TON rebranded to GRAM on Hyperliquid
   // Собранные коллектором сигналы @perptools_ai_bot (scripts/perp_signals.py,
   // перезаливается воркфлоу perp-signals.yml). Файла нет → секция скрыта.
   const SIGNALS_URL = 'https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data/perp_signals.json';
@@ -102,9 +102,9 @@
 {:else}
   <!-- TON featured -->
   <section class="card tonc">
-    <div class="sec-title">TON-PERP <span class="muted">· фокус страницы · Hyperliquid</span></div>
+    <div class="sec-title">GRAM-PERP <span class="muted">· фокус страницы · Hyperliquid</span></div>
     {#if !ton}
-      <p class="muted sm">TON-перп сейчас не проходит фильтр ликвидности ($1M/24ч) или не листингован.</p>
+      <p class="muted sm">GRAM-перп сейчас не проходит фильтр ликвидности ($1M/24ч) или не листингован.</p>
     {:else}
       <div class="feat">
         <div class="fst">
