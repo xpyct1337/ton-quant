@@ -125,7 +125,7 @@
     </div>
   </section>
 
-  <section class="card"><div class="sec-title">Цена · {d.chart.length} точек</div>{#if d.chart.length > 2}<PriceChart points={d.chart} />{:else}<p class="muted sm">Недостаточно истории цены.</p>{/if}</section>
+  <section class="card"><div class="sec-title">Цена <span class="muted">· {d.chart.length > 1 ? d.chart[0].d + ' → ' + d.chart[d.chart.length - 1].d : ''} · {d.chart.length} точек · наведи для значения</span></div>{#if d.chart.length > 2}<PriceChart points={d.chart} />{:else}<p class="muted sm">Недостаточно истории цены.</p>{/if}</section>
 
   <section class="card">
     <div class="sec-title">Структура держателей <span class="muted">· {d.tiers.verdict} ({d.tiers.whalePct.toFixed(0)}%)</span>{#if d.hhi}<span class="pill {d.hhi.cls}" style="margin-left:8px">HHI {d.hhi.label}</span>{/if}</div>
