@@ -1,0 +1,16 @@
+[project]
+name = "ton-quant-mcp"
+version = "0.1.0"
+description = "Собственный MCP-сервер (харнес): универсальный каркас, наполняемый своими инструментами"
+requires-python = ">=3.10"
+dependencies = ["mcp[cli]>=1.10"]
+
+[project.scripts]
+ton-quant-mcp = "server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+include = ["server.py", "tools"]

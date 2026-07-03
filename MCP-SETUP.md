@@ -1,5 +1,7 @@
 # TON Quant — MCP / tooling setup
 
+> Свой собственный MCP-сервер (харнес) живёт в [`mcp_server/`](mcp_server/), полная инструкция — [docs/CUSTOM-MCP.md](docs/CUSTOM-MCP.md). Ниже — обзор сторонних серверов.
+
 Curated tools to speed up TON Quant dev and surface new alpha. Found via MCP registry + GitHub + 2026 roundups (26.06.2026).
 
 All "local" servers run on **your** machine (where node/python/SSH live), added to Claude Desktop config:
