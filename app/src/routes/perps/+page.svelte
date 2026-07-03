@@ -13,9 +13,14 @@
   // перезаливается воркфлоу perp-signals.yml). Файла нет → секция скрыта.
   const SIGNALS_URL = 'https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data/perp_signals.json';
   const DEX_URL = 'https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data/dex_signals.json';
+  // api.hyperliquid.xyz гео-блокируется CloudFront'ом в ряде регионов — тогда
+  // берём часовой снапшот воркера (scripts/perp_markets.py, perp-markets.yml).
+  const MARKETS_URL = 'https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data/perp_markets.json';
 
   let st = $state('loading');
   let err = $state('');
+  let live = $state(true);   // false → рисуем из снапшота воркера
+  let snap = null;           // кэш perp_markets.json на сессию
   let rows = $state([]);
   let longs = $state([]);
   let shorts = $state([]);
@@ -30,21 +35,43 @@
     fetch(HL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       .then((r) => { if (!r.ok) throw new Error('Hyperliquid HTTP ' + r.status); return r.json(); });
 
+  function apply(meta, ctxs, ts) {
+    const ranked = rankSignals(perpRows(meta, ctxs), 5);
+    rows = ranked.scored;
+    longs = ranked.longs;
+    shorts = ranked.shorts;
+    ton = rows.find((r) => r.coin === FOCUS) || null;
+    updatedAt = ts;
+    st = 'ready';
+  }
+
+  let snapAt = 0;
+  async function loadSnap() {
+    // raw.githubusercontent кэшируется ~5 мин, файл обновляется раз в час —
+    // перечитываем не чаще раза в 10 минут, чтобы открытая вкладка не застывала.
+    if (!snap || Date.now() - snapAt > 600e3) {
+      snap = await fetch(MARKETS_URL).then((r) => (r.ok ? r.json() : null));
+      snapAt = Date.now();
+    }
+    return snap;
+  }
+
   async function refresh() {
     if (busy) return;
     busy = true;
     try {
       const [meta, ctxs] = await info({ type: 'metaAndAssetCtxs' });
-      const all = perpRows(meta, ctxs);
-      const ranked = rankSignals(all, 5);
-      rows = ranked.scored;
-      longs = ranked.longs;
-      shorts = ranked.shorts;
-      ton = rows.find((r) => r.coin === FOCUS) || null;
-      updatedAt = Date.now();
-      st = 'ready';
+      live = true;
+      apply(meta, ctxs, Date.now());
     } catch (e) {
-      if (st !== 'ready') { err = String(e.message || e); st = 'error'; }
+      try {
+        const d = await loadSnap();
+        if (!d?.meta || !d?.ctxs) throw e;
+        live = false;
+        apply(d.meta, d.ctxs, d.updated);
+      } catch {
+        if (st !== 'ready') { err = String(e.message || e); st = 'error'; }
+      }
     }
     busy = false;
   }
@@ -55,7 +82,11 @@
       const c = await info({ type: 'candleSnapshot',
         req: { coin: FOCUS, interval: '1h', startTime: end - 7 * 86400e3, endTime: end } });
       spark = sparkPoints((c || []).map((k) => parseFloat(k.c)), 220, 48);
-    } catch { /* спарклайн опционален */ }
+    } catch {
+      // живое API недоступно — свечи фокуса из того же снапшота воркера
+      try { spark = sparkPoints((await loadSnap())?.candles?.[FOCUS] || [], 220, 48); }
+      catch { /* спарклайн опционален */ }
+    }
   }
 
   async function loadBotSignals() {
@@ -93,6 +124,7 @@
   <div class="hd-top"><h1>Perps</h1>
     <span class="muted">перпетуалы Hyperliquid · фандинг, OI, моментум → эвристический bias · live 60s</span>
     {#if updatedAt}<span class="muted upd">обновлено {new Date(updatedAt).toLocaleTimeString()}</span>{/if}
+    {#if st === 'ready' && !live}<span class="upd warn">API Hyperliquid недоступен из вашей сети (гео-блокировка) — снапшот воркера, обновляется раз в час</span>{/if}
   </div>
 </header>
 
@@ -103,7 +135,8 @@
   <section class="card tonc">
     <div class="sec-title">TON-PERP <span class="muted">· фокус страницы · Hyperliquid</span></div>
     {#if !ton}
-      <p class="muted sm">TON-перп сейчас не проходит фильтр ликвидности ($1M/24ч) или не листингован.</p>
+      <p class="muted sm">TON-перп делистнут с Hyperliquid решением валидаторов 21.06.2026 —
+        рынка больше нет, секция вернётся при релистинге. Остальные рынки ниже работают как раньше.</p>
     {:else}
       <div class="feat">
         <div class="fst">
@@ -247,7 +280,7 @@
 
 <style>
   .hd{margin-bottom:16px}.hd-top{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}h1{font-size:24px}
-  .upd{font-size:12px}.pad{padding:30px 0}section{margin-bottom:16px}
+  .upd{font-size:12px}.warn{color:var(--bad)}.pad{padding:30px 0}section{margin-bottom:16px}
   .sm{font-size:13px;line-height:1.5}
   .sec-title{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
   .tonc{border-color:rgba(34,167,255,.35)}
