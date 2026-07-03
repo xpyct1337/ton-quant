@@ -1,7 +1,11 @@
 # Временный диагностический воркфлоу: проверяет доступность и CORS
 # публичного info-API Hyperliquid, на который завязана страница /perps/.
 name: hl-probe
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/ton-quant-perps-loading-0rn3va]
+    paths: ['.github/workflows/hl-probe.yml']
 jobs:
   probe:
     runs-on: ubuntu-latest
