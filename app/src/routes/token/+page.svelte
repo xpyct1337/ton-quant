@@ -75,6 +75,9 @@
           {#if d.taxable}<span class="pill warn">taxable</span>{/if}
           {#if d.lowLiq}<span class="pill warn">low liquidity</span>{/if}
           <span class="addr muted mono">{shortAddr(d.addr)}</span>
+          {#if d.pairs.length}
+            <a class="pill tv-link" href={d.pairs[0].url || 'https://dexscreener.com/ton/' + d.addr} target="_blank" rel="noopener"><i class="ti ti-chart-candle"></i> TradingView</a>
+          {/if}
         </div>
       </div>
     </div>
@@ -240,6 +243,8 @@
   .edge{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px}
   .pill{font-size:11px;padding:2px 9px;border-radius:6px;background:var(--card2)}
   .pill.good{color:var(--good)}.pill.bad{color:var(--bad)}.pill.warn{color:var(--warn)}.pill.muted{color:var(--muted)}
+  a.tv-link{color:var(--accent);border-color:rgba(34,167,255,.35);text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+  a.tv-link:hover{background:rgba(34,167,255,.15)}
   table{width:100%;border-collapse:collapse;font-size:13px}.tw{overflow-x:auto}
   th{color:var(--dim);font-weight:400;text-align:left;padding:6px 9px;font-size:11px;white-space:nowrap}
   td{padding:8px 9px;border-top:1px solid var(--border);white-space:nowrap}
