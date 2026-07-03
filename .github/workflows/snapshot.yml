@@ -22,6 +22,7 @@ jobs:
       - run: python scripts/wallets.py
       - run: python scripts/flows.py || true   # non-fatal: trade-flow metrics (GeckoTerminal)
       - run: python scripts/social.py || true  # non-fatal: Telegram mention counts (t.me/s public previews)
+      - run: python scripts/dex_signals.py || true  # non-fatal: DEX new-token signals (t.me/s/dexnewtoken)
       - run: python scripts/forensics.py || true  # non-fatal: bundle detection via funding-source clustering
       - run: pip install --quiet numpy pandas requests
       - run: python scripts/xs_forward.py || true   # non-fatal: never break the snapshot

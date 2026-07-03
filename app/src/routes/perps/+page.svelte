@@ -5,13 +5,14 @@
 
   // Hyperliquid public info API: без ключа, CORS открыт, POST-запросы.
   // ponytail: 2 запроса на обновление (метаданные+контексты всех перпов одним
-  // вызовом, свечи только для GRAM (ex-TON)) — сигналы закрытого @perptools_ai_bot
+  // вызовом, свечи только для TON) — сигналы закрытого @perptools_ai_bot
   // недоступны, считаем свои эвристики на тех же рыночных данных.
   const HL = 'https://api.hyperliquid.xyz/info';
-  const FOCUS = 'GRAM'; // TON rebranded to GRAM on Hyperliquid
+  const FOCUS = 'TON';
   // Собранные коллектором сигналы @perptools_ai_bot (scripts/perp_signals.py,
   // перезаливается воркфлоу perp-signals.yml). Файла нет → секция скрыта.
   const SIGNALS_URL = 'https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data/perp_signals.json';
+  const DEX_URL = 'https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data/dex_signals.json';
 
   let st = $state('loading');
   let err = $state('');
@@ -22,18 +23,8 @@
   let spark = $state('');
   let updatedAt = $state(null);
   let bot = $state(null);
-  let botFilter = $state('all');
-  let botShowRaw = $state({});
+  let dex = $state(null);
   let busy = false;
-
-  const ago = (ts) => {
-    const d = Math.floor((Date.now() / 1000 - ts) / 60);
-    if (d < 60) return d + 'м';
-    if (d < 1440) return Math.floor(d / 60) + 'ч';
-    return Math.floor(d / 1440) + 'д';
-  };
-  const fmtPrice = (p) => p == null ? null : p >= 1000 ? p.toFixed(0) : p >= 1 ? p.toFixed(3) : p.toFixed(6);
-  const fmtTs = (ts) => new Date(ts * 1000).toLocaleString('ru', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
   const info = (body) =>
     fetch(HL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
@@ -74,9 +65,17 @@
     } catch { /* секция опциональна */ }
   }
 
+  async function loadDexSignals() {
+    try {
+      const d = await fetch(DEX_URL).then((r) => (r.ok ? r.json() : null));
+      if (d?.signals?.length) dex = d;
+    } catch { /* секция опциональна */ }
+  }
+
   onMount(() => {
     refresh().then(loadSpark);
     loadBotSignals();
+    loadDexSignals();
     const iv = setInterval(() => { if (!document.hidden) refresh(); }, 60000);
     const onVis = () => { if (!document.hidden) refresh(); };
     document.addEventListener('visibilitychange', onVis);
@@ -102,9 +101,9 @@
 {:else}
   <!-- TON featured -->
   <section class="card tonc">
-    <div class="sec-title">GRAM-PERP <span class="muted">· фокус страницы · Hyperliquid</span></div>
+    <div class="sec-title">TON-PERP <span class="muted">· фокус страницы · Hyperliquid</span></div>
     {#if !ton}
-      <p class="muted sm">GRAM-перп сейчас не проходит фильтр ликвидности ($1M/24ч) или не листингован.</p>
+      <p class="muted sm">TON-перп сейчас не проходит фильтр ликвидности ($1M/24ч) или не листингован.</p>
     {:else}
       <div class="feat">
         <div class="fst">
@@ -129,79 +128,50 @@
 
   <!-- @perptools_ai_bot signals (collector-fed, optional) -->
   {#if bot}
-    {@const sigs = bot.signals || []}
-    {@const botLongs = sigs.filter((s) => s.side === 'long').length}
-    {@const botShorts = sigs.filter((s) => s.side === 'short').length}
-    {@const filtered = botFilter === 'all' ? sigs : sigs.filter((s) => s.side === botFilter)}
-    <section class="bsec">
+    <section class="card tw">
       <div class="sec-title">Сигналы @perptools_ai_bot
-        <span class="muted sm">· коллектор scripts/perp_signals.py · обновлено {new Date(bot.updated).toLocaleString()}</span>
-      </div>
-
-      <div class="bkpis">
-        <div class="bkpi"><span class="bkl">всего</span><span class="bkv">{sigs.length}</span></div>
-        <div class="bkpi"><span class="bkl">лонги</span><span class="bkv good">{botLongs}</span></div>
-        <div class="bkpi"><span class="bkl">шорты</span><span class="bkv bad">{botShorts}</span></div>
-        <div class="bkpi"><span class="bkl">обновлено</span><span class="bkv sm mono">{bot.updated?.slice(0,16).replace('T',' ')}</span></div>
-      </div>
-
-      <div class="bfilters">
-        <button class="bfb" class:act={botFilter === 'all'} onclick={() => botFilter = 'all'}>Все {sigs.length}</button>
-        <button class="bfb good" class:act={botFilter === 'long'} onclick={() => botFilter = 'long'}>▲ Long {botLongs}</button>
-        <button class="bfb bad" class:act={botFilter === 'short'} onclick={() => botFilter = 'short'}>▼ Short {botShorts}</button>
-      </div>
-
-      {#if filtered.length === 0}
-        <p class="muted sm">Нет сигналов по фильтру.</p>
-      {:else}
-        <div class="bgrid">
-          {#each filtered as s (s.id)}
-            <div class="bcard" class:blong={s.side === 'long'} class:bshort={s.side === 'short'}>
-              <div class="bc-top">
-                <span class="sym">{s.coin}</span>
-                <span class="bside" class:good={s.side === 'long'} class:bad={s.side === 'short'}>
-                  {s.side === 'long' ? '▲ LONG' : '▼ SHORT'}
-                </span>
-                {#if s.lev}<span class="blev">{s.lev}×</span>{/if}
-                <span class="muted sm mono ago">{ago(s.ts)}</span>
-              </div>
-
-              <div class="levels">
-                {#if s.entry != null}
-                  <div class="lrow"><span class="ll muted">вход</span><span class="lv mono">{fmtPrice(s.entry)}</span></div>
-                {/if}
-                {#if s.tps?.length}
-                  {#each s.tps as tp, i}
-                    <div class="lrow"><span class="ll muted">TP{s.tps.length > 1 ? i+1 : ''}</span><span class="lv mono good">{fmtPrice(tp)}</span></div>
-                  {/each}
-                {/if}
-                {#if s.sl != null}
-                  <div class="lrow"><span class="ll muted">SL</span><span class="lv mono bad">{fmtPrice(s.sl)}</span></div>
-                {/if}
-              </div>
-
-              {#if s.entry && s.sl}
-                {@const rr = s.side === 'long'
-                  ? ((s.tps?.[0] ?? s.entry) - s.entry) / (s.entry - s.sl)
-                  : (s.entry - (s.tps?.[0] ?? s.entry)) / (s.sl - s.entry)}
-                {#if isFinite(rr) && rr > 0}
-                  <div class="rr muted sm">R:R <span class:good={rr >= 2} class:warn={rr > 0 && rr < 2}>{rr.toFixed(1)}</span></div>
-                {/if}
-              {/if}
-
-              <div class="bc-foot">
-                <span class="muted sm">{fmtTs(s.ts)}</span>
-                <button class="raw-btn muted sm" onclick={() => botShowRaw[s.id] = !botShowRaw[s.id]}>
-                  {botShowRaw[s.id] ? 'скрыть' : 'raw'}
-                </button>
-              </div>
-              {#if botShowRaw[s.id]}
-                <pre class="raw">{s.raw}</pre>
-              {/if}
-            </div>
+        <span class="muted">· из личного чата с ботом · обновлено {new Date(bot.updated).toLocaleString()}</span></div>
+      <table>
+        <thead><tr><th>Время</th><th>Coin</th><th>Side</th><th class="r">Entry</th>
+          <th class="r">Targets</th><th class="r">Stop</th><th class="r">Lev</th></tr></thead>
+        <tbody>
+          {#each bot.signals.slice(0, 20) as s}
+            <tr>
+              <td class="muted">{new Date(s.ts * 1000).toLocaleString()}</td>
+              <td><span class="sym">{s.coin}</span></td>
+              <td class="{s.side === 'long' ? 'good' : 'bad'}">{s.side.toUpperCase()}</td>
+              <td class="r mono">{s.entry ?? '—'}</td>
+              <td class="r mono">{s.tps?.join(' / ') ?? '—'}</td>
+              <td class="r mono">{s.sl ?? '—'}</td>
+              <td class="r mono">{s.lev ? s.lev + 'x' : '—'}</td>
+            </tr>
           {/each}
-        </div>
-      {/if}
+        </tbody>
+      </table>
+    </section>
+  {/if}
+
+  <!-- @dexnewtoken signals (collector-fed, optional) -->
+  {#if dex}
+    <section class="card tw">
+      <div class="sec-title">Сигналы @dexnewtoken
+        <span class="muted">· публичный канал · обновлено {new Date(dex.updated).toLocaleString()}</span></div>
+      <table>
+        <thead><tr><th>Дата</th><th>Symbol</th><th>Side</th><th class="r">Price</th>
+          <th class="r">Target</th><th>Адрес</th></tr></thead>
+        <tbody>
+          {#each dex.signals.slice(0, 30) as s}
+            <tr>
+              <td class="muted">{new Date(s.dt).toLocaleString()}</td>
+              <td><span class="sym">{s.sym ?? '—'}</span></td>
+              <td class="{s.side === 'buy' ? 'good' : s.side === 'sell' ? 'bad' : ''}">{s.side?.toUpperCase() ?? '—'}</td>
+              <td class="r mono">{s.price ?? '—'}</td>
+              <td class="r mono">{s.target ?? '—'}</td>
+              <td class="mono addr">{s.addr ? s.addr.slice(0, 8) + '…' + s.addr.slice(-6) : '—'}</td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
     </section>
   {/if}
 
@@ -300,45 +270,8 @@
   td{padding:8px 9px;border-top:1px solid var(--border);white-space:nowrap}
   .r{text-align:right}.sym{font-weight:500}.lev{font-size:11px}
   tr.focus td{background:rgba(34,167,255,.07)}
+  .addr{font-size:11px;color:var(--muted)}
   .good{color:var(--good)}.bad{color:var(--bad)}
   .foot{font-size:11px;margin-top:14px;line-height:1.6;max-width:720px}
   @media(max-width:700px){.cols{grid-template-columns:1fr}}
-
-  /* bot signals */
-  .bsec{margin-bottom:16px}
-  .bkpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;margin-bottom:10px}
-  .bkpi{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:9px 12px;display:flex;flex-direction:column;gap:2px}
-  .bkl{font-size:11px;color:var(--muted)}
-  .bkv{font-family:var(--head);font-size:18px;font-weight:600}
-  .bkv.sm{font-size:12px}
-  .bfilters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
-  .bfb{background:var(--card);border:1px solid var(--border);color:var(--muted);border-radius:8px;
-    padding:5px 13px;cursor:pointer;font-size:13px;transition:all .15s}
-  .bfb:hover{color:var(--text)}
-  .bfb.act{background:rgba(255,255,255,.08);color:var(--text);border-color:rgba(255,255,255,.2)}
-  .bfb.good.act{background:rgba(65,214,138,.12);color:var(--good);border-color:rgba(65,214,138,.3)}
-  .bfb.bad.act{background:rgba(255,107,107,.12);color:var(--bad);border-color:rgba(255,107,107,.3)}
-  .bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
-  .bcard{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:11px 13px;
-    display:flex;flex-direction:column;gap:7px}
-  .bcard.blong{border-left:3px solid rgba(65,214,138,.5)}
-  .bcard.bshort{border-left:3px solid rgba(255,107,107,.5)}
-  .bc-top{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
-  .bside{font-size:11px;font-weight:700;padding:2px 6px;border-radius:5px}
-  .bside.good{background:rgba(65,214,138,.15)}
-  .bside.bad{background:rgba(255,107,107,.14)}
-  .blev{font-size:11px;background:rgba(255,255,255,.07);border-radius:5px;padding:2px 6px;color:var(--muted)}
-  .ago{margin-left:auto}
-  .levels{display:flex;flex-direction:column;gap:3px}
-  .lrow{display:flex;justify-content:space-between;align-items:center;font-size:12px}
-  .ll{min-width:34px}
-  .lv{font-size:13px;font-weight:500}
-  .rr{font-size:11px}.rr span{font-weight:600}
-  .warn{color:#f0997b}
-  .bc-foot{display:flex;justify-content:space-between;align-items:center}
-  .raw-btn{background:none;border:none;cursor:pointer;padding:0;font-family:inherit;font-size:11px;color:var(--muted)}
-  .raw-btn:hover{color:var(--text)}
-  pre.raw{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:var(--muted);
-    white-space:pre-wrap;word-break:break-word;background:rgba(255,255,255,.03);
-    border-radius:6px;padding:8px;margin:0;line-height:1.5}
 </style>
