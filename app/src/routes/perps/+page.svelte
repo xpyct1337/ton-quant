@@ -12,6 +12,7 @@
   // Собранные коллектором сигналы @perptools_ai_bot (scripts/perp_signals.py,
   // перезаливается воркфлоу perp-signals.yml). Файла нет → секция скрыта.
   const SIGNALS_URL = 'https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data/perp_signals.json';
+  const DEX_URL = 'https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data/dex_signals.json';
 
   let st = $state('loading');
   let err = $state('');
@@ -22,6 +23,7 @@
   let spark = $state('');
   let updatedAt = $state(null);
   let bot = $state(null);
+  let dex = $state(null);
   let busy = false;
 
   const info = (body) =>
@@ -63,9 +65,17 @@
     } catch { /* секция опциональна */ }
   }
 
+  async function loadDexSignals() {
+    try {
+      const d = await fetch(DEX_URL).then((r) => (r.ok ? r.json() : null));
+      if (d?.signals?.length) dex = d;
+    } catch { /* секция опциональна */ }
+  }
+
   onMount(() => {
     refresh().then(loadSpark);
     loadBotSignals();
+    loadDexSignals();
     const iv = setInterval(() => { if (!document.hidden) refresh(); }, 60000);
     const onVis = () => { if (!document.hidden) refresh(); };
     document.addEventListener('visibilitychange', onVis);
@@ -134,6 +144,30 @@
               <td class="r mono">{s.tps?.join(' / ') ?? '—'}</td>
               <td class="r mono">{s.sl ?? '—'}</td>
               <td class="r mono">{s.lev ? s.lev + 'x' : '—'}</td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+    </section>
+  {/if}
+
+  <!-- @dexnewtoken signals (collector-fed, optional) -->
+  {#if dex}
+    <section class="card tw">
+      <div class="sec-title">Сигналы @dexnewtoken
+        <span class="muted">· публичный канал · обновлено {new Date(dex.updated).toLocaleString()}</span></div>
+      <table>
+        <thead><tr><th>Дата</th><th>Symbol</th><th>Side</th><th class="r">Price</th>
+          <th class="r">Target</th><th>Адрес</th></tr></thead>
+        <tbody>
+          {#each dex.signals.slice(0, 30) as s}
+            <tr>
+              <td class="muted">{new Date(s.dt).toLocaleString()}</td>
+              <td><span class="sym">{s.sym ?? '—'}</span></td>
+              <td class="{s.side === 'buy' ? 'good' : s.side === 'sell' ? 'bad' : ''}">{s.side?.toUpperCase() ?? '—'}</td>
+              <td class="r mono">{s.price ?? '—'}</td>
+              <td class="r mono">{s.target ?? '—'}</td>
+              <td class="mono addr">{s.addr ? s.addr.slice(0, 8) + '…' + s.addr.slice(-6) : '—'}</td>
             </tr>
           {/each}
         </tbody>
@@ -236,6 +270,7 @@
   td{padding:8px 9px;border-top:1px solid var(--border);white-space:nowrap}
   .r{text-align:right}.sym{font-weight:500}.lev{font-size:11px}
   tr.focus td{background:rgba(34,167,255,.07)}
+  .addr{font-size:11px;color:var(--muted)}
   .good{color:var(--good)}.bad{color:var(--bad)}
   .foot{font-size:11px;margin-top:14px;line-height:1.6;max-width:720px}
   @media(max-width:700px){.cols{grid-template-columns:1fr}}
