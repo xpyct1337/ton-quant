@@ -1,0 +1,38 @@
+# Временный диагностический воркфлоу: проверяет доступность и CORS
+# публичного info-API Hyperliquid, на который завязана страница /perps/.
+name: hl-probe
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/ton-quant-perps-loading-0rn3va]
+    paths: ['.github/workflows/hl-probe.yml']
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: POST metaAndAssetCtxs with browser Origin
+        run: |
+          curl -sS -D - -o /tmp/body.json -w '\nHTTP %{http_code}\n' \
+            -X POST https://api.hyperliquid.xyz/info \
+            -H 'Content-Type: application/json' \
+            -H 'Origin: https://xpyct1337.github.io' \
+            -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/137 Safari/537.36' \
+            -d '{"type":"metaAndAssetCtxs"}' || true
+          echo '--- body head ---'
+          head -c 1500 /tmp/body.json; echo
+      - name: OPTIONS preflight
+        run: |
+          curl -sS -D - -o /dev/null -w 'HTTP %{http_code}\n' \
+            -X OPTIONS https://api.hyperliquid.xyz/info \
+            -H 'Origin: https://xpyct1337.github.io' \
+            -H 'Access-Control-Request-Method: POST' \
+            -H 'Access-Control-Request-Headers: content-type' || true
+      - name: candleSnapshot TON
+        run: |
+          end=$(date +%s%3N); start=$((end - 7*86400*1000))
+          curl -sS -o /tmp/c.json -w 'HTTP %{http_code}\n' \
+            -X POST https://api.hyperliquid.xyz/info \
+            -H 'Content-Type: application/json' \
+            -d "{\"type\":\"candleSnapshot\",\"req\":{\"coin\":\"TON\",\"interval\":\"1h\",\"startTime\":$start,\"endTime\":$end}}" || true
+          head -c 500 /tmp/c.json; echo

@@ -3,6 +3,8 @@ on:
   schedule:
     - cron: "25 * * * *"   # hourly: funding/OI fallback for /perps/ when the API is geo-blocked client-side
   workflow_dispatch:
+  push:   # ВРЕМЕННО: первый прогон с ветки, убрать перед мержем
+    branches: [claude/ton-quant-perps-loading-0rn3va]
 permissions:
   contents: write
 jobs:
@@ -28,3 +30,4 @@ jobs:
             sleep $((i * 15))
           done
           [ "$ok" = "1" ] || echo "::warning::push failed after 5 attempts, next hour retries"
+          git push origin "HEAD:$GITHUB_REF_NAME"
