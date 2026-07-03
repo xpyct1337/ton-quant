@@ -1,0 +1,32 @@
+name: Perp markets
+on:
+  schedule:
+    - cron: "25 * * * *"   # hourly: funding/OI fallback for /perps/ when the API is geo-blocked client-side
+  workflow_dispatch:
+  push:   # ВРЕМЕННО: первый прогон с ветки, убрать перед мержем
+    branches: [claude/ton-quant-perps-loading-0rn3va]
+permissions:
+  contents: write
+jobs:
+  perp-markets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: python scripts/perp_markets.py
+      - run: |
+          git config user.name "snapshot-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/perp_markets.json
+          git diff --cached --quiet || git commit -m "perp markets $(date -u +%FT%H:%M)"
+          ok=0
+          for i in 1 2 3 4 5; do
+            if git pull --rebase origin main 2>/dev/null && git push; then
+              ok=1; break
+            fi
+            git rebase --abort 2>/dev/null || true
+            sleep $((i * 15))
+          done
+          [ "$ok" = "1" ] || echo "::warning::push failed after 5 attempts, next hour retries"
