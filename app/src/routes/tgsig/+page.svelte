@@ -38,6 +38,14 @@
 
   const sideCls  = (side) => (side === 'long' || side === 'buy' ? 'good' : side === 'short' || side === 'sell' ? 'bad' : '');
   const sideTxt  = (side) => side?.toUpperCase() ?? '—';
+  const KIND_TXT = { vol_spike: 'VOL SPIKE', oi_spike: 'OI SPIKE', price_spike: 'PRICE SPIKE', funding_spike: 'FUNDING' };
+  const fmtPctS  = (p) => (p >= 0 ? '+' : '') + p + '%';
+  const tradeTxt = (s) => [
+    s.entry != null ? 'entry ' + s.entry : null,
+    s.tps?.length ? 'tp ' + s.tps.join('/') : null,
+    s.sl != null ? 'sl ' + s.sl : null,
+    s.lev ? s.lev + 'x' : null
+  ].filter(Boolean).join(' · ') || '—';
   const fmtTime  = (ts) => new Date(typeof ts === 'number' ? ts * 1000 : ts).toLocaleString();
   const verdCls  = (v) => (v === 'edge' ? 'good' : v === 'noise' ? 'bad' : 'muted');
   const sigScore = (sig, scores) => scores?.by_signal?.[sig];
@@ -69,19 +77,20 @@
     {:else}
       <table>
         <thead><tr>
-          <th>Время</th><th>Coin</th><th>Side</th>
-          <th class="r">Entry</th><th class="r">Targets</th><th class="r">Stop</th><th class="r">Lev</th>
+          <th>Время</th><th>Coin</th><th>Сигнал</th><th>Детали</th>
         </tr></thead>
         <tbody>
           {#each bot.signals.slice(0, 50) as s}
             <tr>
               <td class="muted">{fmtTime(s.ts)}</td>
               <td><span class="sym">{s.coin}</span></td>
-              <td class={sideCls(s.side)}>{sideTxt(s.side)}</td>
-              <td class="r mono">{s.entry ?? '—'}</td>
-              <td class="r mono">{s.tps?.join(' / ') ?? '—'}</td>
-              <td class="r mono">{s.sl ?? '—'}</td>
-              <td class="r mono">{s.lev ? s.lev + 'x' : '—'}</td>
+              {#if s.kind && s.kind !== 'trade'}
+                <td class={s.pct >= 0 ? 'good' : 'bad'}>{KIND_TXT[s.kind] ?? s.kind}</td>
+                <td class="mono">{fmtPctS(s.pct)}{s.win ? ` за ${s.win} мин` : ''}</td>
+              {:else}
+                <td class={sideCls(s.side)}>{sideTxt(s.side)}</td>
+                <td class="mono">{tradeTxt(s)}</td>
+              {/if}
             </tr>
           {/each}
         </tbody>
@@ -104,17 +113,23 @@
     {:else}
       <table>
         <thead><tr>
-          <th>Дата</th><th>Symbol</th><th>Side</th>
-          <th class="r">Price</th><th class="r">Target</th><th>Адрес</th>
+          <th>Дата</th><th>Токен</th><th>Сигнал</th><th>Сеть</th>
+          <th class="r">Price</th><th>Адрес</th>
         </tr></thead>
         <tbody>
           {#each dex.signals.slice(0, 50) as s}
             <tr>
               <td class="muted">{fmtTime(s.dt)}</td>
-              <td><span class="sym">{s.sym ?? '—'}</span></td>
-              <td class={sideCls(s.side)}>{sideTxt(s.side)}</td>
-              <td class="r mono">{s.price ?? '—'}</td>
-              <td class="r mono">{s.target ?? '—'}</td>
+              <td><span class="sym">{s.sym ?? s.name ?? '—'}</span></td>
+              {#if s.side}
+                <td class={sideCls(s.side)}>{sideTxt(s.side)}</td>
+              {:else if s.kind === 'listing'}
+                <td class="muted">listing</td>
+              {:else}
+                <td>—</td>
+              {/if}
+              <td class="muted">{s.chain ?? '—'}</td>
+              <td class="r mono">{s.price ?? '—'}{s.target ? ' → ' + s.target : ''}</td>
               <td class="mono muted">{s.addr ? s.addr.slice(0, 8) + '…' + s.addr.slice(-6) : '—'}</td>
             </tr>
           {/each}

@@ -35,6 +35,11 @@ SYM_PAT = re.compile(
 NUM = r"([0-9][0-9 ,]*(?:\.[0-9]+)?)"
 PRICE_PAT = re.compile(r"\b(?:price|цена|entry|вход)[^\d]{0,15}" + NUM, re.I)
 TARGET_PAT = re.compile(r"\b(?:target|tp\d?|цель)[^\d]{0,15}" + NUM, re.I)
+# actual channel format: "🔔 NEW TOKEN: Token 6ZuyuQ...pump  ⛓️ SOLANA  📱 Telegram: …"
+NEW_PAT = re.compile(r"NEW TOKEN:?\s*(.+?)(?:\s{2,}|$)", re.I)
+CHAIN_PAT = re.compile(r"\b(SOLANA|SOL|TON|ETHEREUM|ETH|BSC|BASE|TRON|SUI)\b")
+# "📝 Contract: <base58 mint>" — label-anchored so bare base58 words can't misfire
+CONTRACT_PAT = re.compile(r"\b(?i:contract):?\s+([1-9A-HJ-NP-Za-km-z]{32,44})\b")
 
 
 def fetch_channel(slug):
@@ -78,8 +83,19 @@ def parse_item(item):
         if sym and sym not in ("USDT", "USDC", "TON", "BNB", "ETH", "USD"):
             sig["sym"] = sym
 
+    # new-token listing
+    if (n := NEW_PAT.search(text)):
+        sig["kind"] = "listing"
+        name = n.group(1).strip()
+        if name:
+            sig["name"] = name[:40]
+    if (ch := CHAIN_PAT.search(text)):
+        sig["chain"] = ch.group(1)
+
     # addresses
-    if (a := TON_ADDR.search(text)):
+    if (a := CONTRACT_PAT.search(text)):
+        sig["addr"] = a.group(1)
+    elif (a := TON_ADDR.search(text)):
         sig["addr"] = a.group(0)
     elif (a := TON_FRIENDLY.search(text)):
         sig["addr"] = a.group(0)
@@ -100,7 +116,12 @@ def parse_item(item):
 
 
 def merge(prev_signals, items):
-    seen = {s["id"]: s for s in prev_signals}
+    seen = {}
+    for s in prev_signals:
+        # re-parse the stored raw so parser upgrades apply to old posts too
+        if s.get("raw") and s.get("post_id"):
+            s = parse_item({"post_id": s["post_id"], "dt": s.get("dt", ""), "text": s["raw"]})
+        seen[s["id"]] = s
     new_count = 0
     for item in items:
         sig = parse_item(item)
@@ -174,6 +195,15 @@ def selftest():
     signals2, n2 = merge(signals, items)
     assert n2 == 0, n2
     assert len(signals2) == 3
+    # actual channel format (from collected data): new-token listing
+    lst = parse_item({"post_id": "Dexnewtoken/71958", "dt": "2026-07-03T20:27:02+00:00",
+                      "text": "🔔   NEW TOKEN: Token 6ZuyuQ...pump     ⛓️   SOLANA      "
+                              "📱   Telegram:   Join Group     🐦   Twitter:   Follow     "
+                              "📝   Contract:   6ZuyuQNBSMhkLfRUoqfuTXQrfX1qq4un2i7bdcLKpump      "
+                              "📊   Chart:   View on DEXScreener"})
+    assert lst["kind"] == "listing" and lst["name"] == "Token 6ZuyuQ...pump", lst
+    assert lst["chain"] == "SOLANA", lst
+    assert lst["addr"] == "6ZuyuQNBSMhkLfRUoqfuTXQrfX1qq4un2i7bdcLKpump", lst
     print("selftest OK")
 
 

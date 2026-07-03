@@ -34,13 +34,32 @@ SL_PAT = re.compile(r"\b(?:sl|stop(?:[\s-]*loss)?|стоп)\b[^0-9]{0,12}" + NUM
 TP_PAT = re.compile(r"\b(?:tp\d?|target[s]?|тейк|цел[иь])\b[^0-9]{0,12}" + NUM, re.I)
 LEV_PAT = re.compile(r"\b(\d{1,3})\s*[xх]\b|\b[xх]\s*(\d{1,3})\b", re.I)
 
+# The bot mostly posts market ALERTS, not trade calls, e.g.
+# "📊 Volume Spike Detected\n\nLTC volume jumped +58.5% over the last 60 minutes".
+# Coin stays case-sensitive uppercase so "The volume jumped 5%" can't match.
+ALERT_PAT = re.compile(
+    r"\b([A-Z][A-Z0-9]{1,9})\s+(volume|open interest|price|funding)\s+"
+    r"(jumped|spiked|surged|dropped|fell)\s*([+\-]?\d+(?:\.\d+)?)\s*%")
+ALERT_KIND = {"volume": "vol_spike", "open interest": "oi_spike",
+              "price": "price_spike", "funding": "funding_spike"}
+ALERT_WIN = re.compile(r"last\s+(\d+)\s*(minute|min|hour|h)", re.I)
+
 _num = lambda s: float(s.replace(" ", "").replace(",", ""))
 
 
 def parse_signal(text):
-    """Signal dict or None when the message has no coin+side pair."""
+    """Signal dict or None when the message is neither an alert nor a trade call."""
     if not text:
         return None
+    if (a := ALERT_PAT.search(text)):
+        coin, metric, verb, pct = a.groups()
+        pct = float(pct)
+        if verb in ("dropped", "fell") and pct > 0:
+            pct = -pct
+        out = {"coin": coin, "kind": ALERT_KIND[metric], "pct": pct}
+        if (w := ALERT_WIN.search(text)):
+            out["win"] = int(w.group(1)) * (60 if w.group(2).lower().startswith("h") else 1)
+        return out
     m = SIDE_PAT.search(text)
     if not m:
         return None
@@ -51,7 +70,7 @@ def parse_signal(text):
     coin = next(g for g in c.groups() if g)
     if coin in ("USDT", "USD", "USDC", "PERP", "LONG", "SHORT"):
         return None
-    out = {"coin": coin, "side": side}
+    out = {"coin": coin, "kind": "trade", "side": side}
     if (e := ENTRY_PAT.search(text)):
         out["entry"] = _num(e.group(1))
     if (s := SL_PAT.search(text)):
@@ -126,7 +145,7 @@ def login():
 def selftest():
     s = parse_signal("🟢 LONG BTC/USDT\nEntry: 65 000\nTP1: 66000 TP2: 67500\n"
                      "SL: 63500\nLeverage: 10x")
-    assert s == {"coin": "BTC", "side": "long", "entry": 65000.0,
+    assert s == {"coin": "BTC", "kind": "trade", "side": "long", "entry": 65000.0,
                  "sl": 63500.0, "tps": [66000.0, 67500.0], "lev": 10}, s
     s = parse_signal("$SOL short 📉 entry 145.2 targets 140/136 stop 150 x5")
     assert s["coin"] == "SOL" and s["side"] == "short" and s["entry"] == 145.2
@@ -134,7 +153,15 @@ def selftest():
     s = parse_signal("📈 BTCUSDT\nEntry: 65000")            # binance-style concat pair
     assert s["coin"] == "BTC" and s["side"] == "long" and s["entry"] == 65000.0, s
     s = parse_signal("Coin: TON\nDirection: SHORT\nstop 3.1")  # labeled format
-    assert s == {"coin": "TON", "side": "short", "sl": 3.1}, s
+    assert s == {"coin": "TON", "kind": "trade", "side": "short", "sl": 3.1}, s
+    # alert formats actually posted by @perptools_ai_bot (from CI log samples)
+    s = parse_signal("📊 Volume Spike Detected\n\nLTC volume jumped +58.5% over the last 60 minutes")
+    assert s == {"coin": "LTC", "kind": "vol_spike", "pct": 58.5, "win": 60}, s
+    s = parse_signal("📈 OI Spike Detected\n\nLIT open interest jumped +89.1% over the last 60 minutes")
+    assert s == {"coin": "LIT", "kind": "oi_spike", "pct": 89.1, "win": 60}, s
+    s = parse_signal("ETH price dropped 4.2% over the last 2 hours")
+    assert s == {"coin": "ETH", "kind": "price_spike", "pct": -4.2, "win": 120}, s
+    assert parse_signal("🏆 Top Agents — Last 24h\n#1 Alessandro\n├ PnL (24h): +21.51%\n└ AUM: $442.62") is None
     s = parse_signal("#ETH long entry 2500")                  # hashtag ticker
     assert s["coin"] == "ETH" and s["side"] == "long", s
     assert parse_signal("gm, market update: BTC dominance rising") is None
