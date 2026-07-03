@@ -40,17 +40,25 @@ TARGET_PAT = re.compile(r"\b(?:target|tp\d?|цель)[^\d]{0,15}" + NUM, re.I)
 def fetch_channel(slug):
     req = urllib.request.Request(f"https://t.me/s/{slug}", headers=UA)
     page = urllib.request.urlopen(req, timeout=30).read().decode("utf-8", "ignore")
-    # extract raw text + date from each message block
+    return parse_page(page)
+
+
+def parse_page(page):
+    # In the real t.me/s markup the message text comes BEFORE the date (the
+    # <time datetime=…> lives in the footer), so slice the page per data-post
+    # block and match text/date independently instead of one ordered regex.
+    posts = list(re.finditer(r'tgme_widget_message\b[^>]*data-post="([^"]+)"', page))
     items = []
-    for block in re.finditer(
-            r'tgme_widget_message\b[^>]*data-post="([^"]+)".*?'
-            r'tgme_widget_message_date.*?datetime="([^"]+)".*?'
-            r'tgme_widget_message_text[^>]*>(.*?)</div>',
-            page, re.S):
-        post_id, dt_str, raw_html = block.groups()
-        text = htmllib.unescape(re.sub(r"<[^>]+>", " ", raw_html)).strip()
+    for i, m in enumerate(posts):
+        chunk = page[m.end():posts[i + 1].start() if i + 1 < len(posts) else len(page)]
+        txt = re.search(r'tgme_widget_message_text[^>]*>(.*?)</div>', chunk, re.S)
+        if not txt:
+            continue
+        dt = re.search(r'<time[^>]*datetime="([^"]+)"', chunk)
+        text = htmllib.unescape(re.sub(r"<[^>]+>", " ", txt.group(1))).strip()
         if text:
-            items.append({"post_id": post_id, "dt": dt_str, "text": text})
+            items.append({"post_id": m.group(1), "dt": dt.group(1) if dt else "",
+                          "text": text})
     return items
 
 
@@ -122,6 +130,30 @@ def main():
 
 
 def selftest():
+    # realistic t.me/s block order: bubble → text → footer with <time datetime>
+    html_page = """
+    <div class="tgme_widget_message text_not_supported_wrap js-widget_message"
+         data-post="dexnewtoken/101" data-view="x">
+      <div class="tgme_widget_message_bubble">
+        <div class="tgme_widget_message_text js-message_text" dir="auto">
+          &#036;AAA/USDT 🚀 price 0.5</div>
+        <div class="tgme_widget_message_info">
+          <a class="tgme_widget_message_date" href="https://t.me/dexnewtoken/101">
+            <time datetime="2026-07-03T10:00:00+00:00" class="time">10:00</time></a>
+        </div></div></div>
+    <div class="tgme_widget_message" data-post="dexnewtoken/102">
+      <div class="tgme_widget_message_bubble">
+        <div class="tgme_widget_message_text js-message_text" dir="auto">sell #BBB</div>
+        <a class="tgme_widget_message_date" href="x">
+          <time datetime="2026-07-03T11:00:00+00:00">11:00</time></a>
+      </div></div>"""
+    parsed = parse_page(html_page)
+    assert [p["post_id"] for p in parsed] == ["dexnewtoken/101", "dexnewtoken/102"], parsed
+    assert parsed[0]["dt"] == "2026-07-03T10:00:00+00:00", parsed[0]
+    assert parsed[0]["text"] == "$AAA/USDT 🚀 price 0.5", parsed[0]
+    assert parsed[1]["dt"] == "2026-07-03T11:00:00+00:00", parsed[1]
+    assert parsed[1]["text"] == "sell #BBB", parsed[1]
+
     items = [
         {"post_id": "dexnewtoken/1", "dt": "2026-07-03T10:00:00+00:00",
          "text": "🚀 New listing! $MYTOKEN/USDT on STON.fi\nEntry: 0.0012\nTarget: 0.002\nAddr: 0:" + "a"*64},
