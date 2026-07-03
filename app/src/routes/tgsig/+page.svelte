@@ -10,6 +10,8 @@
   let st    = $state('loading');
   let bot   = $state(null);
   let dex   = $state(null);
+  let botMeta = $state(null); // file exists but zero signals: collector runs, parser found nothing
+  let dexMeta = $state(null);
   let chain = $state(null);
   let date  = $state('');
 
@@ -19,8 +21,14 @@
       fetch(DEX_URL).then((r)  => (r.ok ? r.json() : null)),
       loadSignals()
     ]);
-    if (botR.status === 'fulfilled' && botR.value?.signals?.length) bot = botR.value;
-    if (dexR.status === 'fulfilled' && dexR.value?.signals?.length) dex = dexR.value;
+    if (botR.status === 'fulfilled' && botR.value) {
+      if (botR.value.signals?.length) bot = botR.value;
+      else botMeta = botR.value;
+    }
+    if (dexR.status === 'fulfilled' && dexR.value) {
+      if (dexR.value.signals?.length) dex = dexR.value;
+      else dexMeta = dexR.value;
+    }
     if (sigR.status === 'fulfilled') {
       const s = sigR.value;
       if (s.today?.signals?.length) { chain = s; date = s.date || ''; }
@@ -53,7 +61,11 @@
       {#if bot}<span class="muted">· обновлено {fmtTime(bot.updated)}</span>{/if}
     </div>
     {#if !bot}
-      <p class="muted sm">Нет данных — сигналы появятся после настройки секрета <code>TG_SESSION</code> в GitHub Actions.</p>
+      {#if botMeta}
+        <p class="muted sm">Подключено (обновлено {fmtTime(botMeta.updated)}), но распознанных сигналов пока нет — в последних сообщениях бота парсер не нашёл пары монета+направление.</p>
+      {:else}
+        <p class="muted sm">Нет данных — сигналы появятся после настройки секрета <code>TG_SESSION</code> в GitHub Actions.</p>
+      {/if}
     {:else}
       <table>
         <thead><tr>
@@ -84,7 +96,11 @@
       {#if dex}<span class="muted">· обновлено {fmtTime(dex.updated)}</span>{/if}
     </div>
     {#if !dex}
-      <p class="muted sm">Нет данных — канал публичный, проверь <code>scripts/dex_signals.py</code>.</p>
+      {#if dexMeta}
+        <p class="muted sm">Подключено (обновлено {fmtTime(dexMeta.updated)}), но распознанных сигналов в последних сообщениях канала нет.</p>
+      {:else}
+        <p class="muted sm">Нет данных — сборщик ещё не отработал, файл появится после следующего запуска воркфлоу «Perp signals» (каждые 4 часа).</p>
+      {/if}
     {:else}
       <table>
         <thead><tr>

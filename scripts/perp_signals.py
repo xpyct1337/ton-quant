@@ -24,7 +24,10 @@ SIDE_PAT = re.compile(
 COIN_PAT = re.compile(
     r"\$([A-Z][A-Z0-9]{1,9})\b"                 # $BTC
     r"|\b([A-Z][A-Z0-9]{1,9})[/-](?:USDT?|USDC|PERP)\b"  # BTC/USDT, SOL-PERP
-    r"|\b(?:LONG|SHORT|BUY|SELL)\s+\$?([A-Z][A-Z0-9]{1,9})\b")  # LONG BTC
+    r"|\b([A-Z][A-Z0-9]{1,9})(?:USDT|USDC|PERP)\b"       # BTCUSDT (binance-style)
+    r"|#([A-Z][A-Z0-9]{1,9})\b"                          # #BTC
+    r"|\b(?:LONG|SHORT|BUY|SELL)\s+\$?#?([A-Z][A-Z0-9]{1,9})\b"  # LONG BTC
+    r"|\b(?:COIN|PAIR|TICKER|МОНЕТА|ПАРА)\s*[:\-]?\s*\$?#?([A-Z][A-Z0-9]{1,9})\b")  # Coin: BTC
 NUM = r"([0-9][0-9 ,]*(?:\.[0-9]+)?)"
 ENTRY_PAT = re.compile(r"\b(?:entry|вход)\b[^0-9]{0,12}" + NUM, re.I)
 SL_PAT = re.compile(r"\b(?:sl|stop(?:[\s-]*loss)?|стоп)\b[^0-9]{0,12}" + NUM, re.I)
@@ -102,6 +105,11 @@ def main():
     json.dump(out, open(OUT, "w"), separators=(",", ":"), ensure_ascii=False)
     print(f"perp_signals: {len(msgs)} msgs read, {parsed} new parsed, "
           f"{len(signals)} kept")
+    if msgs and not signals:
+        # nothing ever parsed: show truncated samples so the format mismatch
+        # is debuggable from the workflow log (it's my own chat with the bot)
+        for _, _, text in msgs[:3]:
+            print("  unparsed sample:", text[:120].replace("\n", " | "))
 
 
 def login():
@@ -123,6 +131,12 @@ def selftest():
     s = parse_signal("$SOL short 📉 entry 145.2 targets 140/136 stop 150 x5")
     assert s["coin"] == "SOL" and s["side"] == "short" and s["entry"] == 145.2
     assert s["tps"] == [140.0, 136.0] and s["sl"] == 150.0 and s["lev"] == 5, s
+    s = parse_signal("📈 BTCUSDT\nEntry: 65000")            # binance-style concat pair
+    assert s["coin"] == "BTC" and s["side"] == "long" and s["entry"] == 65000.0, s
+    s = parse_signal("Coin: TON\nDirection: SHORT\nstop 3.1")  # labeled format
+    assert s == {"coin": "TON", "side": "short", "sl": 3.1}, s
+    s = parse_signal("#ETH long entry 2500")                  # hashtag ticker
+    assert s["coin"] == "ETH" and s["side"] == "long", s
     assert parse_signal("gm, market update: BTC dominance rising") is None
     assert parse_signal("LONG USDT") is None      # quote-only, not a coin
     assert parse_signal("") is None

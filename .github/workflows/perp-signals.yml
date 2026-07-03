@@ -19,12 +19,14 @@ jobs:
           TG_API_HASH: ${{ secrets.TG_API_HASH }}
           TG_SESSION: ${{ secrets.TG_SESSION }}
         run: python scripts/perp_signals.py   # no-op skip while secrets are absent
+      - run: python scripts/dex_signals.py || true   # t.me/s serves only ~20 last msgs — collect every 4h, not daily
       - run: |
-          [ -f data/perp_signals.json ] || { echo "no data file (secrets absent?), nothing to commit"; exit 0; }
           git config user.name "snapshot-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data/perp_signals.json
-          git diff --cached --quiet || git commit -m "perp signals $(date -u +%F)"
+          for f in data/perp_signals.json data/dex_signals.json; do
+            if [ -f "$f" ]; then git add "$f"; fi
+          done
+          git diff --cached --quiet || git commit -m "tg signals $(date -u +%F)"
           ok=0
           for i in 1 2 3 4 5; do
             if git pull --rebase origin main 2>/dev/null && git push; then
