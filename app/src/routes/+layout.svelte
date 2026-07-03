@@ -9,6 +9,7 @@
     { href: base + '/screener', label: 'Screener', icon: 'ti-list-search' },
     { href: base + '/arb', label: 'Arbitrage', icon: 'ti-arrows-left-right' },
     { href: base + '/perps', label: 'Perps', icon: 'ti-chart-candle' },
+    { href: base + '/tgsig', label: 'TG Sig', icon: 'ti-brand-telegram' },
     { href: base + '/compare', label: 'Compare', icon: 'ti-arrows-diff' },
     { href: base + '/portfolio', label: 'Portfolio', icon: 'ti-wallet' },
     { href: base + '/wallets', label: 'Smart money', icon: 'ti-users-group' },
