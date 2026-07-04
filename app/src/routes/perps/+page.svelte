@@ -4,15 +4,11 @@
   import { perpRows, rankSignals, signalLabel, sparkPoints } from '$lib/perps.js';
 
   // Hyperliquid public info API: без ключа, CORS открыт, POST-запросы.
-  // ponytail: 2 запроса на обновление (метаданные+контексты всех перпов одним
-  // вызовом, свечи только для TON) — сигналы закрытого @perptools_ai_bot
-  // недоступны, считаем свои эвристики на тех же рыночных данных.
+  // 2 запроса на обновление: метаданные+контексты всех перпов одним вызовом,
+  // свечи только для фокусной монеты. Сигналы TG-каналов живут на /tgsig.
   const HL = 'https://api.hyperliquid.xyz/info';
-  const FOCUS = 'TON';
-  // Собранные коллектором сигналы @perptools_ai_bot (scripts/perp_signals.py,
-  // перезаливается воркфлоу perp-signals.yml). Файла нет → секция скрыта.
-  const SIGNALS_URL = 'https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data/perp_signals.json';
-  const DEX_URL = 'https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data/dex_signals.json';
+  // Toncoin на Hyperliquid: тикер TON делистнут 21.06.2026, торгуется как GRAM.
+  const FOCUS = 'GRAM';
   // api.hyperliquid.xyz гео-блокируется CloudFront'ом в ряде регионов — тогда
   // берём часовой снапшот воркера (scripts/perp_markets.py, perp-markets.yml).
   const MARKETS_URL = 'https://raw.githubusercontent.com/xpyct1337/ton-quant/main/data/perp_markets.json';
@@ -27,8 +23,6 @@
   let ton = $state(null);
   let spark = $state('');
   let updatedAt = $state(null);
-  let bot = $state(null);
-  let dex = $state(null);
   let busy = false;
 
   // 8s таймаут: DPI-блокировки часто не рвут соединение, а молча дропают
@@ -92,34 +86,13 @@
     }
   }
 
-  async function loadBotSignals() {
-    try {
-      const d = await fetch(SIGNALS_URL).then((r) => (r.ok ? r.json() : null));
-      if (d?.signals?.length) bot = d;
-    } catch { /* секция опциональна */ }
-  }
-
-  async function loadDexSignals() {
-    try {
-      const d = await fetch(DEX_URL).then((r) => (r.ok ? r.json() : null));
-      if (d?.signals?.length) dex = d;
-    } catch { /* секция опциональна */ }
-  }
-
   onMount(() => {
     refresh().then(loadSpark);
-    loadBotSignals();
-    loadDexSignals();
     const iv = setInterval(() => { if (!document.hidden) refresh(); }, 60000);
     const onVis = () => { if (!document.hidden) refresh(); };
     document.addEventListener('visibilitychange', onVis);
     return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onVis); };
   });
-
-  // Коллектор с #11 пишет и алерты бота (vol/oi spike) — у них нет side,
-  // страница не должна падать на s.side.toUpperCase().
-  const botSide = (s) => s.side?.toUpperCase()
-    ?? ({ vol_spike: `VOL +${s.pct}%`, oi_spike: `OI +${s.pct}%` }[s.kind] ?? '—');
 
   const chgCls = (v) => (v > 0 ? 'good' : v < 0 ? 'bad' : '');
   const biasCls = (s) => (s === 'long' ? 'good' : s === 'short' ? 'bad' : 'muted');
@@ -141,10 +114,9 @@
 {:else}
   <!-- TON featured -->
   <section class="card tonc">
-    <div class="sec-title">TON-PERP <span class="muted">· фокус страницы · Hyperliquid</span></div>
+    <div class="sec-title">GRAM-PERP <span class="muted">· Toncoin (экс-TON, делистнут 21.06.2026) · фокус страницы · Hyperliquid</span></div>
     {#if !ton}
-      <p class="muted sm">TON-перп делистнут с Hyperliquid решением валидаторов 21.06.2026 —
-        рынка больше нет, секция вернётся при релистинге. Остальные рынки ниже работают как раньше.</p>
+      <p class="muted sm">GRAM-перп сейчас не проходит фильтр ликвидности ($1M/24ч) или не листингован.</p>
     {:else}
       <div class="feat">
         <div class="fst">
@@ -166,55 +138,6 @@
       </div>
     {/if}
   </section>
-
-  <!-- @perptools_ai_bot signals (collector-fed, optional) -->
-  {#if bot}
-    <section class="card tw">
-      <div class="sec-title">Сигналы @perptools_ai_bot
-        <span class="muted">· из личного чата с ботом · обновлено {new Date(bot.updated).toLocaleString()}</span></div>
-      <table>
-        <thead><tr><th>Время</th><th>Coin</th><th>Side</th><th class="r">Entry</th>
-          <th class="r">Targets</th><th class="r">Stop</th><th class="r">Lev</th></tr></thead>
-        <tbody>
-          {#each bot.signals.slice(0, 20) as s}
-            <tr>
-              <td class="muted">{new Date(s.ts * 1000).toLocaleString()}</td>
-              <td><span class="sym">{s.coin ?? '—'}</span></td>
-              <td class="{s.side === 'long' ? 'good' : s.side === 'short' ? 'bad' : 'muted'}">{botSide(s)}</td>
-              <td class="r mono">{s.entry ?? '—'}</td>
-              <td class="r mono">{s.tps?.join(' / ') ?? '—'}</td>
-              <td class="r mono">{s.sl ?? '—'}</td>
-              <td class="r mono">{s.lev ? s.lev + 'x' : '—'}</td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </section>
-  {/if}
-
-  <!-- @dexnewtoken signals (collector-fed, optional) -->
-  {#if dex}
-    <section class="card tw">
-      <div class="sec-title">Сигналы @dexnewtoken
-        <span class="muted">· публичный канал · обновлено {new Date(dex.updated).toLocaleString()}</span></div>
-      <table>
-        <thead><tr><th>Дата</th><th>Symbol</th><th>Side</th><th class="r">Price</th>
-          <th class="r">Target</th><th>Адрес</th></tr></thead>
-        <tbody>
-          {#each dex.signals.slice(0, 30) as s}
-            <tr>
-              <td class="muted">{new Date(s.dt).toLocaleString()}</td>
-              <td><span class="sym">{s.sym ?? '—'}</span></td>
-              <td class="{s.side === 'buy' ? 'good' : s.side === 'sell' ? 'bad' : ''}">{s.side?.toUpperCase() ?? '—'}</td>
-              <td class="r mono">{s.price ?? '—'}</td>
-              <td class="r mono">{s.target ?? '—'}</td>
-              <td class="mono addr">{s.addr ? s.addr.slice(0, 8) + '…' + s.addr.slice(-6) : '—'}</td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </section>
-  {/if}
 
   <!-- Signals -->
   <div class="cols">
@@ -280,10 +203,9 @@
 
   <p class="muted foot">Данные — публичный info-API Hyperliquid (mark, prevDay, funding, OI, объём, premium),
     без ключей, прямо из браузера. Score = 45% моментум 24ч + 35% контр-фандинг (перегретые лонги платят
-    положительный фандинг → тилт в шорт) + 20% mark-oracle premium; насыщение на ±100. Это наши эвристики,
-    а не сигналы @perptools_ai_bot — у бота нет публичного API. Сигналы самого бота (если секция видна)
-    собираются коллектором scripts/perp_signals.py из личного чата с ботом через Telethon и парсятся
-    best-effort. Funding APR = часовая ставка × 24 × 365. Не финансовый совет.</p>
+    положительный фандинг → тилт в шорт) + 20% mark-oracle premium; насыщение на ±100. Это наши эвристики.
+    Сигналы TG-каналов (@perptools_ai_bot, @dexnewtoken) — на странице TG Sig.
+    Funding APR = часовая ставка × 24 × 365. Не финансовый совет.</p>
 {/if}
 
 <style>
@@ -311,7 +233,6 @@
   td{padding:8px 9px;border-top:1px solid var(--border);white-space:nowrap}
   .r{text-align:right}.sym{font-weight:500}.lev{font-size:11px}
   tr.focus td{background:rgba(34,167,255,.07)}
-  .addr{font-size:11px;color:var(--muted)}
   .good{color:var(--good)}.bad{color:var(--bad)}
   .foot{font-size:11px;margin-top:14px;line-height:1.6;max-width:720px}
   @media(max-width:700px){.cols{grid-template-columns:1fr}}

@@ -16,7 +16,7 @@ import json, os, sys, time, urllib.request
 
 API = "https://api.hyperliquid.xyz/info"
 OUT = "data/perp_markets.json"
-FOCUS = os.environ.get("PERP_FOCUS", "TON")
+FOCUS = os.environ.get("PERP_FOCUS", "GRAM")
 
 
 def info(body):
