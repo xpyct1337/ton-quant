@@ -116,6 +116,11 @@
     return () => { clearInterval(iv); document.removeEventListener('visibilitychange', onVis); };
   });
 
+  // Коллектор с #11 пишет и алерты бота (vol/oi spike) — у них нет side,
+  // страница не должна падать на s.side.toUpperCase().
+  const botSide = (s) => s.side?.toUpperCase()
+    ?? ({ vol_spike: `VOL +${s.pct}%`, oi_spike: `OI +${s.pct}%` }[s.kind] ?? '—');
+
   const chgCls = (v) => (v > 0 ? 'good' : v < 0 ? 'bad' : '');
   const biasCls = (s) => (s === 'long' ? 'good' : s === 'short' ? 'bad' : 'muted');
   const biasTxt = { long: 'LONG', short: 'SHORT', flat: '—' };
@@ -174,8 +179,8 @@
           {#each bot.signals.slice(0, 20) as s}
             <tr>
               <td class="muted">{new Date(s.ts * 1000).toLocaleString()}</td>
-              <td><span class="sym">{s.coin}</span></td>
-              <td class="{s.side === 'long' ? 'good' : 'bad'}">{s.side.toUpperCase()}</td>
+              <td><span class="sym">{s.coin ?? '—'}</span></td>
+              <td class="{s.side === 'long' ? 'good' : s.side === 'short' ? 'bad' : 'muted'}">{botSide(s)}</td>
               <td class="r mono">{s.entry ?? '—'}</td>
               <td class="r mono">{s.tps?.join(' / ') ?? '—'}</td>
               <td class="r mono">{s.sl ?? '—'}</td>
