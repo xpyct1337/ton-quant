@@ -31,8 +31,11 @@
   let dex = $state(null);
   let busy = false;
 
+  // 8s таймаут: DPI-блокировки часто не рвут соединение, а молча дропают
+  // пакеты — без таймаута fetch висит минутами и фолбэк не наступает.
   const info = (body) =>
-    fetch(HL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    fetch(HL, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body), signal: AbortSignal.timeout(8000) })
       .then((r) => { if (!r.ok) throw new Error('Hyperliquid HTTP ' + r.status); return r.json(); });
 
   function apply(meta, ctxs, ts) {
