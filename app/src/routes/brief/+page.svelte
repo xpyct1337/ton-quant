@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { loadAll, loadSignals, loadDeskStatus, loadDeskCopytrade, loadPaper, loadXsForward, loadPerpSignals } from '$lib/data.js';
+  import { loadAll, loadSignals, loadDeskStatus, loadDeskCopytrade, loadPaper, loadXsForward, loadPerpSignals, loadHealth } from '$lib/data.js';
   import { fmtUsd, fmtPct, shortAddr } from '$lib/format.js';
 
   // Дневной срез: то, что изменилось за последние сутки, одним экраном.
@@ -29,6 +29,18 @@
   let xsLast = $state(null);
   let xsOpen = $state(null);
   let perpFeed = $state([]);
+  let health = $state(null);
+  let healthIssues = $state([]);
+
+  const healthName = { snapshot: 'дневной срез', intraday: 'intraday', wallets: 'кошельки', flows: 'потоки', social: 'соцсети', forensics: 'форензика', signals: 'сигналы', xs_forward: 'XS-momentum', perp_markets: 'перп-рынки', perp_signals: 'TG perps', dex_signals: 'DEX TG', desk: 'Desk' };
+  function healthState(h) {
+    const now = Date.now();
+    return Object.entries(h?.sources || {}).filter(([, s]) => {
+      if (s.status === 'error' || s.status === 'missing') return true;
+      const age = s.updated_at ? (now - new Date(s.updated_at).getTime()) / 3600000 : Infinity;
+      return age > (s.max_age_h ?? Infinity);
+    });
+  }
 
   function pctBot(equity) {
     if (!equity || equity.length < 2) return null;
@@ -39,10 +51,12 @@
   onMount(() => {
     (async () => {
       try {
-        const [d, sig, verdicts, ct, paper, xs, perp] = await Promise.all([
+        const [d, sig, verdicts, ct, paper, xs, perp, h] = await Promise.all([
           loadAll(), loadSignals(), loadDeskStatus(), loadDeskCopytrade(),
-          loadPaper(), loadXsForward(), loadPerpSignals()
+          loadPaper(), loadXsForward(), loadPerpSignals(), loadHealth()
         ]);
+        health = h;
+        healthIssues = healthState(h);
         symOf = Object.fromEntries(d.rows.map((r) => [r.addr, r.sym]));
         const dates = d.dates;
         today = dates[dates.length - 1];
@@ -113,6 +127,17 @@
   <div class="card bad">Не удалось загрузить данные: {err}</div>
 {:else}
 
+  {#if health?.sources}
+    <section class="health {healthIssues.length ? 'warn' : 'ok'}">
+      <i class="ti {healthIssues.length ? 'ti-alert-triangle' : 'ti-circle-check'}"></i>
+      {#if healthIssues.length}
+        <span>Сбор требует внимания: {healthIssues.map(([name, s]) => `${healthName[name] || name}${s.status === 'error' ? ' — ошибка' : ' — устарело'}`).join(' · ')}</span>
+      {:else}
+        <span>Сбор в норме: {Object.keys(health.sources).length} источников свежие.</span>
+      {/if}
+    </section>
+  {/if}
+
   <section class="card">
     <div class="sec-title">Рынок за 24ч <span class="muted">· топ-5 роста / падения среди «ядра» (без стейблов и фейк-капов)</span></div>
     <div class="cols2">
@@ -156,7 +181,7 @@
       {/if}
       {#if copytrade}
         <div class="grp-title">Проверка копи-фида <span class="muted">· окно {copytrade.horizon}д</span></div>
-        <p class="muted sm">{copytrade.note} — копирование всех roster-кошельков дало бы {fmtPct(copytrade.copy_all.avg)} в среднем ({copytrade.copy_all.win_rate}% в плюс), деск-фильтр — {fmtPct(copytrade.copy_desk.avg)}.</p>
+        <p class="muted sm">{copytrade.note} Baseline copy-all: {fmtPct(copytrade.copy_all.avg * 100)} в среднем ({copytrade.copy_all.win_rate}% в плюс){copytrade.comparison_ready ? `; desk-фильтр — ${fmtPct(copytrade.copy_desk.avg * 100)}.` : '.'}</p>
       {/if}
     {/if}
   </section>
@@ -214,6 +239,10 @@
   h1{font-size:24px;display:inline}
   .upd{font-size:12px;margin-left:10px}
   .lead{max-width:640px;margin-top:8px;font-size:13px;line-height:1.6}
+  .health{display:flex;gap:8px;align-items:center;border-radius:10px;padding:9px 12px;margin-bottom:16px;font-size:13px}
+  .health.ok{color:var(--good);background:rgba(22,199,132,.08);border:1px solid rgba(22,199,132,.25)}
+  .health.warn{color:#f0b35c;background:rgba(240,153,58,.1);border:1px solid rgba(240,153,58,.35)}
+  .health i{font-size:16px;flex:none}
   .pad{padding:30px 0}
   section{margin-bottom:16px}
   .sec-title{display:flex;align-items:baseline;gap:8px;margin-bottom:8px;flex-wrap:wrap}

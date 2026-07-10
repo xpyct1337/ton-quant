@@ -24,6 +24,12 @@ def test_build_signals_filters_copyok():
     assert len(desk) == 1 and desk[0]["wallet"] == "wA"
 
 
+def test_baseline_does_not_claim_desk_edge_without_dated_verdicts():
+    # build_copytrade reads the repository; this assertion documents the contract
+    # independently of its current market outcome.
+    assert C.build_copytrade()["comparison_ready"] is False
+
+
 if __name__ == "__main__":
     for n, fn in sorted(globals().items()):
         if n.startswith("test_"):

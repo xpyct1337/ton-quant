@@ -22,7 +22,7 @@ import desk_deployers                            # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STATE = "data/desk/worker_state.json"
-COMMIT_EVERY = 1800          # seconds between batched pushes
+COMMIT_EVERY = 12 * 3600     # batch background work twice daily; daily verdicts force-push
 CALIB_EVERY = 6 * 3600       # recompute calibration at most this often
 REVALIDATE_EVERY = 12 * 3600  # re-validate active factors at most this often
 BASE_SLEEP = 20              # cooling pause between tasks when healthy
@@ -85,7 +85,8 @@ def ensure_osaurus():
 
 # ---------- state ----------
 def get_state():
-    return load(STATE, {"deep_cursor": 0, "last_calib": 0, "last_commit": 0})
+    return load(STATE, {"deep_cursor": 0, "last_calib": 0, "last_commit": 0,
+                        "last_research_date": ""})
 
 
 def put_state(s):
@@ -109,7 +110,7 @@ def data_date():
 
 
 # ---------- picker ----------
-def pick_task(today_done, calib_stale, deep_pending, revalidate_due=False):
+def pick_task(today_done, calib_stale, deep_pending, revalidate_due=False, research_due=False):
     if not today_done:
         return "daily_verdicts"
     if calib_stale:
@@ -118,7 +119,7 @@ def pick_task(today_done, calib_stale, deep_pending, revalidate_due=False):
         return "revalidate"
     if deep_pending > 0:
         return "deep_vetting"
-    return "research"          # idle-filler: never out of work (always a factor to try)
+    return "research" if research_due else "idle"
 
 
 # ---------- task runners (each tolerant; return short status) ----------
@@ -138,6 +139,13 @@ def run_calibrate(state):
 def run_revalidate(state):
     state["last_revalidate"] = int(time.time())
     return desk_researcher.revalidate()
+
+
+def run_research(state):
+    # ponytail: one pre-registered candidate per new data date; point-in-time
+    # verdicts still accumulate, but the LLM cannot burn hundreds of trials overnight.
+    state["last_research_date"] = data_date()
+    return desk_researcher.research_once()
 
 
 def run_deep_vetting(state):
@@ -204,7 +212,8 @@ def iterate():
     revalidate_due = time.time() - state.get("last_revalidate", 0) > REVALIDATE_EVERY
     v = load("data/desk/verdicts.json", {})           # un-vetted this cycle -> 0 lets research run
     deep_pending = sum(1 for t in v.get("tokens", []) if "ensemble" not in t) if today_done else 0
-    task = pick_task(today_done, calib_stale, deep_pending, revalidate_due)
+    research_due = state.get("last_research_date") != data_date()
+    task = pick_task(today_done, calib_stale, deep_pending, revalidate_due, research_due)
     try:
         if task == "daily_verdicts":
             msg = run_daily_verdicts()
@@ -215,16 +224,16 @@ def iterate():
         elif task == "deep_vetting":
             msg = run_deep_vetting(state)
         elif task == "research":
-            msg = desk_researcher.research_once()
+            msg = run_research(state)
         else:
             msg = "idle: nothing due"
     except Exception as e:                             # noqa: BLE001 — never crash loop
         msg = f"task {task} errored (tolerated): {type(e).__name__}: {e}"
     print(f"{datetime.datetime.now().isoformat(timespec='seconds')} [{task}] {msg}",
           flush=True)
-    maybe_commit(state)
+    maybe_commit(state, force=task == "daily_verdicts")
     put_state(state)
-    return dec["sleep"]                               # research is the idle-filler
+    return dec["sleep"]
 
 
 def main():

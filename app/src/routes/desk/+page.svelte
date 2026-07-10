@@ -98,10 +98,10 @@
     </div>
   </header>
 
-  <!-- PROOF: calibration is the headline -->
+  <!-- Calibration is a diagnostic, not a proof of edge. -->
   <section class="proof">
     <div class="proof-head">
-      <span class="kicker">Доказательство сигнала</span>
+      <span class="kicker">Калибровка риска</span>
       <span class="muted small">forward excess-доходность токенов через +7 дней по бакету риска манипуляции</span>
     </div>
     {#if calib === undefined}
@@ -113,8 +113,8 @@
         <div class="bignum">
           <span class="big {sign(h7.high?.avg)}">{pct(h7.high?.avg)}</span>
           <span class="big-cap">high-risk токены, +7д</span>
-          <span class="verdict {calib.signal_separates_at_7d ? 'good' : 'bad'}">
-            {calib.signal_separates_at_7d ? '✓ сигнал разделяет' : 'сигнал не разделяет'}
+          <span class="verdict {calib.signal_separates_at_7d ? 'warn' : 'bad'}">
+            {calib.signal_separates_at_7d ? 'high ниже low · предварительно' : 'high не ниже low'}
           </span>
         </div>
         <div class="bars">
@@ -128,7 +128,7 @@
           {/each}
         </div>
       </div>
-      <p class="muted small note-line">{calib.snapshots} снапшотов · детерминированный бэктест, без LLM. Рисковые токены систематически проседают — деск ловит это до слива.</p>
+      <p class="muted small note-line">{calib.snapshots} снапшотов · средние excess-доходности без LLM. Это диагностика: пока без доверительных интервалов и статистического вывода.</p>
     {/if}
   </section>
 
@@ -143,7 +143,7 @@
   <div class="cols">
     <!-- COPY-TRADING -->
     <section class="card">
-      <div class="ttl"><i class="ti ti-arrows-split"></i> Copy-trading · вётчено vs всё</div>
+      <div class="ttl"><i class="ti ti-arrows-split"></i> Copy-trading · baseline</div>
       {#if copytrade === undefined}
         <div class="muted pad">Загружаю…</div>
       {:else if !copytrade}
@@ -155,14 +155,16 @@
             <span class="sv {sign(copytrade.copy_all.avg)}">{pct(copytrade.copy_all.avg)}</span>
             <span class="sn muted">n={copytrade.copy_all.n} · win {copytrade.copy_all.win_rate}%</span>
           </div>
-          <div class="vs">vs</div>
-          <div class="side">
-            <span class="sl">copy-desk</span>
-            <span class="sv {sign(copytrade.copy_desk.avg)}">{copytrade.copy_desk.n ? pct(copytrade.copy_desk.avg) : '—'}</span>
-            <span class="sn muted">n={copytrade.copy_desk.n}</span>
-          </div>
+          {#if copytrade.comparison_ready}
+            <div class="vs">vs</div>
+            <div class="side">
+              <span class="sl">copy-desk</span>
+              <span class="sv {sign(copytrade.copy_desk.avg)}">{pct(copytrade.copy_desk.avg)}</span>
+              <span class="sn muted">n={copytrade.copy_desk.n}</span>
+            </div>
+          {/if}
         </div>
-        <div class="edge {sign(copytrade.edge)}">edge desk−all: {pct(copytrade.edge)}</div>
+        {#if copytrade.comparison_ready}<div class="edge {sign(copytrade.edge)}">edge desk−all: {pct(copytrade.edge)}</div>{/if}
         {#if copytrade.note}<p class="muted small">{copytrade.note}</p>{/if}
       {/if}
     </section>
