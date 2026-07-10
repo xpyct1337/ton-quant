@@ -1,25 +1,20 @@
-"""TON Quant - cross-sectional momentum strategy (paper research).
+"""TON Quant - cross-sectional momentum strategy (paper research only).
 
 Long top-quintile / short bottom-quintile by short-horizon momentum, 4H bars,
-equal-weight, dollar-neutral. Vol-targeted, fee+turnover aware. CPCV/PBO gate.
+equal-weight and dollar-neutral.  Universe selection is point-in-time *within a
+fixed current-survivor pool*.  That remaining survivor bias, close-to-close fills,
+and one dominant market regime mean this program is not a tradability claim.
 
-POINT-IN-TIME universe: at each rebalance the tradable set is the top-N perps by
-*trailing* turnover known at that date - no hindsight. This fixed the survivorship
-inflation: hindsight (today's top-40) gave Sharpe ~3.6; point-in-time gives
-Sharpe ~1.5, PBO 0.21, both sample halves positive - matching the crypto
-XS-momentum literature anchor (~1). Edge is long-dominated winner-selection alpha,
-earned in a -46% bear (BTC 110k->60k, 2025-10..2026-06).
+The validation printout uses purged combinatorial symmetric CV: it ranks the
+configuration selected in each training split against alternatives OOS.  It is a
+diagnostic, not proof; the only decisive evidence is the live forward record.
 
-Residual caveats (still optimistic): POOL membership is current survivors (no
-delisted coins in the data); close-to-close fills; costless alt shorting; one
-8-month bear regime. Deployable Sharpe likely ~1.0-1.3. Confirm via live
-forward-test in a non-bear regime before sizing real capital.
-
-conytail: one file, no ML - a rank rule. Momentum-crash guard = vol-target +
-leverage cap; costs decisive -> fee stress in main().
+ponytail: one rank rule, no ML.  The fixed survivor pool is a known ceiling; store
+historical exchange universes before treating any backtest as deployment research.
 Run: TQ_FEE=0.0012 python xs_momentum.py
 """
-import os, time, pickle, itertools, numpy as np, pandas as pd, requests
+import os, time, pickle, numpy as np, pandas as pd, requests
+from xs_validation import cscv_pbo, sharpe_diagnostic
 
 # Broad pool (top crypto perps by turnover @ 2026-06-26); point-in-time selection
 # picks TOPN within this each rebalance. Refresh via universe.json when rebalancing.
@@ -115,15 +110,11 @@ def metrics(r):
                 pct_pos=(r>0).mean(),total=eq.iloc[-1]-1)
 
 def cpcv(C,V,grid=((15,12),(20,12),(30,12)),G=8,fee=FEE):
-    cr={c:spread_returns(C,V,c[0],c[1],fee=fee)[0] for c in grid}
-    ts=sorted(set().union(*[set(s.index) for s in cr.values()]))
-    folds=np.array_split(ts,G); on=lambda c,S:cr[c].reindex(S).dropna(); paths=[]
-    for combo in itertools.combinations(range(G),2):
-        te=set(np.concatenate([folds[i] for i in combo])); trn=set(ts)-te
-        best=max(grid,key=lambda c:on(c,trn).mean()); oos=on(best,te)
-        if len(oos)>=6: paths.append(oos.mean())
-    e=np.array(paths)
-    return dict(paths=len(e),median=np.median(e),pos=float((e>0).mean()),pbo=float((e<=0).mean()))
+    """Purged CSCV/PBO diagnostic for the small disclosed parameter grid."""
+    cr={str(c): spread_returns(C,V,c[0],c[1],fee=fee)[0] for c in grid}
+    rows={name: {int(ts): float(value) for ts, value in series.dropna().items()}
+          for name, series in cr.items()}
+    return cscv_pbo(rows, groups=G, embargo_ms=H*4*3600*1000)
 
 def main():
     d=load(); C,V=panels(d)
@@ -136,7 +127,12 @@ def main():
     print("fee stress (net per-hold % | Sharpe):")
     for f in (0.0012,0.002,0.003,0.004):
         m=metrics(spread_returns(C,V,fee=f)[0]); print(f"  {f*100:.2f}%/leg: {m['net_per_hold']*100:6.3f}%  {m['sharpe']:.2f}")
-    g=cpcv(C,V); print(f"CPCV/PBO: paths={g['paths']} medOOS={g['median']*100:.3f}% OOS>0={g['pos']*100:.0f}% PBO={g['pbo']:.2f}")
+    g=cpcv(C,V)
+    print("purged CSCV/PBO: " + f"splits={g['splits']} median selected OOS={g['median_selected_test_mean']*100:.3f}% "
+          + f"OOS positive={g['selected_positive_share']*100:.0f}% PBO={g['pbo']:.2f}")
+    d=sharpe_diagnostic(r.tolist(), trial_count=3)
+    if d['available']:
+        print(f"Sharpe diagnostic: PSR(0)={d['psr_zero']:.2f}, 3-grid adjusted={d['bonferroni_adjusted_probability']:.2f} (not a deployment gate)")
     assert lev.isna().sum()==0 and (lev<=LEV_CAP+1e-9).all(), "leverage broken"
     assert len(r)>0 and r.index.is_monotonic_increasing, "rebalances not ordered"
     print("[self-check ok: point-in-time selection, no-lookahead vol-target]")

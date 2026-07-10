@@ -208,6 +208,11 @@ export async function loadDeskCopytrade() {
   return j(`${RAWB}/desk/copytrade.json`).catch(() => null);
 }
 
+// Collector freshness/error contract written by the daily snapshot workflow.
+export async function loadHealth() {
+  return j(`${RAWB}/health.json`).catch(() => null);
+}
+
 // Perp-signal collector: parsed signals from @perptools_ai_bot via Telethon.
 // Written every 4h by scripts/perp_signals.py (absent until TG secrets are set).
 export async function loadPerpSignals() {
@@ -222,6 +227,11 @@ export async function loadXsForward() {
     j(`${RAWB}/xs_forward_state.json`).catch(() => null)
   ]);
   return { records: equity?.records || [], state };
+}
+
+// Audit of XS paper evidence and P&L-component coverage, refreshed daily.
+export async function loadXsAudit() {
+  return j(`${RAWB}/xs_audit.json`).catch(() => null);
 }
 
 // Lean per-token stats for the Compare page (no holders sample / chart / curated extras).

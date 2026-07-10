@@ -1,12 +1,13 @@
 <script>
   import { onMount } from 'svelte';
-  import { loadXsForward } from '$lib/data.js';
+  import { loadXsAudit, loadXsForward } from '$lib/data.js';
   import EquityChart from '$lib/components/EquityChart.svelte';
   import StaleBanner from '$lib/components/StaleBanner.svelte';
 
   const HOLDS_PER_YEAR = 182.5; // 2-day hold (H=12 × 4H bars)
   let st = $state('loading');
   let data = $state(null);
+  let audit = $state(null);
 
   const sym = (n) => n.split('-')[0];
   const day = (ts) => new Date(ts).toISOString().slice(0, 10);
@@ -56,7 +57,7 @@
 
   onMount(async () => {
     try {
-      data = await loadXsForward();
+      [data, audit] = await Promise.all([loadXsForward(), loadXsAudit()]);
       st = 'ready';
     } catch (e) {
       st = 'error';
@@ -78,6 +79,21 @@
 {:else}
 
   <StaleBanner when={state?.bar_ts ? state.bar_ts / 1000 : (recs.at(-1)?.close_ts ? recs.at(-1).close_ts / 1000 : null)} maxHours={54} what="прогон xs_forward" />
+
+  {#if audit}
+    <section class="card audit">
+      <div class="bk-h"><i class="ti ti-shield-check"></i> Аудит evidence</div>
+      <div class="audit-grid muted small">
+        <span>закрытых hold: <b>{audit.records?.total ?? 0}</b></span>
+        <span>с разбором L/S/fees: <b>{audit.records?.with_leg_decomposition ?? 0}</b></span>
+        <span>legacy net-only: <b>{audit.records?.legacy_net_only ?? 0}</b></span>
+        <span>статус: <b>{audit.status === 'insufficient_forward_sample' ? 'выборка пока мала' : 'собирается'}</b></span>
+      </div>
+      {#if !audit.legs?.available}
+        <div class="muted small audit-note">Разложение long / short / комиссии начнётся со следующей корректно закрытой ротации; прошлые строки задним числом не реконструируются.</div>
+      {/if}
+    </section>
+  {/if}
 
   {#if recs.length}
     <section class="kpis">
@@ -155,7 +171,7 @@
     </section>
   {/if}
 
-  <p class="muted small foot">Стратегия — кросс-секционный моментум на перпах OKX (research: <span class="mono">scripts/xs_momentum.py</span>, бэктест Sharpe ~1.5, PBO 0.21 в −46% медвежьем режиме). Эта страница показывает <b>живой out-of-sample</b> forward-test (<span class="mono">scripts/xs_forward.py</span>) — единственное лекарство от оговорки «один медвежий режим в бэктесте»: каждый прогон закрывает корзину после 2-дневного холда и пишет реализованный нетто-спред в трек-рекорд. PAPER ONLY, без ордеров. Sharpe/кумулятив наполняются по календарному времени.</p>
+  <p class="muted small foot">Стратегия — исследовательский кросс-секционный моментум на перпах OKX. Старый бэктест проходит повторную валидацию: фиксированный survivor-пул и один рыночный режим не позволяют трактовать его как доказанный edge. Эта страница показывает <b>живой out-of-sample</b> paper forward-test (<span class="mono">scripts/xs_forward.py</span>): каждая полная 2‑дневная ротация сохраняет long, short и комиссии. PAPER ONLY, без ордеров; текущей выборки недостаточно для выводов.</p>
 {/if}
 
 <style>
@@ -200,4 +216,6 @@
   .bk{flex:1;min-width:0}
   .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
   .foot{margin-top:16px;max-width:720px;line-height:1.5}
+  .audit-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:6px 14px}
+  .audit-note{margin-top:9px}
 </style>

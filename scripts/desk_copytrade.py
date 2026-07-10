@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""TON Quant v3.0 — vetted copy-trading book (Phase 3, working-product proof).
+"""TON Quant v3.0 — copy-trading baseline (not yet a Desk performance proof).
 
 Compares copying ALL roster wallets vs only desk-vetted (copy_ok) ones, using only
 existing data: copy signal = a roster wallet's FIRST entry into a token
@@ -47,23 +47,22 @@ def build_copytrade():
     copyok = {w["addr"] for w in verdicts.get("wallets", []) if w.get("copy_ok")}
     sigs = build_signals(first_entries(), roster, snaps, copyok, HORIZON)
     allb = book_stats([s["ex"] for s in sigs])
-    deskb = book_stats([s["ex"] for s in sigs if s["copy_ok"]])
-    edge = round(deskb["avg"] - allb["avg"], 4)
-    note = ("desk vetoed all wallets; copy_all avg %.4f avoided" % allb["avg"]
-            if deskb["n"] == 0 else "")
-    return {"horizon": HORIZON, "copyok_wallets": len(copyok),
-            "copy_all": allb, "copy_desk": deskb, "edge": edge, "note": note}
+    # Current verdicts cannot filter past entries without look-ahead. Keep the
+    # baseline, but block the comparison until dated verdicts are available.
+    return {"horizon": HORIZON, "copyok_wallets": len(copyok), "copy_all": allb,
+            "copy_desk": book_stats([]), "edge": None, "comparison_ready": False,
+            "note": "Desk-сравнение ещё невалидно: нужны point-in-time roster и verdicts на дату входа."}
 
 
 def main():
     ct = build_copytrade()
     os.makedirs("data/desk", exist_ok=True)
-    with open("data/desk/copytrade.json", "w") as f:
+    with open("data/desk/copytrade.json", "w", encoding="utf-8") as f:
         json.dump(ct, f, ensure_ascii=False, indent=2)
-    chk = json.load(open("data/desk/copytrade.json"))   # read-back
+    with open("data/desk/copytrade.json", encoding="utf-8") as f:
+        chk = json.load(f)                               # read-back
     print(f"copytrade: all n={chk['copy_all']['n']} avg={chk['copy_all']['avg']} | "
-          f"desk n={chk['copy_desk']['n']} avg={chk['copy_desk']['avg']} | "
-          f"edge={chk['edge']} {chk['note']}", flush=True)
+          f"comparison_ready={chk['comparison_ready']}", flush=True)
 
 
 def _check():
@@ -72,6 +71,7 @@ def _check():
         assert set(ct[b]) == {"n", "avg", "win_rate", "total"}, f"bad book {b}"
         assert ct[b]["n"] >= 0
     assert ct["copy_desk"]["n"] <= ct["copy_all"]["n"], "desk book not subset"
+    assert ct["comparison_ready"] is False and ct["edge"] is None
     print("OK", {"all": ct["copy_all"], "desk": ct["copy_desk"], "edge": ct["edge"]})
 
 

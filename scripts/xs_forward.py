@@ -6,11 +6,15 @@ momentum baskets and log them. Builds out-of-sample evidence over calendar time 
 the only cure for the single-bear-regime backtest caveat. PAPER ONLY, no orders.
 
 Self-gating on elapsed time -> safe to schedule daily even though hold is 2 days.
-conytail: reuse xs_momentum's universe/selection; state in two JSON files.
+The score retains long return, short return and fees.  An unavailable symbol stops
+the close instead of being silently removed from an equal-weight basket.
+ponytail: state is two JSON files; missing instruments need a future explicit
+delisting mark rather than a convenience fill.
 Run: python xs_forward.py   (schedule daily)
 """
 import os, json, time, numpy as np, pandas as pd
 import xs_momentum as xm
+from xs_validation import basket_outcome
 
 HOLD_MS=xm.H*4*3600*1000            # 2-day hold in ms
 DATADIR=os.path.join(os.path.dirname(__file__),'..','data')
@@ -41,17 +45,10 @@ def current_baskets(C,V):
     return long, short, {n:float(px[n]) for n in long+short}, int(C.index[t])
 
 def load(p,d): 
-    return json.load(open(p)) if os.path.exists(p) else d
+    return json.load(open(p, encoding='utf-8')) if os.path.exists(p) else d
 def save(p,o):
-    os.makedirs(DATADIR,exist_ok=True); json.dump(o,open(p,'w'),indent=1)
-
-def realized(open_pos,px_now):
-    """Net spread return of the open basket marked at current prices."""
-    def leg(names):
-        r=[px_now[n]/open_pos['entry'][n]-1 for n in names if n in px_now and n in open_pos['entry']]
-        return np.mean(r) if r else 0.0
-    gross=leg(open_pos['long'])-leg(open_pos['short'])
-    return gross-2*xm.FEE                          # full-turnover worst case per close
+    os.makedirs(DATADIR,exist_ok=True)
+    with open(p, 'w', encoding='utf-8') as f: json.dump(o, f, indent=1)
 
 def main():
     C,V=recent_panel()
@@ -60,11 +57,14 @@ def main():
     state=load(STATE,None); eq=load(EQUITY,{'records':[]})
     acted=False
     if state and bar_ts-state['bar_ts']>=HOLD_MS:        # hold elapsed -> close & score
-        ret=realized(state,px_now)
-        eq['records'].append({'open_ts':state['bar_ts'],'close_ts':bar_ts,'net':ret,
-                              'long':state['long'],'short':state['short']})
-        save(EQUITY,eq); acted=True
-    if state is None or bar_ts-state['bar_ts']>=HOLD_MS:  # open a fresh basket
+        scored=basket_outcome(state, px_now, xm.FEE)
+        if scored['complete']:
+            eq['records'].append({'open_ts':state['bar_ts'],'close_ts':bar_ts,
+                                  'long':state['long'],'short':state['short'], **scored})
+            save(EQUITY,eq); state=None; acted=True
+        else:
+            print('cannot close incomplete basket: ' + ', '.join(scored['missing_long']+scored['missing_short']))
+    if state is None:                                      # open only after a complete close
         save(STATE,{'bar_ts':bar_ts,'long':long,'short':short,'entry':entry})
         acted=True
     # report

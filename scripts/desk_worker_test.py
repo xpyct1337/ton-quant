@@ -24,7 +24,8 @@ def test_pick_task_priority_order():
     assert W.pick_task(True, True, 5) == "calibrate"
     assert W.pick_task(True, False, 5, revalidate_due=True) == "revalidate"
     assert W.pick_task(True, False, 5) == "deep_vetting"
-    assert W.pick_task(True, False, 0) == "research"   # idle-filler, never None
+    assert W.pick_task(True, False, 0, research_due=True) == "research"
+    assert W.pick_task(True, False, 0) == "idle"
 
 
 def test_data_date_uses_wallets_json_not_system_clock():

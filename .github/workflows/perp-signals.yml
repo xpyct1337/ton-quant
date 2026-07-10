@@ -5,6 +5,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
+concurrency:
+  group: data-writers
+  cancel-in-progress: false
 jobs:
   perp-signals:
     runs-on: ubuntu-latest
@@ -19,13 +22,20 @@ jobs:
           TG_API_HASH: ${{ secrets.TG_API_HASH }}
           TG_SESSION: ${{ secrets.TG_SESSION }}
         run: python scripts/perp_signals.py   # no-op skip while secrets are absent
-      - run: python scripts/dex_signals.py || true   # t.me/s serves only ~20 last msgs — collect every 4h, not daily
+      - name: DEX signal collector
+        run: |
+          : > /tmp/ton-quant-failed
+          python scripts/dex_signals.py || echo dex_signals >> /tmp/ton-quant-failed
+      - run: |
+          python scripts/health.py --write --validate --checked perp_signals dex_signals \
+            --failed $(tr '\n' ' ' < /tmp/ton-quant-failed)
       - run: |
           git config user.name "snapshot-bot"
           git config user.email "actions@users.noreply.github.com"
           for f in data/perp_signals.json data/dex_signals.json; do
             if [ -f "$f" ]; then git add "$f"; fi
           done
+          git add data/health.json
           git diff --cached --quiet || git commit -m "tg signals $(date -u +%F)"
           ok=0
           for i in 1 2 3 4 5; do

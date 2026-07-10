@@ -5,6 +5,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
+concurrency:
+  group: data-writers
+  cancel-in-progress: false
 jobs:
   snapshot:
     runs-on: ubuntu-latest
@@ -20,12 +23,20 @@ jobs:
       - run: python scripts/altsnapshot.py
       - run: python scripts/altpaper.py
       - run: python scripts/wallets.py
-      - run: python scripts/flows.py || true   # non-fatal: trade-flow metrics (GeckoTerminal)
-      - run: python scripts/social.py || true  # non-fatal: Telegram mention counts (t.me/s public previews)
-      - run: python scripts/dex_signals.py || true  # non-fatal: DEX new-token signals (t.me/s/dexnewtoken)
-      - run: python scripts/forensics.py || true  # non-fatal: bundle detection via funding-source clustering
+      - name: Optional collectors
+        run: |
+          : > /tmp/ton-quant-failed
+          python scripts/flows.py || echo flows >> /tmp/ton-quant-failed
+          python scripts/social.py || echo social >> /tmp/ton-quant-failed
+          python scripts/dex_signals.py || echo dex_signals >> /tmp/ton-quant-failed
+          python scripts/forensics.py || echo forensics >> /tmp/ton-quant-failed
       - run: pip install --quiet numpy pandas requests
-      - run: python scripts/xs_forward.py || true   # non-fatal: never break the snapshot
+      - run: python scripts/xs_forward.py || echo xs_forward >> /tmp/ton-quant-failed
+      - run: python scripts/xs_audit.py || echo xs_audit >> /tmp/ton-quant-failed
+      - run: |
+          python scripts/health.py --write --validate \
+            --checked snapshot wallets flows social forensics dex_signals signals xs_forward xs_audit \
+            --failed $(tr '\n' ' ' < /tmp/ton-quant-failed)
       - run: |
           git config user.name "snapshot-bot"
           git config user.email "actions@users.noreply.github.com"
