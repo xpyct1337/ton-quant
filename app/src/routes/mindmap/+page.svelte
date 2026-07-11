@@ -1,4 +1,6 @@
 <script>
+  import { onMount } from 'svelte';
+  import { normalizeMindmapNode } from '$lib/mindmap.js';
   const nodes = [
     ['sources', 'Источники идей'],
     ['hypothesis', 'Гипотеза'],
@@ -31,9 +33,21 @@
   let selectedDetail = $derived(details[selected]);
 
   function select(id) {
-    selected = id;
+    selected = normalizeMindmapNode(id);
     submitState = '';
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('tq_mindmap_selected', selected);
+      const url = new URL(window.location.href);
+      url.searchParams.set('node', selected);
+      window.history.replaceState(null, '', url);
+    }
   }
+
+  onMount(() => {
+    const urlNode = new URL(window.location.href).searchParams.get('node');
+    const savedNode = localStorage.getItem('tq_mindmap_selected');
+    select(normalizeMindmapNode(urlNode || savedNode));
+  });
 
   async function submit() {
     const [title, description] = selectedDetail;
