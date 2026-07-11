@@ -7,20 +7,25 @@ export function normalizeMindmapNode(value, fallback = 'sources') {
   return MINDMAP_NODE_IDS.has(value) ? value : fallback;
 }
 
+function withMomentumStatus(label, calibration) {
+  const test = calibration?.momentum_test;
+  return test?.available ? `${label} · mom_7d ${test.passed ? 'passed' : 'rejected'}` : label;
+}
+
 export function experimentEvidence(calibration) {
   const bundle = calibration?.bundle_backtest;
   const confidence = bundle?.confidence;
-  if (!bundle || !confidence) return { tone: 'muted', label: 'evidence: collecting' };
+  if (!bundle || !confidence) return { tone: 'muted', label: withMomentumStatus('evidence: collecting', calibration) };
   if (confidence.reason === 'insufficient_matured_dates') {
-    return { tone: 'warn', label: 'evidence: waiting for mature window' };
+    return { tone: 'warn', label: withMomentumStatus('evidence: waiting for mature window', calibration) };
   }
-  if (confidence.passed) return { tone: 'good', label: 'evidence: confidence gate passed' };
+  if (confidence.passed) return { tone: 'good', label: withMomentumStatus('evidence: confidence gate passed', calibration) };
   if (bundle.candidate && confidence.available) {
     return confidence.in_sample?.n ?
-      { tone: 'warn', label: 'evidence: gate not passed' } :
-      { tone: 'warn', label: 'evidence: collecting in-sample' };
+      { tone: 'warn', label: withMomentumStatus('evidence: gate not passed', calibration) } :
+      { tone: 'warn', label: withMomentumStatus('evidence: collecting in-sample', calibration) };
   }
-  return { tone: 'muted', label: 'evidence: collecting' };
+  return { tone: 'muted', label: withMomentumStatus('evidence: collecting', calibration) };
 }
 
 export function mindmapNextAction(calibration) {
