@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+  import { base } from '$app/paths';
   import { loadAll, loadSignals, liveRates } from '$lib/data.js';
   import { coreIndex, breadth, overlayPrices } from '$lib/metrics.js';
   import { buildAgents } from '$lib/agents.js';
@@ -123,7 +124,7 @@
           <thead><tr><th>Jetton</th><th>Событие</th><th class="r">Давление</th><th class="r">$ влияние</th></tr></thead>
           <tbody>
             {#each unlocks as u}
-              <tr><td class="sym">{u.sym}</td><td class="muted">{u.event}</td>
+              <tr><td class="sym"><a href="{base}/token?a={u.addr}">{u.sym}</a></td><td class="muted">{u.event}</td>
                 <td class="r"><div class="bar"><div class="fill" class:hi={u.pct > 40} style="width:{u.pct}%"></div></div><span class="mono pctn">{u.pct}%</span></td>
                 <td class="r mono">{fmtUsd(u.usd)}</td></tr>
             {/each}

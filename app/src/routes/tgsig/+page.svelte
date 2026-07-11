@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+  import { base } from '$app/paths';
   import { fmtPct } from '$lib/format.js';
   import { loadSignals } from '$lib/data.js';
 
@@ -120,7 +121,7 @@
           {#each dex.signals.slice(0, 50) as s}
             <tr>
               <td class="muted">{fmtTime(s.dt)}</td>
-              <td><span class="sym">{s.sym ?? s.name ?? '—'}</span></td>
+              <td>{#if s.addr}<a class="sym" href="{base}/token?a={s.addr}">{s.sym ?? s.name ?? '—'}</a>{:else}<span class="sym">{s.sym ?? s.name ?? '—'}</span>{/if}</td>
               {#if s.side}
                 <td class={sideCls(s.side)}>{sideTxt(s.side)}</td>
               {:else if s.kind === 'listing'}
@@ -157,7 +158,7 @@
           {#each chain.today.signals as s}
             {@const sc = sigScore(s.sig, chain.scores)}
             <tr>
-              <td><span class="sym">{s.sym ?? s.addr?.slice(0, 6)}</span></td>
+              <td>{#if s.addr}<a class="sym" href="{base}/token?a={s.addr}">{s.sym ?? s.addr.slice(0, 6)}</a>{:else}<span class="sym">{s.sym ?? '—'}</span>{/if}</td>
               <td class="sig-name">{s.sig.replace(/_/g, ' ')}</td>
               <td class="r mono">{s.price != null ? '$' + s.price.toPrecision(4) : '—'}</td>
               <td class="r mono">{s.tvl != null ? '$' + Math.round(s.tvl / 1000) + 'K' : '—'}</td>

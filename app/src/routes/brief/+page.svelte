@@ -1,7 +1,9 @@
 <script>
   import { onMount } from 'svelte';
+  import { base } from '$app/paths';
   import { loadAll, loadSignals, loadDeskStatus, loadDeskCopytrade, loadPaper, loadXsForward, loadPerpSignals, loadHealth } from '$lib/data.js';
   import { fmtUsd, fmtPct, shortAddr } from '$lib/format.js';
+  import { walletHref } from '$lib/wallets.js';
 
   // Дневной срез: то, что изменилось за последние сутки, одним экраном.
   // Всё считается из уже собранных data/*.json — новых запросов к API нет.
@@ -143,12 +145,12 @@
     <div class="cols2">
       <div>
         <div class="grp-title good">Растут</div>
-        {#each moversUp as m}<div class="row"><span class="sym">{m.sym}</span><span class="mono {cls(m.d1)}">{fmtPct(m.d1)}</span></div>{/each}
+        {#each moversUp as m}<div class="row"><a class="sym" href="{base}/token?a={m.addr}">{m.sym}</a><span class="mono {cls(m.d1)}">{fmtPct(m.d1)}</span></div>{/each}
         {#if !moversUp.length}<p class="muted sm">Нет данных.</p>{/if}
       </div>
       <div>
         <div class="grp-title bad">Падают</div>
-        {#each moversDown as m}<div class="row"><span class="sym">{m.sym}</span><span class="mono {cls(m.d1)}">{fmtPct(m.d1)}</span></div>{/each}
+        {#each moversDown as m}<div class="row"><a class="sym" href="{base}/token?a={m.addr}">{m.sym}</a><span class="mono {cls(m.d1)}">{fmtPct(m.d1)}</span></div>{/each}
         {#if !moversDown.length}<p class="muted sm">Нет данных.</p>{/if}
       </div>
     </div>
@@ -162,19 +164,19 @@
     {:else}
       {#if newHighRiskWallets.length}
         <div class="grp-title bad">Новые high-risk кошельки</div>
-        {#each newHighRiskWallets as w}<div class="row"><span class="sym">{w.name || shortAddr(w.addr)}</span><span class="muted sm reason">{w.reason}</span></div>{/each}
+        {#each newHighRiskWallets as w}<div class="row"><a class="sym" href={walletHref(base, w.addr)}>{w.name || shortAddr(w.addr)}</a><span class="muted sm reason">{w.reason}</span></div>{/each}
       {/if}
       {#if newHighRiskTokens.length}
         <div class="grp-title bad">Новые high-risk токены</div>
-        {#each newHighRiskTokens as t}<div class="row"><span class="sym">{t.sym}</span><span class="muted sm reason">{t.reason}</span></div>{/each}
+        {#each newHighRiskTokens as t}<div class="row">{#if t.addr}<a class="sym" href="{base}/token?a={t.addr}">{t.sym}</a>{:else}<span class="sym">{t.sym}</span>{/if}<span class="muted sm reason">{t.reason}</span></div>{/each}
       {/if}
       {#if newCopyOk.length}
         <div class="grp-title good">Новые «можно копировать»</div>
-        {#each newCopyOk as w}<div class="row"><span class="sym">{w.name || shortAddr(w.addr)}</span><span class="mono">conviction {w.conviction}</span></div>{/each}
+        {#each newCopyOk as w}<div class="row"><a class="sym" href={walletHref(base, w.addr)}>{w.name || shortAddr(w.addr)}</a><span class="mono">conviction {w.conviction}</span></div>{/each}
       {/if}
       <div class="grp-title">Топ по уверенности деска сегодня</div>
       {#if topConviction.length}
-        {#each topConviction as w}<div class="row"><span class="sym">{w.name || shortAddr(w.addr)}</span><span class="mono good">conviction {w.conviction}</span></div>{/each}
+        {#each topConviction as w}<div class="row"><a class="sym" href={walletHref(base, w.addr)}>{w.name || shortAddr(w.addr)}</a><span class="mono good">conviction {w.conviction}</span></div>{/each}
       {:else}<p class="muted sm">Сейчас ни один кошелёк не прошёл вёттинг (copy_ok=false у всех) — деск считает roster рискованным.</p>{/if}
       {#if !newHighRiskWallets.length && !newHighRiskTokens.length && !newCopyOk.length}
         <p class="muted sm">Без резких изменений риска со вчерашнего дня.</p>
@@ -191,11 +193,11 @@
     <p class="muted sm">«Bundle» — доля держателей, пришедших одним кластером транзакций (похоже на организованный вход/раздачу). «Buyer conc.» — сколько объёма покупок пришло от небольшого числа адресов (может быть ботами).</p>
     {#if bundlers.length}
       <div class="grp-title bad">Высокий bundle-score</div>
-      {#each bundlers as b}<div class="row"><span class="sym">{b.sym}</span><span class="mono bad">bundle {(b.bundle * 100).toFixed(0)}%</span><span class="muted sm">{b.clusters} кластер(ов), макс {b.max_cluster}</span></div>{/each}
+      {#each bundlers as b}<div class="row"><a class="sym" href="{base}/token?a={b.addr}">{b.sym}</a><span class="mono bad">bundle {(b.bundle * 100).toFixed(0)}%</span><span class="muted sm">{b.clusters} кластер(ов), макс {b.max_cluster}</span></div>{/each}
     {/if}
     {#if buyerConc.length}
       <div class="grp-title bad">Концентрация покупателей</div>
-      {#each buyerConc as f}<div class="row"><span class="sym">{f.sym}</span><span class="mono bad">{(f.buyer_conc * 100).toFixed(0)}% на {f.ubuyers} адресов</span><span class="muted sm">{f.trades_n} сделок</span></div>{/each}
+      {#each buyerConc as f}<div class="row"><a class="sym" href="{base}/token?a={f.addr}">{f.sym}</a><span class="mono bad">{(f.buyer_conc * 100).toFixed(0)}% на {f.ubuyers} адресов</span><span class="muted sm">{f.trades_n} сделок</span></div>{/each}
     {/if}
     {#if !bundlers.length && !buyerConc.length}<p class="muted sm">Ничего подозрительного не всплыло на текущем срезе.</p>{/if}
   </section>
@@ -203,7 +205,7 @@
   <section class="card">
     <div class="sec-title">Соцсети <span class="muted">· всплески упоминаний $TICKER в отслеживаемых TG-каналах</span></div>
     {#if socialSpikes.length}
-      {#each socialSpikes as s}<div class="row"><span class="sym">{s.sym}</span><span class="mono">{s.mentions} упоминаний <span class="good">(+{s.delta})</span></span></div>{/each}
+      {#each socialSpikes as s}<div class="row"><a class="sym" href="{base}/token?a={s.addr}">{s.sym}</a><span class="mono">{s.mentions} упоминаний <span class="good">(+{s.delta})</span></span></div>{/each}
     {:else}<p class="muted sm">Заметных всплесков упоминаний нет.</p>{/if}
   </section>
 

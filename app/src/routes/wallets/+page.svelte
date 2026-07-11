@@ -1,6 +1,8 @@
 <script>
   import { onMount } from 'svelte';
+  import { base } from '$app/paths';
   import { loadWallets, loadDeskStatus } from '$lib/data.js';
+  import { walletHref } from '$lib/wallets.js';
 
   let st = $state('loading');
   let data = $state(null);
@@ -8,7 +10,6 @@
   let sort = $state('smart'); // combined who-to-copy rank (default); 'edge'=skill, 'breadth'=conviction
 
   const short = (a) => a.slice(0, 4) + '…' + a.slice(-4);
-  const tv = (a) => 'https://tonviewer.com/' + a;
   const fmtEdge = (e) => (e == null ? '—' : (e > 0 ? '+' : '') + e + '%');
 
   let vByAddr = $derived.by(() => {
@@ -87,7 +88,7 @@
       <div class="muted small">эти кошельки сегодня впервые попали в топ-холдеры новых токенов — кандидаты на copy-buy</div>
       {#each signals as w}
         <div class="sig-row">
-          <a class="addr mono" href={tv(w.addr)} target="_blank" rel="noopener">{w.name || short(w.addr)}</a>
+          <a class="addr mono" href={walletHref(base, w.addr)} title={w.addr}>{w.name || short(w.addr)}</a>
           <span class="chips">{#each w.new as t}<span class="chip new">{t}</span>{/each}</span>
         </div>
       {/each}
@@ -119,7 +120,7 @@
       <div class="card wc" class:dirty={v && !v.copy_ok}>
         <div class="wc-top">
           <span class="rank mono">#{i + 1}</span>
-          <a class="addr mono" href={tv(w.addr)} target="_blank" rel="noopener" title={w.addr}>{w.name || short(w.addr)}</a>
+          <a class="addr mono" href={walletHref(base, w.addr)} title={w.addr}>{w.name || short(w.addr)}</a>
           {#if v}
             <span class="risk {v.manip_risk}" title="AI Desk vetting{v.copy_ok ? ' — можно копировать' : ' — не копировать'} (conviction {v.conviction}): {v.reason}">{v.manip_risk}</span>
           {/if}

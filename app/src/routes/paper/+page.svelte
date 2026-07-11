@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+  import { base } from '$app/paths';
   import { loadPaper, loadRegimeBench, liveRates } from '$lib/data.js';
   import { fmtUsd, fmtPct } from '$lib/format.js';
   import EquityChart from '$lib/components/EquityChart.svelte';
@@ -105,7 +106,7 @@
         <tbody>
           {#each positions as p}
             {@const r = pnlOf(p)}
-            <tr><td class="muted">{NAMES[p.bot] || p.bot}</td><td class="sym">{p.sym}</td>
+            <tr><td class="muted">{NAMES[p.bot] || p.bot}</td><td class="sym">{#if p.addr}<a href="{base}/token?a={p.addr}">{p.sym}</a>{:else}{p.sym}{/if}</td>
               <td class="muted">{p.signal.replace(/_/g, ' ')}</td><td class="muted">{p.opened}</td>
               <td class="r mono" class:good={r > 0} class:bad={r < 0}>{r == null ? 'n/a' : fmtPct(r)}</td>
               <td class="r mono" class:good={r > 0} class:bad={r < 0}>{r == null ? 'n/a' : fmtUsd(p.size * r / 100)}</td></tr>
@@ -142,7 +143,7 @@
         <thead><tr><th>Bot</th><th>Jetton</th><th>Сигнал</th><th>Закрыта</th><th class="r">Return</th><th class="r">PnL</th><th>Причина</th></tr></thead>
         <tbody>
           {#each (showAll ? trades : trades.slice(0, 10)) as t}
-            <tr><td class="muted">{NAMES[t.bot] || t.bot}</td><td class="sym">{t.sym}</td>
+            <tr><td class="muted">{NAMES[t.bot] || t.bot}</td><td class="sym">{#if t.addr}<a href="{base}/token?a={t.addr}">{t.sym}</a>{:else}{t.sym}{/if}</td>
               <td class="muted">{t.signal.replace(/_/g, ' ')}</td><td class="muted">{t.closed}</td>
               <td class="r mono" class:good={t.ret > 0} class:bad={t.ret < 0}>{fmtPct(t.ret)}</td>
               <td class="r mono" class:good={t.pnl > 0} class:bad={t.pnl < 0}>{fmtUsd(t.pnl)}</td>
