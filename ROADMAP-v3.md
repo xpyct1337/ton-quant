@@ -11,6 +11,22 @@
 
 ---
 
+## 🚀 11.07.2026 — production mindmap и wallet drill-down
+
+Опубликован новый control surface `/mindmap/`: исследовательский цикл представлен
+интерактивными узлами «Источники идей → Гипотеза → Минимальный эксперимент →
+Forward/paper-test», а также ветвями Desk, витрины, журнала решений и data lineage.
+Кнопка `Submit` отправляет выбранную ветку в Codex task, если доступен app-контекст,
+иначе открывает prefilled GitHub Issue — без токенов и без прямой записи в репозиторий.
+
+Добавлены `/wallet/<address>/` для двух адресов Pavel Durov и текущего smart-money
+roster. Страница статически маршрутизируется, но holdings и баланс обновляются из
+TONAPI client-side; это минимальная основа для следующих wallet-specific блоков,
+не выдающая текущий balance за историческую доходность.
+
+Production evidence: commit `cbc32a7`, GitHub Actions `Deploy site` и `Verify`
+завершились успешно для `headSha=cbc32a7`.
+
 ## 🚀 Готово 01.07.2026 — Track A+B: расширение сигналов и сбора данных (по ресёрчу Igor)
 
 **Track A (без изменений сбора):** временные ряды из дневной истории снапшотов в DSL
