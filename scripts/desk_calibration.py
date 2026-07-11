@@ -37,6 +37,14 @@ def bucket_means(rows):
             for b, xs in acc.items()}
 
 
+def monotonic_separation(buckets):
+    """Require the stated risk ordering high < med < low, not just endpoints."""
+    if any(buckets.get(b, {}).get("n", 0) == 0 for b in ("low", "med", "high")):
+        return False
+    return (buckets["high"]["avg"] < buckets["med"]["avg"]
+            < buckets["low"]["avg"])
+
+
 def feature_backtest(snaps, wash_ban):
     """Deterministic risk bucket vs forward excess return, per horizon."""
     by_h = {}
@@ -81,10 +89,13 @@ def build_calibration():
     bt = feature_backtest(snaps, wash_ban)
     vs = verdict_scoring(snaps)
     h7 = bt.get("+7d", {})                       # do high-risk tokens underperform low?
-    ok = (h7.get("high", {}).get("n", 0) > 0 and h7.get("low", {}).get("n", 0) > 0
-          and h7["high"]["avg"] < h7["low"]["avg"])
+    pairwise = (h7.get("high", {}).get("n", 0) > 0
+                and h7.get("low", {}).get("n", 0) > 0
+                and h7["high"]["avg"] < h7["low"]["avg"])
     return {"snapshots": len(snaps), "feature_backtest": bt,
-            "verdict_scoring": vs, "signal_separates_at_7d": ok}
+            "verdict_scoring": vs,
+            "signal_separates_at_7d": monotonic_separation(h7),
+            "signal_high_vs_low_at_7d": pairwise}
 
 
 def main():
@@ -98,7 +109,8 @@ def main():
           f"low={h7.get('low', {}).get('avg', 0):+.3f} "
           f"med={h7.get('med', {}).get('avg', 0):+.3f} "
           f"high={h7.get('high', {}).get('avg', 0):+.3f} | "
-          f"separates={chk['signal_separates_at_7d']}", flush=True)
+          f"separates={chk['signal_separates_at_7d']} "
+          f"high_vs_low={chk['signal_high_vs_low_at_7d']}", flush=True)
 
 
 def _check():

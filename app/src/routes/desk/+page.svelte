@@ -114,7 +114,7 @@
           <span class="big {sign(h7.high?.avg)}">{pct(h7.high?.avg)}</span>
           <span class="big-cap">high-risk токены, +7д</span>
           <span class="verdict {calib.signal_separates_at_7d ? 'warn' : 'bad'}">
-            {calib.signal_separates_at_7d ? 'high ниже low · предварительно' : 'high не ниже low'}
+            {calib.signal_separates_at_7d ? 'монотонно: high < med < low · предварительно' : 'монотонность не подтверждена'}
           </span>
         </div>
         <div class="bars">

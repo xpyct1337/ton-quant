@@ -33,6 +33,17 @@ def test_bucket_means_orders_high_worst():
     assert m["high"]["avg"] < m["low"]["avg"]   # signal works: high underperforms
 
 
+def test_monotonic_gate_rejects_u_shape():
+    buckets = {
+        "low": {"n": 2, "avg": -0.1},
+        "med": {"n": 2, "avg": 0.5},
+        "high": {"n": 2, "avg": -0.2},
+    }
+    assert C.monotonic_separation(buckets) is False
+    buckets["med"]["avg"] = -0.15
+    assert C.monotonic_separation(buckets) is True
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_"):
