@@ -1,56 +1,5 @@
 [
   {
-    "ts": "2026-07-10T19:47:27",
-    "action": "proposed",
-    "factor": {
-      "id": "f_1e989e37",
-      "expr": {
-        "op": "div",
-        "a": "bundle",
-        "b": "max_cluster"
-      },
-      "direction": "high_is_bad",
-      "threshold": 2.5,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-10T19:47:27",
-    "action": "rejected",
-    "factor": {
-      "id": "f_1e989e37",
-      "expr": {
-        "op": "div",
-        "a": "bundle",
-        "b": "max_cluster"
-      },
-      "direction": "high_is_bad",
-      "threshold": 2.5,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 0,
-        "losers": 0,
-        "wilson_lo": null,
-        "sign_p": null,
-        "avg": 0.0
-      },
-      "oos": {
-        "n": 0,
-        "losers": 0,
-        "wilson_lo": null,
-        "sign_p": null,
-        "avg": 0.0
-      },
-      "bar": 0.007,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
     "ts": "2026-07-10T19:47:50",
     "action": "proposed",
     "factor": {
@@ -25469,6 +25418,57 @@
   },
   {
     "ts": "2026-07-10T23:07:29",
+    "action": "rejected",
+    "factor": {
+      "id": "f_51b0f6f8",
+      "expr": {
+        "op": "div",
+        "a": "mentions",
+        "b": "hgrow_7d"
+      },
+      "direction": "high_is_bad",
+      "threshold": 0.5,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 0,
+        "losers": 0,
+        "wilson_lo": null,
+        "sign_p": null,
+        "avg": 0.0
+      },
+      "oos": {
+        "n": 0,
+        "losers": 0,
+        "wilson_lo": null,
+        "sign_p": null,
+        "avg": 0.0
+      },
+      "bar": 0.0068,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-11T00:08:25",
+    "action": "proposed",
+    "factor": {
+      "id": "f_51b0f6f8",
+      "expr": {
+        "op": "div",
+        "a": "mentions",
+        "b": "hgrow_7d"
+      },
+      "direction": "high_is_bad",
+      "threshold": 0.5,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-11T00:08:26",
     "action": "rejected",
     "factor": {
       "id": "f_51b0f6f8",
