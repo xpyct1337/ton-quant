@@ -31,6 +31,26 @@ def test_no_admin_no_entry():
     assert X.token_outcomes(snaps, set()) == {}
 
 
+def test_point_in_time_excludes_future_and_zero_admins():
+    snaps = {}
+    for i in range(8):
+        tokens = {
+            "A": {"price": 1.0 if i < 4 else 0.05, "admin": "DEV1"},
+            "C": {"price": 1.0, "admin": "DEV2"},
+            "Z": {"price": 1.0, "admin": "0:" + "0" * 64},
+        }
+        if i >= 5:
+            tokens.update({"B": {"price": 1.0, "admin": "DEV1"},
+                           "D": {"price": 1.0, "admin": "DEV2"}})
+        snaps[f"2026-07-{i + 1:02d}"] = {"tokens": tokens}
+    # B and D are first seen alongside A/C, so neither may use its own label.
+    rows = X.point_in_time_records(snaps)
+    assert {row["addr"] for row in rows} == {"B", "D"}
+    assert next(row for row in rows if row["addr"] == "B")["prior_rug_rate"] == 1.0
+    assert next(row for row in rows if row["addr"] == "D")["prior_rug_rate"] == 0.0
+    assert all(row["addr"] != "Z" for row in rows)
+
+
 if __name__ == "__main__":
     for n, fn in sorted(globals().items()):
         if n.startswith("test_"):
