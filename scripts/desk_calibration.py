@@ -79,6 +79,19 @@ def bundle_backtest(snaps, aux=None, horizon=7):
     }
 
 
+def bundle_confidence(snaps):
+    """Reuse the walk-forward gate; no promotion when the historical split is empty."""
+    if len(snaps) < 6:
+        return {"available": False, "passed": False, "reason": "insufficient_dates"}
+    from desk_researcher import gate  # local import avoids the calibration cycle
+    result = gate({"expr": "bundle", "direction": "high_is_bad",
+                   "threshold": BUNDLE_THRESHOLD, "horizon": 7}, snaps, trials=0)
+    if result is None:
+        return {"available": False, "passed": False, "reason": "insufficient_dates"}
+    return {"available": True, "passed": bool(result["passed"]),
+            "bar": result["bar"], "in_sample": result["in_sample"], "oos": result["oos"]}
+
+
 def feature_backtest(snaps, wash_ban):
     """Deterministic risk bucket vs forward excess return, per horizon."""
     by_h = {}
@@ -126,9 +139,11 @@ def build_calibration():
     pairwise = (h7.get("high", {}).get("n", 0) > 0
                 and h7.get("low", {}).get("n", 0) > 0
                 and h7["high"]["avg"] < h7["low"]["avg"])
+    bundle = bundle_backtest(snaps)
+    bundle["confidence"] = bundle_confidence(snaps)
     return {"snapshots": len(snaps), "feature_backtest": bt,
             "verdict_scoring": vs,
-            "bundle_backtest": bundle_backtest(snaps),
+            "bundle_backtest": bundle,
             "signal_separates_at_7d": monotonic_separation(h7),
             "signal_high_vs_low_at_7d": pairwise}
 

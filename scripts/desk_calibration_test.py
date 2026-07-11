@@ -59,6 +59,11 @@ def test_bundle_backtest_fails_closed_on_thin_buckets():
     assert report["low"] == {"n": 1, "avg": 0.8}
 
 
+def test_bundle_confidence_requires_history():
+    report = C.bundle_confidence({"2026-01-01": {"tokens": {}}})
+    assert report == {"available": False, "passed": False, "reason": "insufficient_dates"}
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_"):

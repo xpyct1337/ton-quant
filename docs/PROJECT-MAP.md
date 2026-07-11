@@ -108,7 +108,8 @@ Wallet routes строятся для двух закреплённых адре
 
 `calibration.json` дополнительно содержит `bundle_backtest`: point-in-time
 сравнение forensics `bundle > 20%` с последующим +7d excess; это кандидат для
-следующего confidence/OOS-теста, не автоматический фактор.
+confidence/OOS-теста. Поле `confidence` переиспользует walk-forward gate и
+блокирует промоут при пустом in-sample.
 
 | Файл | Содержимое |
 |---|---|
