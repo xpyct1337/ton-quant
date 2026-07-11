@@ -17,6 +17,12 @@
     ['ledger', 'Source ledger'],
     ['history', 'Point-in-time universe history']
   ];
+  const sourceLinks = [
+    ['LROO Rug Pull Detector', 'https://arxiv.org/abs/2603.11324', 'primary · leakage-resistant evaluation'],
+    ['TON DEX rug-pull detection', 'https://arxiv.org/abs/2509.01168', 'primary · platform-aware labels'],
+    ['Crypto momentum state dependence', 'https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6648082', 'working paper · hypothesis'],
+    ['Reddit: on-chain rug detector', 'https://www.reddit.com/r/solanadev/comments/1uk1idx/i_built_an_onchain_cabalrugdetection_api_that/', 'hypothesis only · not evidence']
+  ];
   const details = {
     sources: ['Источники идей', 'Научные статьи и первичные данные дают основание; свежие AI-работы и Reddit дают кандидатов на проверку.'],
     hypothesis: ['Гипотеза', 'Формулируем измеримый эффект, baseline, ожидаемый механизм и условие отказа до написания кода.'],
@@ -106,13 +112,22 @@
 </section>
 
 <section class="card detail" aria-live="polite">
-  <div><strong>{selectedDetail[0]}</strong><p class="muted">{selectedDetail[1]}</p><span class="evidence {evidence.tone}">{evidence.label} · <a href="{base}/desk/">open Desk ↗</a></span><span class="next muted">next: {nextAction.label} <button type="button" class="jump" onclick={() => select(nextAction.id)}>open {nextAction.id} →</button></span></div>
+  <div><strong>{selectedDetail[0]}</strong><p class="muted">{selectedDetail[1]}</p><span class="evidence {evidence.tone}">{evidence.label} · <a href="{base}/desk/">open Desk ↗</a></span><span class="next muted">next: {nextAction.label} <button type="button" class="jump" onclick={() => select(nextAction.id)}>open {nextAction.id} →</button></span>
+    {#if selected === 'sources'}
+      <div class="source-ledger" aria-label="Source ledger">
+        <span class="muted small">source ledger</span>
+        {#each sourceLinks as source}
+          <a href={source[1]} target="_blank" rel="noreferrer">{source[0]} <span class="muted">· {source[2]}</span></a>
+        {/each}
+      </div>
+    {/if}
+  </div>
   <button type="button" class="submit" onclick={submit}>Submit → разработка</button>
   {#if submitState === 'sent'}<span class="status good">Отправлено в текущий Codex task.</span>{/if}
   {#if submitState === 'opened'}<span class="status good">GitHub issue подготовлен; текст также скопирован.</span>{/if}
 </section>
 
 <style>
-  .hd{margin-bottom:16px}.hd-top{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}h1{font-size:24px}.map{display:grid;gap:16px}.flow{display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap}.node{font:inherit;color:var(--text);background:var(--card2);border:1px solid var(--border);border-radius:9px;padding:8px 11px;cursor:pointer}.node:hover,.node.selected{color:var(--accent);border-color:rgba(34,167,255,.55);background:rgba(34,167,255,.1)}.arrow{color:var(--muted)}.branches{display:grid;gap:9px;padding:12px 0;border-block:1px solid var(--border)}.branch-label{text-align:center;font-size:12px}.infra{padding-top:8px}.detail{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}.detail p{margin:5px 0 0;max-width:720px;line-height:1.5}.evidence{display:block;font-size:12px;margin-top:8px}.evidence.good{color:var(--good)}.evidence.warn{color:var(--warn)}.evidence.muted{color:var(--muted)}.evidence a{color:inherit}.next{display:block;font-size:12px;margin-top:6px}.jump{border:0;background:none;color:var(--accent);cursor:pointer;padding:0;font:inherit}.submit{background:var(--accent);color:#04223b;border:0;border-radius:9px;padding:9px 13px;font-weight:500;cursor:pointer}.status{font-size:12px}.good{color:var(--good)}
+  .hd{margin-bottom:16px}.hd-top{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}h1{font-size:24px}.map{display:grid;gap:16px}.flow{display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap}.node{font:inherit;color:var(--text);background:var(--card2);border:1px solid var(--border);border-radius:9px;padding:8px 11px;cursor:pointer}.node:hover,.node.selected{color:var(--accent);border-color:rgba(34,167,255,.55);background:rgba(34,167,255,.1)}.arrow{color:var(--muted)}.branches{display:grid;gap:9px;padding:12px 0;border-block:1px solid var(--border)}.branch-label{text-align:center;font-size:12px}.infra{padding-top:8px}.detail{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}.detail p{margin:5px 0 0;max-width:720px;line-height:1.5}.evidence{display:block;font-size:12px;margin-top:8px}.evidence.good{color:var(--good)}.evidence.warn{color:var(--warn)}.evidence.muted{color:var(--muted)}.evidence a{color:inherit}.next{display:block;font-size:12px;margin-top:6px}.jump{border:0;background:none;color:var(--accent);cursor:pointer;padding:0;font:inherit}.source-ledger{display:grid;gap:3px;margin-top:12px;font-size:12px}.source-ledger a{color:var(--accent);text-decoration:none}.source-ledger a:hover{text-decoration:underline}.submit{background:var(--accent);color:#04223b;border:0;border-radius:9px;padding:9px 13px;font-weight:500;cursor:pointer}.status{font-size:12px}.good{color:var(--good)}
   @media(max-width:520px){.detail{align-items:stretch;flex-direction:column}.submit{width:100%}}
 </style>
