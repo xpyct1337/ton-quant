@@ -102,6 +102,10 @@ def point_in_time_report(snaps):
     records = point_in_time_records(snaps)
     high = [r for r in records if r["prior_rug_rate"] >= 0.5]
     low = [r for r in records if r["prior_rug_rate"] < 0.5]
+    admin_days = [day for day in sorted(snaps) if any(
+        token.get("admin") and token.get("admin") != ZERO_ADMIN
+        for token in (snaps[day].get("tokens", {}) or {}).values()
+    )]
 
     def bucket(rows):
         return {
@@ -112,9 +116,22 @@ def point_in_time_report(snaps):
 
     # ponytail: one fixed 5-token floor keeps the diagnostic descriptive; replace
     # with a confidence-bounded test after the point-in-time panel grows.
+    missing = []
+    if len(records) < 5:
+        missing.append("records>=5")
+    if not high:
+        missing.append("high_bucket")
+    if not low:
+        missing.append("low_bucket")
     return {
         "schema": 1,
-        "available": len(records) >= 5 and bool(high) and bool(low),
+        "available": not missing,
+        "missing": missing,
+        "admin_coverage": {
+            "days": len(admin_days),
+            "first_date": admin_days[0] if admin_days else None,
+            "last_date": admin_days[-1] if admin_days else None,
+        },
         "records": len(records),
         "high_prior_rug": bucket(high),
         "low_prior_rug": bucket(low),

@@ -49,6 +49,12 @@ def test_point_in_time_excludes_future_and_zero_admins():
     assert next(row for row in rows if row["addr"] == "B")["prior_rug_rate"] == 1.0
     assert next(row for row in rows if row["addr"] == "D")["prior_rug_rate"] == 0.0
     assert all(row["addr"] != "Z" for row in rows)
+    report = X.point_in_time_report(snaps)
+    assert report["available"] is False
+    assert report["missing"] == ["records>=5"]
+    assert report["admin_coverage"] == {
+        "days": 8, "first_date": "2026-07-01", "last_date": "2026-07-08"
+    }
 
 
 if __name__ == "__main__":
