@@ -16,10 +16,12 @@ Run from repo root.  Self-check:  python3 scripts/desk_calibration.py --check
 import json, os, sys, glob
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from desk_features import load, vol_auth, conc, load_snaps, forward_excess  # noqa: E402
+from desk_features import load, vol_auth, conc, load_aux, load_snaps, forward_excess  # noqa: E402
 from desk import floor_risk                      # noqa: E402
 
 HORIZONS = (1, 3, 7)
+BUNDLE_THRESHOLD = 0.2
+BUNDLE_MIN_N = 10
 
 
 def banned_as_of(wash_ban, addr, date):
@@ -43,6 +45,38 @@ def monotonic_separation(buckets):
         return False
     return (buckets["high"]["avg"] < buckets["med"]["avg"]
             < buckets["low"]["avg"])
+
+
+def bundle_backtest(snaps, aux=None, horizon=7):
+    """Compare existing forensics bundle flag with later excess returns."""
+    aux = load_aux() if aux is None else aux
+    rows = []
+    for date, tokens in aux.items():
+        for addr, feat in (tokens or {}).items():
+            bundle = feat.get("bundle")
+            ex = forward_excess(snaps, date, addr, horizon) if bundle is not None else None
+            if ex is not None:
+                rows.append((bundle >= BUNDLE_THRESHOLD, ex))
+    high = [ex for flagged, ex in rows if flagged]
+    low = [ex for flagged, ex in rows if not flagged]
+    missing = []
+    if len(high) < BUNDLE_MIN_N:
+        missing.append("high_n>=10")
+    if len(low) < BUNDLE_MIN_N:
+        missing.append("low_n>=10")
+    # ponytail: fixed 10-observation floor keeps this diagnostic descriptive;
+    # replace with a confidence-bounded gate after the panel grows.
+    bucket = lambda xs: {"n": len(xs), "avg": round(sum(xs) / len(xs), 4) if xs else None}
+    return {
+        "feature": "bundle",
+        "threshold": BUNDLE_THRESHOLD,
+        "horizon": horizon,
+        "available": not missing,
+        "missing": missing,
+        "high": bucket(high),
+        "low": bucket(low),
+        "candidate": not missing and bool(high) and bool(low) and sum(high) / len(high) < sum(low) / len(low),
+    }
 
 
 def feature_backtest(snaps, wash_ban):
@@ -94,6 +128,7 @@ def build_calibration():
                 and h7["high"]["avg"] < h7["low"]["avg"])
     return {"snapshots": len(snaps), "feature_backtest": bt,
             "verdict_scoring": vs,
+            "bundle_backtest": bundle_backtest(snaps),
             "signal_separates_at_7d": monotonic_separation(h7),
             "signal_high_vs_low_at_7d": pairwise}
 

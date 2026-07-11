@@ -47,6 +47,7 @@
 
   // calibration headline: +7d avg excess return by risk bucket
   let h7 = $derived(calib?.feature_backtest?.['+7d']);
+  let bundle = $derived(calib?.bundle_backtest);
   let calBars = $derived.by(() => {
     if (!h7) return null;
     const rows = [['low', h7.low?.avg], ['med', h7.med?.avg], ['high', h7.high?.avg]]
@@ -129,6 +130,7 @@
         </div>
       </div>
       <p class="muted small note-line">{calib.snapshots} снапшотов · средние excess-доходности без LLM. Это диагностика: пока без доверительных интервалов и статистического вывода.</p>
+      {#if bundle}<p class="muted small note-line">bundle &gt;20%: {pct(bundle.high?.avg)} (n={bundle.high?.n ?? 0}) vs {pct(bundle.low?.avg)} (n={bundle.low?.n ?? 0}) · {bundle.candidate && bundle.available ? 'кандидат, не промоутирован' : 'данных пока мало'}</p>{/if}
     {/if}
   </section>
 

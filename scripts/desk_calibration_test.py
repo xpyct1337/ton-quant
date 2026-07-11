@@ -44,6 +44,21 @@ def test_monotonic_gate_rejects_u_shape():
     assert C.monotonic_separation(buckets) is True
 
 
+def test_bundle_backtest_fails_closed_on_thin_buckets():
+    snaps = {}
+    for i in range(8):
+        snaps[f"2026-01-{i + 1:02d}"] = {"tokens": {
+            "A": {"price": 1.0 if i < 4 else 0.1},
+            "B": {"price": 1.0 + i * 0.1},
+        }}
+    aux = {"2026-01-01": {"A": {"bundle": 0.3}, "B": {"bundle": 0.1}}}
+    report = C.bundle_backtest(snaps, aux)
+    assert report["available"] is False
+    assert report["candidate"] is False
+    assert report["high"] == {"n": 1, "avg": -0.8}
+    assert report["low"] == {"n": 1, "avg": 0.8}
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_"):

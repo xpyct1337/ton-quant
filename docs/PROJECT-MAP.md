@@ -106,6 +106,10 @@ Wallet routes строятся для двух закреплённых адре
 
 ### 4.4. AI Desk (`data/desk/`)
 
+`calibration.json` дополнительно содержит `bundle_backtest`: point-in-time
+сравнение forensics `bundle > 20%` с последующим +7d excess; это кандидат для
+следующего confidence/OOS-теста, не автоматический фактор.
+
 | Файл | Содержимое |
 |---|---|
 | `verdicts.json` | Главный выход деска: `{date, model, wallets:[{addr,name,manip_risk,flags,copy_ok,conviction,reason}], tokens:[{sym,manip_risk,flags,reason}]}` |
