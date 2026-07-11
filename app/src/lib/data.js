@@ -191,7 +191,8 @@ export async function loadDeskStatus() {
 
 // AI Desk self-calibration: does manip_risk predict forward underperformance?
 export async function loadDeskCalibration() {
-  return j(`${RAWB}/desk/calibration.json`).catch(() => null);
+  // Worker rewrites this file; bypass raw CDN/browser cache for the control surface.
+  return j(`${RAWB}/desk/calibration.json?cb=${Date.now()}`).catch(() => null);
 }
 
 // AI Desk researcher: learned active factors + the append-only attempt history.
