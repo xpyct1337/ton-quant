@@ -79,6 +79,27 @@
       "reason": "insufficient_matured_dates"
     }
   },
+  "momentum_test": {
+    "available": true,
+    "passed": false,
+    "feature": "mom_7d",
+    "threshold": -0.1,
+    "bar": 0.05,
+    "in_sample": {
+      "n": 28,
+      "losers": 15,
+      "wilson_lo": 35.8,
+      "sign_p": 0.8506,
+      "avg": -0.0007
+    },
+    "oos": {
+      "n": 32,
+      "losers": 27,
+      "wilson_lo": 68.2,
+      "sign_p": 0.0001,
+      "avg": -0.3342
+    }
+  },
   "signal_separates_at_7d": false,
   "signal_high_vs_low_at_7d": true
 }

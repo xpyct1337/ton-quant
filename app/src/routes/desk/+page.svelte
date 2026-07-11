@@ -131,6 +131,7 @@
       </div>
       <p class="muted small note-line">{calib.snapshots} снапшотов · средние excess-доходности без LLM. Это диагностика: пока без доверительных интервалов и статистического вывода.</p>
       {#if bundle}<p class="muted small note-line">bundle &gt;20%: {pct(bundle.high?.avg)} (n={bundle.high?.n ?? 0}) vs {pct(bundle.low?.avg)} (n={bundle.low?.n ?? 0}) · {bundle.candidate && bundle.available ? (bundle.confidence?.passed ? 'confidence gate пройден' : 'confidence/OOS gate не пройден') : 'данных пока мало'}</p>{/if}
+      {#if calib.momentum_test}<p class="muted small note-line">mom_7d &lt; -0.1: OOS {pct(calib.momentum_test.oos?.avg)} (n={calib.momentum_test.oos?.n ?? 0}) · {calib.momentum_test.passed ? 'confidence gate passed' : 'IS/OOS gate rejected'}</p>{/if}
     {/if}
   </section>
 

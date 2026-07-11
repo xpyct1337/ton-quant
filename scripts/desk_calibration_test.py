@@ -64,6 +64,11 @@ def test_bundle_confidence_requires_history():
     assert report == {"available": False, "passed": False, "reason": "insufficient_dates"}
 
 
+def test_momentum_confidence_requires_history():
+    report = C.momentum_confidence({"2026-01-01": {"tokens": {}}})
+    assert report == {"available": False, "passed": False, "reason": "insufficient_dates"}
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_"):

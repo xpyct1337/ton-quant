@@ -1,5 +1,15 @@
 # TON Quant v3.0 — AI Smart-Money Desk (роадмап)
 
+## 11.07.2026 — минимальный momentum-эксперимент
+
+По свежей работе о state-dependent crypto momentum проверен заранее заданный DSL-тест
+`mom_7d < -0.1` как сигнал будущего underperformance на горизонте +7d. Walk-forward
+gate использовал 23 зрелые snapshot-даты: IS `n=28`, Wilson lower `35.8`, `p=0.8506`;
+OOS `n=32`, Wilson lower `68.2`, `p=0.0001`, средний excess `-0.3342`.
+Тест **не прошёл**: сильный OOS без IS подтверждения не промоутится. `calibration.json`
+сохраняет `momentum_test` для повторной проверки на новых датах; следующий шаг —
+собрать больше зрелой истории, не подгонять порог.
+
 Версия v3.0: поверх v2 (сбор данных в GitHub Actions + сайт SvelteKit) встаёт слой
 локальных LLM-агентов на M1 Mac — манипуляция-устойчивый, обоснованный copy-фид.
 Спек: `docs/V3.0-AI-SMART-MONEY-DESK.md`. Альфа (evolve-run #1–#45) заархивирована в

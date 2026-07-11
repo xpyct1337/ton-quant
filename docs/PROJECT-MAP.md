@@ -106,6 +106,9 @@ Wallet routes строятся для двух закреплённых адре
 
 ### 4.4. AI Desk (`data/desk/`)
 
+`calibration.json` также хранит `momentum_test`: заранее заданный тест `mom_7d < -0.1`
+с walk-forward IS/OOS gate; сильный OOS без IS подтверждения остаётся rejected.
+
 `calibration.json` дополнительно содержит `bundle_backtest`: point-in-time
 сравнение forensics `bundle > 20%` с последующим +7d excess; это кандидат для
 confidence/OOS-теста. Поле `confidence` переиспользует walk-forward gate и
