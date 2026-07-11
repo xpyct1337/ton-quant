@@ -1,6 +1,8 @@
 <script>
   import { onMount } from 'svelte';
-  import { normalizeMindmapNode } from '$lib/mindmap.js';
+  import { base } from '$app/paths';
+  import { loadDeskCalibration } from '$lib/data.js';
+  import { experimentEvidence, normalizeMindmapNode } from '$lib/mindmap.js';
   const nodes = [
     ['sources', 'Источники идей'],
     ['hypothesis', 'Гипотеза'],
@@ -30,7 +32,9 @@
 
   let selected = $state('sources');
   let submitState = $state('');
+  let calibration = $state(undefined);
   let selectedDetail = $derived(details[selected]);
+  let evidence = $derived(experimentEvidence(calibration));
 
   function select(id) {
     selected = normalizeMindmapNode(id);
@@ -44,6 +48,7 @@
   }
 
   onMount(() => {
+    loadDeskCalibration().then((data) => (calibration = data)).catch(() => (calibration = null));
     const urlNode = new URL(window.location.href).searchParams.get('node');
     const savedNode = localStorage.getItem('tq_mindmap_selected');
     select(normalizeMindmapNode(urlNode || savedNode));
@@ -100,13 +105,13 @@
 </section>
 
 <section class="card detail" aria-live="polite">
-  <div><strong>{selectedDetail[0]}</strong><p class="muted">{selectedDetail[1]}</p></div>
+  <div><strong>{selectedDetail[0]}</strong><p class="muted">{selectedDetail[1]}</p><span class="evidence {evidence.tone}">{evidence.label} · <a href="{base}/desk/">open Desk ↗</a></span></div>
   <button type="button" class="submit" onclick={submit}>Submit → разработка</button>
   {#if submitState === 'sent'}<span class="status good">Отправлено в текущий Codex task.</span>{/if}
   {#if submitState === 'opened'}<span class="status good">GitHub issue подготовлен; текст также скопирован.</span>{/if}
 </section>
 
 <style>
-  .hd{margin-bottom:16px}.hd-top{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}h1{font-size:24px}.map{display:grid;gap:16px}.flow{display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap}.node{font:inherit;color:var(--text);background:var(--card2);border:1px solid var(--border);border-radius:9px;padding:8px 11px;cursor:pointer}.node:hover,.node.selected{color:var(--accent);border-color:rgba(34,167,255,.55);background:rgba(34,167,255,.1)}.arrow{color:var(--muted)}.branches{display:grid;gap:9px;padding:12px 0;border-block:1px solid var(--border)}.branch-label{text-align:center;font-size:12px}.infra{padding-top:8px}.detail{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}.detail p{margin:5px 0 0;max-width:720px;line-height:1.5}.submit{background:var(--accent);color:#04223b;border:0;border-radius:9px;padding:9px 13px;font-weight:500;cursor:pointer}.status{font-size:12px}.good{color:var(--good)}
+  .hd{margin-bottom:16px}.hd-top{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}h1{font-size:24px}.map{display:grid;gap:16px}.flow{display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap}.node{font:inherit;color:var(--text);background:var(--card2);border:1px solid var(--border);border-radius:9px;padding:8px 11px;cursor:pointer}.node:hover,.node.selected{color:var(--accent);border-color:rgba(34,167,255,.55);background:rgba(34,167,255,.1)}.arrow{color:var(--muted)}.branches{display:grid;gap:9px;padding:12px 0;border-block:1px solid var(--border)}.branch-label{text-align:center;font-size:12px}.infra{padding-top:8px}.detail{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}.detail p{margin:5px 0 0;max-width:720px;line-height:1.5}.evidence{display:block;font-size:12px;margin-top:8px}.evidence.good{color:var(--good)}.evidence.warn{color:var(--warn)}.evidence.muted{color:var(--muted)}.evidence a{color:inherit}.submit{background:var(--accent);color:#04223b;border:0;border-radius:9px;padding:9px 13px;font-weight:500;cursor:pointer}.status{font-size:12px}.good{color:var(--good)}
   @media(max-width:520px){.detail{align-items:stretch;flex-direction:column}.submit{width:100%}}
 </style>
