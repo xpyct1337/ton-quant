@@ -7,6 +7,10 @@ export function normalizeMindmapNode(value, fallback = 'sources') {
   return MINDMAP_NODE_IDS.has(value) ? value : fallback;
 }
 
+export function mindmapPrompt(title, description, evidence, nextAction) {
+  return `Продолжить TON Quant по ветке «${title}». ${description}\n\nТекущий evidence: ${evidence.label}. Следующий шаг: ${nextAction.label}.\n\nВыбери следующий фальсифицируемый минимальный шаг по Ponytail, реализуй и проверь его. Обновляй docs/PROJECT-MAP.md и ROADMAP-v3.md только если меняется решение.`;
+}
+
 function withMomentumStatus(label, calibration) {
   const test = calibration?.momentum_test;
   return test?.available ? `${label} · mom_7d ${test.passed ? 'passed' : 'rejected'}` : label;

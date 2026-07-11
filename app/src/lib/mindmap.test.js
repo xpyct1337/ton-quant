@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { experimentEvidence, mindmapNextAction, normalizeMindmapNode } from './mindmap.js';
+import { experimentEvidence, mindmapNextAction, mindmapPrompt, normalizeMindmapNode } from './mindmap.js';
 
 test('mindmap node state fails closed and preserves known branches', () => {
   assert.equal(normalizeMindmapNode('experiment'), 'experiment');
@@ -39,4 +39,11 @@ test('mindmap next action points to data while IS history is empty', () => {
   assert.equal(mindmapNextAction({
     bundle_backtest: { candidate: true, confidence: { available: true, passed: true } }
   }).id, 'validation');
+});
+
+test('submit prompt carries current evidence and next action', () => {
+  const prompt = mindmapPrompt('Минимальный эксперимент', 'проверить идею',
+    { label: 'evidence: waiting (3/6)' }, { label: 'дождаться coverage' });
+  assert.match(prompt, /evidence: waiting \(3\/6\)/);
+  assert.match(prompt, /дождаться coverage/);
 });

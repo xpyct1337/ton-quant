@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { base } from '$app/paths';
   import { loadDeskCalibration } from '$lib/data.js';
-  import { experimentEvidence, mindmapNextAction, normalizeMindmapNode } from '$lib/mindmap.js';
+  import { experimentEvidence, mindmapNextAction, mindmapPrompt, normalizeMindmapNode } from '$lib/mindmap.js';
   const nodes = [
     ['sources', 'Источники идей'],
     ['hypothesis', 'Гипотеза'],
@@ -63,7 +63,7 @@
 
   async function submit() {
     const [title, description] = selectedDetail;
-    const prompt = `Продолжить TON Quant по ветке «${title}». ${description}\n\nВыбери следующий фальсифицируемый минимальный шаг по Ponytail, реализуй и проверь его. Обновляй docs/PROJECT-MAP.md и ROADMAP-v3.md только если меняется решение.`;
+    const prompt = mindmapPrompt(title, description, evidence, nextAction);
     if (window.openai?.sendFollowUpMessage) {
       await window.openai.sendFollowUpMessage({ title: `Развить ветку «${title}»`, prompt });
       submitState = 'sent';
