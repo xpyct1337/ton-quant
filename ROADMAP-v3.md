@@ -40,9 +40,10 @@ point-in-time gate `high < med < low`; текущий результат — `fa
 
 Следующий кандидат без новых API-вызовов — forensics `bundle > 20%`: +7d excess
 `-0.095` (n=19) против `+0.029` (n=62). Это только descriptive candidate:
-walk-forward gate дал IS `n=0`, OOS `n=19`, Wilson `62.4`, `p=0.0044`,
-`passed=false`. OOS-эффект интересен, но без исторического IS-прогона
-автоматического промоута нет.
+coverage-aware walk-forward gate видит только 3 зрелые aux-даты из 10
+(минимум 6), поэтому `confidence.available=false` с причиной
+`insufficient_matured_dates`. Ожидаем зрелое IS/OOS-окно; автоматического
+промоута нет.
 
 ## 🚀 Готово 01.07.2026 — Track A+B: расширение сигналов и сбора данных (по ресёрчу Igor)
 

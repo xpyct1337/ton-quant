@@ -49,12 +49,35 @@ def _collect(spec, snaps, dates, aux):
     return ex
 
 
+def _expr_fields(expr):
+    if isinstance(expr, str):
+        return {expr}
+    if isinstance(expr, dict):
+        return set().union(*(_expr_fields(expr[k]) for k in ("a", "b") if k in expr))
+    return set()
+
+
+def _gate_dates(spec, snaps, aux):
+    """Keep only covered dates with a realized horizon; never split pre-feature data."""
+    dates = sorted(snaps)
+    horizon = int(spec.get("horizon", 7))
+    mature = set(dates[:-horizon]) if horizon > 0 else set(dates)
+    fields = _expr_fields(spec.get("expr")) & set(AUX_FIELDS)
+    if not fields:
+        return [d for d in dates if d in mature]
+    return [d for d in dates if d in mature and any(
+        fields <= set(feat) for feat in (aux.get(d, {}) or {}).values())]
+
+
 def gate(spec, snaps, trials):
     """Walk-forward OOS gate. Returns dict(in_sample, oos, bar, passed) or None."""
-    dates = sorted(snaps)
-    if len(dates) < 6:
+    raw_dates = sorted(snaps)
+    if len(raw_dates) < 6:
         return None
     aux = load_aux()
+    dates = _gate_dates(spec, snaps, aux)
+    if len(dates) < 6:
+        return None
     cut = int(len(dates) * 0.6)
     si = _stats(_collect(spec, snaps, dates[:cut], aux))
     so = _stats(_collect(spec, snaps, dates[cut:], aux))

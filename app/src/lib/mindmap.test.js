@@ -16,6 +16,9 @@ test('mindmap evidence status fails closed and exposes the IS-data block', () =>
   assert.equal(experimentEvidence({
     bundle_backtest: { candidate: true, confidence: { available: true, passed: true } }
   }).tone, 'good');
+  assert.equal(experimentEvidence({
+    bundle_backtest: { confidence: { available: false, reason: 'insufficient_matured_dates' } }
+  }).label, 'evidence: waiting for mature window');
 });
 
 test('mindmap next action points to data while IS history is empty', () => {
@@ -23,6 +26,9 @@ test('mindmap next action points to data while IS history is empty', () => {
   assert.deepEqual(mindmapNextAction({
     bundle_backtest: { candidate: true, confidence: { available: true, passed: false, in_sample: { n: 0 } } }
   }), { id: 'data', label: 'собрать IS-историю' });
+  assert.deepEqual(mindmapNextAction({
+    bundle_backtest: { confidence: { available: false, reason: 'insufficient_matured_dates' } }
+  }), { id: 'data', label: 'дождаться зрелой IS-истории' });
   assert.equal(mindmapNextAction({
     bundle_backtest: { candidate: true, confidence: { available: true, passed: true } }
   }).id, 'validation');

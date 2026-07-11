@@ -87,7 +87,7 @@ def bundle_confidence(snaps):
     result = gate({"expr": "bundle", "direction": "high_is_bad",
                    "threshold": BUNDLE_THRESHOLD, "horizon": 7}, snaps, trials=0)
     if result is None:
-        return {"available": False, "passed": False, "reason": "insufficient_dates"}
+        return {"available": False, "passed": False, "reason": "insufficient_matured_dates"}
     return {"available": True, "passed": bool(result["passed"]),
             "bar": result["bar"], "in_sample": result["in_sample"], "oos": result["oos"]}
 

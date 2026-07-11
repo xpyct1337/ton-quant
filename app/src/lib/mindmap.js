@@ -11,6 +11,9 @@ export function experimentEvidence(calibration) {
   const bundle = calibration?.bundle_backtest;
   const confidence = bundle?.confidence;
   if (!bundle || !confidence) return { tone: 'muted', label: 'evidence: collecting' };
+  if (confidence.reason === 'insufficient_matured_dates') {
+    return { tone: 'warn', label: 'evidence: waiting for mature window' };
+  }
   if (confidence.passed) return { tone: 'good', label: 'evidence: confidence gate passed' };
   if (bundle.candidate && confidence.available) {
     return confidence.in_sample?.n ?
@@ -24,6 +27,9 @@ export function mindmapNextAction(calibration) {
   const bundle = calibration?.bundle_backtest;
   const confidence = bundle?.confidence;
   if (!bundle) return { id: 'sources', label: 'собрать evidence' };
+  if (confidence?.reason === 'insufficient_matured_dates') {
+    return { id: 'data', label: 'дождаться зрелой IS-истории' };
+  }
   if (bundle.candidate && confidence?.available && !confidence.passed && !confidence.in_sample?.n) {
     return { id: 'data', label: 'собрать IS-историю' };
   }

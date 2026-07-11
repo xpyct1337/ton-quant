@@ -38,6 +38,13 @@ def test_deflated_bar_tightens_with_trials():
     assert g100["bar"] < g1["bar"]   # more trials -> stricter
 
 
+def test_gate_dates_exclude_unmatured_and_uncovered_aux():
+    snaps = {f"2026-04-{i+1:02d}": {"tokens": {"A": {"price": 1.0}}} for i in range(10)}
+    aux = {d: {"A": {"bundle": 0.3}} for d in sorted(snaps)}
+    spec = {"expr": "bundle", "horizon": 7}
+    assert R._gate_dates(spec, snaps, aux) == sorted(snaps)[:3]
+
+
 def test_series_feats_momentum_and_reversal():
     # rising price: last-day return + momentum positive
     snaps = {}
