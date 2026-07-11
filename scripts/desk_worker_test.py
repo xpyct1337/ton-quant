@@ -54,6 +54,25 @@ def test_data_date_falls_back_to_today_if_unreadable():
         import shutil; shutil.rmtree(tmp, ignore_errors=True)
 
 
+def test_first_invalid_desk_json_flags_corruption():
+    # regression: worker committed calibration.json with git conflict markers
+    # (autostash-pop conflict) -> broke `health.py --validate` on every PR.
+    orig = os.getcwd()
+    tmp = tempfile.mkdtemp()
+    try:
+        os.chdir(tmp)
+        os.makedirs("data/desk", exist_ok=True)
+        json.dump({"ok": 1}, open("data/desk/verdicts.json", "w"))
+        assert W.first_invalid_desk_json() is None      # all valid
+        # a stash-pop conflict leaves markers -> invalid JSON
+        open("data/desk/calibration.json", "w").write(
+            '{\n  "n": 1\n<<<<<<< Updated upstream\n  , "a": 1\n=======\n  , "a": 2\n>>>>>>> Stashed changes\n}\n')
+        assert W.first_invalid_desk_json() == "data/desk/calibration.json"
+    finally:
+        os.chdir(orig)
+        import shutil; shutil.rmtree(tmp, ignore_errors=True)
+
+
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):
         if name.startswith("test_"):

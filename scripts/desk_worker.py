@@ -179,6 +179,16 @@ def run_deep_vetting(state):
 
 
 # ---------- committer ----------
+def first_invalid_desk_json(root="data/desk"):
+    """First data/desk/**/*.json that won't parse, or None if all are valid."""
+    for p in sorted(glob.glob(f"{root}/**/*.json", recursive=True)):
+        try:
+            json.load(open(p, encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return p
+    return None
+
+
 def maybe_commit(state, force=False):
     if not force and time.time() - state.get("last_commit", 0) < COMMIT_EVERY:
         return
@@ -187,6 +197,16 @@ def maybe_commit(state, force=False):
         return
     for _ in range(3):                                 # retry on concurrent-push reject
         subprocess.run(["git", "pull", "--rebase", "--autostash", "origin", "main"])
+        bad = first_invalid_desk_json()
+        if bad:
+            # ponytail: an --autostash pop conflict (or a torn json.dump) left
+            # conflict markers / invalid JSON in the tree. Never commit corruption:
+            # discard this cycle's data/desk and recover to HEAD; it regenerates
+            # next cycle. Ceiling: the dropped cycle loses fresh verdicts, and a
+            # retained autostash entry may pile up -> upgrade: detect and drop it.
+            print(f"commit aborted: {bad} invalid after rebase; recovering", flush=True)
+            subprocess.run(["git", "checkout", "HEAD", "--", "data/desk"])
+            return
         subprocess.run(["git", "add", "data/desk"])    # scoped: never touch app/ or root
         subprocess.run(["git", "commit", "-m", f"worker: {today()} update"])
         if subprocess.run(["git", "push", "origin", "main"]).returncode == 0:
