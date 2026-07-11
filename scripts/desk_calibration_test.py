@@ -61,7 +61,8 @@ def test_bundle_backtest_fails_closed_on_thin_buckets():
 
 def test_bundle_confidence_requires_history():
     report = C.bundle_confidence({"2026-01-01": {"tokens": {}}})
-    assert report == {"available": False, "passed": False, "reason": "insufficient_dates"}
+    assert report == {"available": False, "passed": False, "reason": "insufficient_dates",
+                      "matured_dates": 1, "required_dates": 6}
 
 
 def test_momentum_confidence_requires_history():

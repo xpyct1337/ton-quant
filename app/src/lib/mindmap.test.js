@@ -23,6 +23,9 @@ test('mindmap evidence status fails closed and exposes the IS-data block', () =>
     bundle_backtest: { confidence: { available: false, reason: 'insufficient_matured_dates' } },
     momentum_test: { available: true, passed: false }
   }).label, 'evidence: waiting for mature window · mom_7d rejected');
+  assert.equal(experimentEvidence({
+    bundle_backtest: { confidence: { available: false, reason: 'insufficient_matured_dates', matured_dates: 3, required_dates: 6 } }
+  }).label, 'evidence: waiting for mature window (3/6)');
 });
 
 test('mindmap next action points to data while IS history is empty', () => {

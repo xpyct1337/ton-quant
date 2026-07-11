@@ -17,7 +17,8 @@ export function experimentEvidence(calibration) {
   const confidence = bundle?.confidence;
   if (!bundle || !confidence) return { tone: 'muted', label: withMomentumStatus('evidence: collecting', calibration) };
   if (confidence.reason === 'insufficient_matured_dates') {
-    return { tone: 'warn', label: withMomentumStatus('evidence: waiting for mature window', calibration) };
+    const coverage = confidence.matured_dates && confidence.required_dates ? ` (${confidence.matured_dates}/${confidence.required_dates})` : '';
+    return { tone: 'warn', label: withMomentumStatus(`evidence: waiting for mature window${coverage}`, calibration) };
   }
   if (confidence.passed) return { tone: 'good', label: withMomentumStatus('evidence: confidence gate passed', calibration) };
   if (bundle.candidate && confidence.available) {

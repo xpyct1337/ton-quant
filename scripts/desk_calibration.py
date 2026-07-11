@@ -82,13 +82,18 @@ def bundle_backtest(snaps, aux=None, horizon=7):
 
 def bundle_confidence(snaps):
     """Reuse the walk-forward gate; no promotion when the historical split is empty."""
+    spec = {"expr": "bundle", "direction": "high_is_bad",
+            "threshold": BUNDLE_THRESHOLD, "horizon": 7}
     if len(snaps) < 6:
-        return {"available": False, "passed": False, "reason": "insufficient_dates"}
-    from desk_researcher import gate  # local import avoids the calibration cycle
-    result = gate({"expr": "bundle", "direction": "high_is_bad",
-                   "threshold": BUNDLE_THRESHOLD, "horizon": 7}, snaps, trials=0)
+        return {"available": False, "passed": False, "reason": "insufficient_dates",
+                "matured_dates": len(snaps), "required_dates": 6}
+    from desk_researcher import gate, _gate_dates  # local import avoids the calibration cycle
+    aux = load_aux()
+    matured = len(_gate_dates(spec, snaps, aux))
+    result = gate(spec, snaps, trials=0)
     if result is None:
-        return {"available": False, "passed": False, "reason": "insufficient_matured_dates"}
+        return {"available": False, "passed": False, "reason": "insufficient_matured_dates",
+                "matured_dates": matured, "required_dates": 6}
     return {"available": True, "passed": bool(result["passed"]),
             "bar": result["bar"], "in_sample": result["in_sample"], "oos": result["oos"]}
 
