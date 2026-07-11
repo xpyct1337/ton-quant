@@ -17,7 +17,8 @@
     { href: base + '/mindmap', label: 'Mindmap', icon: 'ti-sitemap' },
     { href: base + '/xsmom', label: 'Momentum', icon: 'ti-trending-up' },
     { href: base + '/paper', label: 'Paper bot', icon: 'ti-robot' },
-    { href: base + '/desk', label: 'AI Desk', icon: 'ti-cpu' }
+    { href: base + '/desk', label: 'AI Desk', icon: 'ti-cpu' },
+    { href: base + '/health', label: 'Health', icon: 'ti-heartbeat' }
   ];
   const norm = (p) => (p.replace(/\/+$/, '') || '/');
   let current = $derived(norm($page.url.pathname));
