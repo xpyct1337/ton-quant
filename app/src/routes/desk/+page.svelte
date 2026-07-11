@@ -165,6 +165,7 @@
           {/if}
         </div>
         {#if copytrade.comparison_ready}<div class="edge {sign(copytrade.edge)}">edge desk−all: {pct(copytrade.edge)}</div>{/if}
+        {#if copytrade.point_in_time}<div class="muted small">point-in-time: {copytrade.covered_signals ?? 0} закрытых входов · {copytrade.verdict_dates ?? 0} дат verdicts</div>{/if}
         {#if copytrade.note}<p class="muted small">{copytrade.note}</p>{/if}
       {/if}
     </section>
