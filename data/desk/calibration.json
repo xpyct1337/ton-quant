@@ -4,21 +4,21 @@
     "+1d": {
       "low": {
         "n": 525,
-        "avg": -0.01020771778630407
+        "avg": -0.010207717786304076
       },
       "med": {
         "n": 142,
-        "avg": 0.04009768155067753
+        "avg": 0.040097681550677534
       },
       "high": {
         "n": 69,
-        "avg": -0.004852448440385095
+        "avg": -0.0048524484403851
       }
     },
     "+3d": {
       "low": {
         "n": 472,
-        "avg": -0.04816088346647956
+        "avg": -0.04816088346647959
       },
       "med": {
         "n": 108,
@@ -26,13 +26,13 @@
       },
       "high": {
         "n": 39,
-        "avg": 0.01010449180053783
+        "avg": 0.010104491800537838
       }
     },
     "+7d": {
       "low": {
         "n": 392,
-        "avg": -0.09695916604178595
+        "avg": -0.0969591660417859
       },
       "med": {
         "n": 79,
@@ -46,62 +46,17 @@
   },
   "verdict_scoring": {
     "low": {
-      "n": 45,
-      "avg": -0.2679822202679944
+      "n": 48,
+      "avg": -0.2784875125059921
     },
     "med": {
-      "n": 43,
-      "avg": 0.7645360480401243
+      "n": 51,
+      "avg": 0.6578215218382177
     },
     "high": {
       "n": 13,
       "avg": -0.2843909726046188
     }
   },
-  "bundle_backtest": {
-    "feature": "bundle",
-    "threshold": 0.2,
-    "horizon": 7,
-    "available": true,
-    "missing": [],
-    "high": {
-      "n": 19,
-      "avg": -0.0948
-    },
-    "low": {
-      "n": 62,
-      "avg": 0.029
-    },
-    "candidate": true,
-    "confidence": {
-      "available": false,
-      "passed": false,
-      "reason": "insufficient_matured_dates",
-      "matured_dates": 3,
-      "required_dates": 6
-    }
-  },
-  "momentum_test": {
-    "available": true,
-    "passed": false,
-    "feature": "mom_7d",
-    "threshold": -0.1,
-    "bar": 0.05,
-    "in_sample": {
-      "n": 28,
-      "losers": 15,
-      "wilson_lo": 35.8,
-      "sign_p": 0.8506,
-      "avg": -0.0007
-    },
-    "oos": {
-      "n": 32,
-      "losers": 27,
-      "wilson_lo": 68.2,
-      "sign_p": 0.0001,
-      "avg": -0.3342
-    }
-  },
-  "signal_separates_at_7d": false,
-  "signal_high_vs_low_at_7d": true
+  "signal_separates_at_7d": true
 }
