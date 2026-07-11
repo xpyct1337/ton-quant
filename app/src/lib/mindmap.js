@@ -19,3 +19,16 @@ export function experimentEvidence(calibration) {
   }
   return { tone: 'muted', label: 'evidence: collecting' };
 }
+
+export function mindmapNextAction(calibration) {
+  const bundle = calibration?.bundle_backtest;
+  const confidence = bundle?.confidence;
+  if (!bundle) return { id: 'sources', label: 'собрать evidence' };
+  if (bundle.candidate && confidence?.available && !confidence.passed && !confidence.in_sample?.n) {
+    return { id: 'data', label: 'собрать IS-историю' };
+  }
+  if (bundle.candidate && confidence?.available && !confidence.passed) {
+    return { id: 'validation', label: 'разобрать confidence gate' };
+  }
+  return { id: confidence?.passed ? 'validation' : 'data', label: confidence?.passed ? 'подтвердить OOS' : 'дождаться coverage' };
+}

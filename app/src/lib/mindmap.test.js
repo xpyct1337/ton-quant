@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { experimentEvidence, normalizeMindmapNode } from './mindmap.js';
+import { experimentEvidence, mindmapNextAction, normalizeMindmapNode } from './mindmap.js';
 
 test('mindmap node state fails closed and preserves known branches', () => {
   assert.equal(normalizeMindmapNode('experiment'), 'experiment');
@@ -16,4 +16,14 @@ test('mindmap evidence status fails closed and exposes the IS-data block', () =>
   assert.equal(experimentEvidence({
     bundle_backtest: { candidate: true, confidence: { available: true, passed: true } }
   }).tone, 'good');
+});
+
+test('mindmap next action points to data while IS history is empty', () => {
+  assert.equal(mindmapNextAction(null).id, 'sources');
+  assert.deepEqual(mindmapNextAction({
+    bundle_backtest: { candidate: true, confidence: { available: true, passed: false, in_sample: { n: 0 } } }
+  }), { id: 'data', label: 'собрать IS-историю' });
+  assert.equal(mindmapNextAction({
+    bundle_backtest: { candidate: true, confidence: { available: true, passed: true } }
+  }).id, 'validation');
 });
