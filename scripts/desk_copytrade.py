@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-"""TON Quant v3.0 — copy-trading baseline (not yet a Desk performance proof).
+"""TON Quant v3.0 — point-in-time copy-trading paper baseline.
 
 Compares copying ALL roster wallets vs only desk-vetted (copy_ok) ones, using only
-existing data: copy signal = a roster wallet's FIRST entry into a token
-(desk_features.first_entries); outcome = forward EXCESS return (desk_calibration).
-Deterministic, no LLM, no new fetches. Cloud paper.py untouched.
+existing data: copy signal = a desk-roster wallet's FIRST entry into a token on a
+date with a saved desk verdict; outcome = forward EXCESS return
+(desk_calibration). The roster and copy_ok flag are read from that same dated
+verdict, never from today's desk output. Deterministic, no LLM, no new fetches.
+Cloud paper.py untouched.
 
 Run from repo root. Self-check: python3 scripts/desk_copytrade.py --check
 """
-import json, os, sys
+import glob, json, os, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from desk_features import load, first_entries          # noqa: E402
@@ -26,32 +28,60 @@ def book_stats(exs):
             "win_rate": round(100 * wins / n, 1), "total": round(sum(exs), 4)}
 
 
-def build_signals(first, roster_addrs, snaps, copyok, horizon):
-    """One signal per (roster wallet, token first-entry) with a forward outcome."""
+def dated_verdicts(path="data/desk/verdicts"):
+    """{date: {roster, copyok}} from immutable daily desk journals."""
+    out = {}
+    for filename in sorted(glob.glob(os.path.join(path, "*.json"))):
+        date = os.path.basename(filename)[:-5]
+        verdict = load(filename, {}) or {}
+        wallets = verdict.get("wallets", [])
+        if verdict.get("date") != date or not isinstance(wallets, list):
+            continue
+        roster = {w.get("addr") for w in wallets if w.get("addr")}
+        out[date] = {"roster": roster,
+                     "copyok": {w.get("addr") for w in wallets if w.get("copy_ok") and w.get("addr")}}
+    return out
+
+
+def build_signals(first, snaps, verdicts_by_date, horizon):
+    """One daily-close paper signal only when that date's verdict exists.
+
+    ponytail: wallet history has day precision, so the paper entry is at the
+    daily desk snapshot, not at the wallet's unknown intraday fill. Add event
+    timestamps before making intraday execution claims.
+    """
     sigs = []
     for w, toks in first.items():
-        if w not in roster_addrs:
-            continue
         for taddr, date in toks.items():
+            verdict = verdicts_by_date.get(date)
+            if not verdict or w not in verdict["roster"]:
+                continue
             ex = forward_excess(snaps, date, taddr, horizon)
             if ex is not None:
                 sigs.append({"wallet": w, "token": taddr, "date": date,
-                             "ex": ex, "copy_ok": w in copyok})
+                             "ex": ex, "copy_ok": w in verdict["copyok"]})
     return sigs
 
 
 def build_copytrade():
     snaps = load_snaps()
-    roster = {w["addr"] for w in (load("data/wallets.json", {}) or {}).get("roster", [])}
-    verdicts = load("data/desk/verdicts.json", {}) or {}
-    copyok = {w["addr"] for w in verdicts.get("wallets", []) if w.get("copy_ok")}
-    sigs = build_signals(first_entries(), roster, snaps, copyok, HORIZON)
+    verdicts = dated_verdicts()
+    sigs = build_signals(first_entries(), snaps, verdicts, HORIZON)
     allb = book_stats([s["ex"] for s in sigs])
-    # Current verdicts cannot filter past entries without look-ahead. Keep the
-    # baseline, but block the comparison until dated verdicts are available.
-    return {"horizon": HORIZON, "copyok_wallets": len(copyok), "copy_all": allb,
-            "copy_desk": book_stats([]), "edge": None, "comparison_ready": False,
-            "note": "Desk-сравнение ещё невалидно: нужны point-in-time roster и verdicts на дату входа."}
+    deskb = book_stats([s["ex"] for s in sigs if s["copy_ok"]])
+    ready = bool(sigs) and bool(deskb["n"])
+    if not sigs:
+        note = "Нет закрытых входов с verdict той же даты: сравнение ещё не началось."
+    elif not deskb["n"]:
+        note = "На закрытых point-in-time входах desk не дал copy_ok; есть baseline/veto, но нет CopyDesk P&L для сравнения."
+    else:
+        note = "Point-in-time daily-close paper-сравнение; маленькая выборка не доказывает edge."
+    return {"horizon": HORIZON, "point_in_time": True,
+            "verdict_dates": len(verdicts), "covered_signals": len(sigs),
+            "copyok_wallets": len({s["wallet"] for s in sigs if s["copy_ok"]}),
+            "copy_all": allb, "copy_desk": deskb,
+            "edge": round(deskb["avg"] - allb["avg"], 4) if ready else None,
+            "comparison_ready": ready, "note": note}
 
 
 def main():
@@ -71,7 +101,8 @@ def _check():
         assert set(ct[b]) == {"n", "avg", "win_rate", "total"}, f"bad book {b}"
         assert ct[b]["n"] >= 0
     assert ct["copy_desk"]["n"] <= ct["copy_all"]["n"], "desk book not subset"
-    assert ct["comparison_ready"] is False and ct["edge"] is None
+    assert ct["point_in_time"] is True
+    assert ct["comparison_ready"] == bool(ct["copy_desk"]["n"] and ct["copy_all"]["n"])
     print("OK", {"all": ct["copy_all"], "desk": ct["copy_desk"], "edge": ct["edge"]})
 
 
