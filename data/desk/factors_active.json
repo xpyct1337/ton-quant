@@ -1,0 +1,32 @@
+[
+  {
+    "id": "f_6c6522ff",
+    "expr": {
+      "op": "div",
+      "a": "vol_tvl",
+      "b": "rvol"
+    },
+    "direction": "high_is_bad",
+    "threshold": 0.8,
+    "horizon": 7,
+    "metrics": {
+      "in_sample": {
+        "n": 198,
+        "losers": 121,
+        "wilson_lo": 54.2,
+        "sign_p": 0.0022,
+        "avg": -0.0212
+      },
+      "oos": {
+        "n": 99,
+        "losers": 85,
+        "wilson_lo": 77.7,
+        "sign_p": 0.0,
+        "avg": -0.0392
+      },
+      "bar": 0.0066,
+      "passed": true
+    },
+    "ts": "2026-07-12T00:41:01"
+  }
+]
