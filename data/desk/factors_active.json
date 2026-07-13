@@ -88,5 +88,35 @@
       "passed": true
     },
     "ts": "2026-07-12T16:42:44"
+  },
+  {
+    "id": "f_7dc58d86",
+    "expr": {
+      "op": "add",
+      "a": "mom_3d",
+      "b": "mom_7d"
+    },
+    "direction": "low_is_bad",
+    "threshold": 0.05,
+    "horizon": 7,
+    "metrics": {
+      "in_sample": {
+        "n": 146,
+        "losers": 89,
+        "wilson_lo": 52.9,
+        "sign_p": 0.0101,
+        "avg": -0.0849
+      },
+      "oos": {
+        "n": 50,
+        "losers": 46,
+        "wilson_lo": 81.2,
+        "sign_p": 0.0,
+        "avg": -0.3689
+      },
+      "bar": 0.0102,
+      "passed": true
+    },
+    "ts": "2026-07-12T19:33:29"
   }
 ]
