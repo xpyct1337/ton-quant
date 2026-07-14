@@ -118,5 +118,35 @@
       "passed": true
     },
     "ts": "2026-07-12T19:33:29"
+  },
+  {
+    "id": "f_3e8e6b93",
+    "expr": {
+      "op": "sub",
+      "a": "holders",
+      "b": "hgrow_7d"
+    },
+    "direction": "high_is_bad",
+    "threshold": 100,
+    "horizon": 7,
+    "metrics": {
+      "in_sample": {
+        "n": 186,
+        "losers": 117,
+        "wilson_lo": 55.8,
+        "sign_p": 0.0005,
+        "avg": -0.1105
+      },
+      "oos": {
+        "n": 116,
+        "losers": 93,
+        "wilson_lo": 72.0,
+        "sign_p": 0.0,
+        "avg": -0.1902
+      },
+      "bar": 0.0121,
+      "passed": true
+    },
+    "ts": "2026-07-14T04:24:31"
   }
 ]
