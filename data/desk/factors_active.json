@@ -148,5 +148,35 @@
       "passed": true
     },
     "ts": "2026-07-14T04:24:31"
+  },
+  {
+    "id": "f_aa5f8a7f",
+    "expr": {
+      "op": "div",
+      "a": "vol24",
+      "b": "mcap"
+    },
+    "direction": "low_is_bad",
+    "threshold": 0.001,
+    "horizon": 7,
+    "metrics": {
+      "in_sample": {
+        "n": 110,
+        "losers": 71,
+        "wilson_lo": 55.3,
+        "sign_p": 0.0029,
+        "avg": -0.0894
+      },
+      "oos": {
+        "n": 29,
+        "losers": 25,
+        "wilson_lo": 69.4,
+        "sign_p": 0.0001,
+        "avg": -0.2284
+      },
+      "bar": 0.0151,
+      "passed": true
+    },
+    "ts": "2026-07-14T07:21:11"
   }
 ]
