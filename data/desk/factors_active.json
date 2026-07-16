@@ -208,5 +208,35 @@
       "passed": true
     },
     "ts": "2026-07-14T19:25:27"
+  },
+  {
+    "id": "f_d15b6c71",
+    "expr": {
+      "op": "div",
+      "a": "ubuyers",
+      "b": "buyer_conc"
+    },
+    "direction": "high_is_bad",
+    "threshold": 0.8,
+    "horizon": 7,
+    "metrics": {
+      "in_sample": {
+        "n": 21,
+        "losers": 17,
+        "wilson_lo": 60.0,
+        "sign_p": 0.0072,
+        "avg": -0.0168
+      },
+      "oos": {
+        "n": 18,
+        "losers": 16,
+        "wilson_lo": 67.2,
+        "sign_p": 0.0013,
+        "avg": -0.2983
+      },
+      "bar": 0.0167,
+      "passed": true
+    },
+    "ts": "2026-07-16T04:46:47"
   }
 ]
