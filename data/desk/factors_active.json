@@ -210,33 +210,33 @@
     "ts": "2026-07-14T19:25:27"
   },
   {
-    "id": "f_d15b6c71",
+    "id": "f_de36d975",
     "expr": {
-      "op": "div",
-      "a": "ubuyers",
-      "b": "buyer_conc"
+      "op": "sub",
+      "a": "ret_1d",
+      "b": "price"
     },
-    "direction": "high_is_bad",
-    "threshold": 0.8,
+    "direction": "low_is_bad",
+    "threshold": 0.05,
     "horizon": 7,
     "metrics": {
       "in_sample": {
-        "n": 21,
-        "losers": 17,
-        "wilson_lo": 60.0,
-        "sign_p": 0.0072,
-        "avg": -0.0168
+        "n": 346,
+        "losers": 195,
+        "wilson_lo": 51.1,
+        "sign_p": 0.0207,
+        "avg": -0.0405
       },
       "oos": {
-        "n": 18,
-        "losers": 16,
-        "wilson_lo": 67.2,
-        "sign_p": 0.0013,
-        "avg": -0.2983
+        "n": 129,
+        "losers": 102,
+        "wilson_lo": 71.3,
+        "sign_p": 0.0,
+        "avg": -0.1026
       },
-      "bar": 0.0167,
+      "bar": 0.0224,
       "passed": true
     },
-    "ts": "2026-07-16T04:46:47"
+    "ts": "2026-07-16T11:29:09"
   }
 ]
