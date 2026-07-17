@@ -1,2453 +1,5 @@
 [
   {
-    "ts": "2026-07-17T05:17:53",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:18:16",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:18:16",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 280,
-        "losers": 163,
-        "wilson_lo": 52.4,
-        "sign_p": 0.0071,
-        "avg": -0.0486
-      },
-      "oos": {
-        "n": 94,
-        "losers": 67,
-        "wilson_lo": 61.4,
-        "sign_p": 0.0,
-        "avg": 0.0394
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:18:39",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:18:39",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 280,
-        "losers": 163,
-        "wilson_lo": 52.4,
-        "sign_p": 0.0071,
-        "avg": -0.0486
-      },
-      "oos": {
-        "n": 94,
-        "losers": 67,
-        "wilson_lo": 61.4,
-        "sign_p": 0.0,
-        "avg": 0.0394
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:19:02",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:19:24",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:19:47",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.01,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:19:47",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.01,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 262,
-        "losers": 159,
-        "wilson_lo": 54.7,
-        "sign_p": 0.0007,
-        "avg": -0.0507
-      },
-      "oos": {
-        "n": 90,
-        "losers": 65,
-        "wilson_lo": 62.2,
-        "sign_p": 0.0,
-        "avg": 0.0447
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:20:10",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.01,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:20:10",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.01,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 262,
-        "losers": 159,
-        "wilson_lo": 54.7,
-        "sign_p": 0.0007,
-        "avg": -0.0507
-      },
-      "oos": {
-        "n": 90,
-        "losers": 65,
-        "wilson_lo": 62.2,
-        "sign_p": 0.0,
-        "avg": 0.0447
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:20:33",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:20:56",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:21:22",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:21:23",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 280,
-        "losers": 163,
-        "wilson_lo": 52.4,
-        "sign_p": 0.0071,
-        "avg": -0.0486
-      },
-      "oos": {
-        "n": 94,
-        "losers": 67,
-        "wilson_lo": 61.4,
-        "sign_p": 0.0,
-        "avg": 0.0394
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:21:46",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:22:08",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:22:08",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 280,
-        "losers": 163,
-        "wilson_lo": 52.4,
-        "sign_p": 0.0071,
-        "avg": -0.0486
-      },
-      "oos": {
-        "n": 94,
-        "losers": 67,
-        "wilson_lo": 61.4,
-        "sign_p": 0.0,
-        "avg": 0.0394
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:22:31",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:22:54",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "high_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:22:54",
-    "action": "rejected",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "high_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 51,
-        "losers": 35,
-        "wilson_lo": 55.0,
-        "sign_p": 0.011,
-        "avg": 0.3705
-      },
-      "oos": {
-        "n": 39,
-        "losers": 29,
-        "wilson_lo": 58.9,
-        "sign_p": 0.0034,
-        "avg": 0.1213
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:23:17",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:23:40",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:23:40",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 280,
-        "losers": 163,
-        "wilson_lo": 52.4,
-        "sign_p": 0.0071,
-        "avg": -0.0486
-      },
-      "oos": {
-        "n": 94,
-        "losers": 67,
-        "wilson_lo": 61.4,
-        "sign_p": 0.0,
-        "avg": 0.0394
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:24:03",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:24:26",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "high_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:24:26",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "high_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 138,
-        "losers": 85,
-        "wilson_lo": 53.3,
-        "sign_p": 0.0081,
-        "avg": 0.0633
-      },
-      "oos": {
-        "n": 69,
-        "losers": 54,
-        "wilson_lo": 67.2,
-        "sign_p": 0.0,
-        "avg": -0.0389
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:24:48",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:25:11",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:25:34",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:25:57",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:26:20",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:26:42",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:27:05",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:27:05",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 280,
-        "losers": 163,
-        "wilson_lo": 52.4,
-        "sign_p": 0.0071,
-        "avg": -0.0486
-      },
-      "oos": {
-        "n": 94,
-        "losers": 67,
-        "wilson_lo": 61.4,
-        "sign_p": 0.0,
-        "avg": 0.0394
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:27:28",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:27:28",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 280,
-        "losers": 163,
-        "wilson_lo": 52.4,
-        "sign_p": 0.0071,
-        "avg": -0.0486
-      },
-      "oos": {
-        "n": 94,
-        "losers": 67,
-        "wilson_lo": 61.4,
-        "sign_p": 0.0,
-        "avg": 0.0394
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:27:51",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:28:13",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:28:36",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:28:59",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:28:59",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 280,
-        "losers": 163,
-        "wilson_lo": 52.4,
-        "sign_p": 0.0071,
-        "avg": -0.0486
-      },
-      "oos": {
-        "n": 94,
-        "losers": 67,
-        "wilson_lo": 61.4,
-        "sign_p": 0.0,
-        "avg": 0.0394
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:29:21",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:29:44",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:30:07",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:30:30",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:30:52",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "high_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:30:53",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "high_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 138,
-        "losers": 85,
-        "wilson_lo": 53.3,
-        "sign_p": 0.0081,
-        "avg": 0.0633
-      },
-      "oos": {
-        "n": 69,
-        "losers": 54,
-        "wilson_lo": 67.2,
-        "sign_p": 0.0,
-        "avg": -0.0389
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:31:15",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:31:38",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:31:38",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 280,
-        "losers": 163,
-        "wilson_lo": 52.4,
-        "sign_p": 0.0071,
-        "avg": -0.0486
-      },
-      "oos": {
-        "n": 94,
-        "losers": 67,
-        "wilson_lo": 61.4,
-        "sign_p": 0.0,
-        "avg": 0.0394
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:32:01",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:32:01",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 280,
-        "losers": 163,
-        "wilson_lo": 52.4,
-        "sign_p": 0.0071,
-        "avg": -0.0486
-      },
-      "oos": {
-        "n": 94,
-        "losers": 67,
-        "wilson_lo": 61.4,
-        "sign_p": 0.0,
-        "avg": 0.0394
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:32:24",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:32:46",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:32:46",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 280,
-        "losers": 163,
-        "wilson_lo": 52.4,
-        "sign_p": 0.0071,
-        "avg": -0.0486
-      },
-      "oos": {
-        "n": 94,
-        "losers": 67,
-        "wilson_lo": 61.4,
-        "sign_p": 0.0,
-        "avg": 0.0394
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:33:09",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:33:32",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:33:55",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:33:55",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 280,
-        "losers": 163,
-        "wilson_lo": 52.4,
-        "sign_p": 0.0071,
-        "avg": -0.0486
-      },
-      "oos": {
-        "n": 94,
-        "losers": 67,
-        "wilson_lo": 61.4,
-        "sign_p": 0.0,
-        "avg": 0.0394
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:34:17",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:34:18",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 280,
-        "losers": 163,
-        "wilson_lo": 52.4,
-        "sign_p": 0.0071,
-        "avg": -0.0486
-      },
-      "oos": {
-        "n": 94,
-        "losers": 67,
-        "wilson_lo": 61.4,
-        "sign_p": 0.0,
-        "avg": 0.0394
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:34:40",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "high_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:34:40",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "high_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 138,
-        "losers": 85,
-        "wilson_lo": 53.3,
-        "sign_p": 0.0081,
-        "avg": 0.0633
-      },
-      "oos": {
-        "n": 69,
-        "losers": 54,
-        "wilson_lo": 67.2,
-        "sign_p": 0.0,
-        "avg": -0.0389
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:35:03",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:35:26",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:35:26",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 280,
-        "losers": 163,
-        "wilson_lo": 52.4,
-        "sign_p": 0.0071,
-        "avg": -0.0486
-      },
-      "oos": {
-        "n": 94,
-        "losers": 67,
-        "wilson_lo": 61.4,
-        "sign_p": 0.0,
-        "avg": 0.0394
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:35:49",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:35:49",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 280,
-        "losers": 163,
-        "wilson_lo": 52.4,
-        "sign_p": 0.0071,
-        "avg": -0.0486
-      },
-      "oos": {
-        "n": 94,
-        "losers": 67,
-        "wilson_lo": 61.4,
-        "sign_p": 0.0,
-        "avg": 0.0394
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:36:11",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:36:34",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:36:34",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 280,
-        "losers": 163,
-        "wilson_lo": 52.4,
-        "sign_p": 0.0071,
-        "avg": -0.0486
-      },
-      "oos": {
-        "n": 94,
-        "losers": 67,
-        "wilson_lo": 61.4,
-        "sign_p": 0.0,
-        "avg": 0.0394
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:36:57",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "high_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:36:57",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "high_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 138,
-        "losers": 85,
-        "wilson_lo": 53.3,
-        "sign_p": 0.0081,
-        "avg": 0.0633
-      },
-      "oos": {
-        "n": 69,
-        "losers": 54,
-        "wilson_lo": 67.2,
-        "sign_p": 0.0,
-        "avg": -0.0389
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:37:20",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:37:20",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 280,
-        "losers": 163,
-        "wilson_lo": 52.4,
-        "sign_p": 0.0071,
-        "avg": -0.0486
-      },
-      "oos": {
-        "n": 94,
-        "losers": 67,
-        "wilson_lo": 61.4,
-        "sign_p": 0.0,
-        "avg": 0.0394
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:37:42",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:37:42",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 280,
-        "losers": 163,
-        "wilson_lo": 52.4,
-        "sign_p": 0.0071,
-        "avg": -0.0486
-      },
-      "oos": {
-        "n": 94,
-        "losers": 67,
-        "wilson_lo": 61.4,
-        "sign_p": 0.0,
-        "avg": 0.0394
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:38:05",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:38:28",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.02,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:38:28",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.02,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 272,
-        "losers": 161,
-        "wilson_lo": 53.3,
-        "sign_p": 0.0029,
-        "avg": -0.0497
-      },
-      "oos": {
-        "n": 91,
-        "losers": 65,
-        "wilson_lo": 61.4,
-        "sign_p": 0.0001,
-        "avg": 0.045
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:38:51",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:39:14",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:39:36",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:39:59",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:40:22",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:40:47",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:41:10",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:41:10",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 280,
-        "losers": 163,
-        "wilson_lo": 52.4,
-        "sign_p": 0.0071,
-        "avg": -0.0486
-      },
-      "oos": {
-        "n": 94,
-        "losers": 67,
-        "wilson_lo": 61.4,
-        "sign_p": 0.0,
-        "avg": 0.0394
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:41:33",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:41:56",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:42:18",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:42:41",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:43:04",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:43:26",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:43:49",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:44:12",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "high_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:44:12",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "high_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 138,
-        "losers": 85,
-        "wilson_lo": 53.3,
-        "sign_p": 0.0081,
-        "avg": 0.0633
-      },
-      "oos": {
-        "n": 69,
-        "losers": 54,
-        "wilson_lo": 67.2,
-        "sign_p": 0.0,
-        "avg": -0.0389
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:44:35",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:44:58",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:45:20",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:45:43",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:46:06",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "high_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:46:06",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "high_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 138,
-        "losers": 85,
-        "wilson_lo": 53.3,
-        "sign_p": 0.0081,
-        "avg": 0.0633
-      },
-      "oos": {
-        "n": 69,
-        "losers": 54,
-        "wilson_lo": 67.2,
-        "sign_p": 0.0,
-        "avg": -0.0389
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:46:29",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:46:51",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:47:14",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "high_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:47:14",
-    "action": "rejected",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "high_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 51,
-        "losers": 35,
-        "wilson_lo": 55.0,
-        "sign_p": 0.011,
-        "avg": 0.3705
-      },
-      "oos": {
-        "n": 39,
-        "losers": 29,
-        "wilson_lo": 58.9,
-        "sign_p": 0.0034,
-        "avg": 0.1213
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:47:37",
-    "action": "proposed",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:47:37",
-    "action": "rejected",
-    "factor": {
-      "id": "f_668170e3",
-      "expr": {
-        "op": "div",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {
-      "in_sample": {
-        "n": 280,
-        "losers": 163,
-        "wilson_lo": 52.4,
-        "sign_p": 0.0071,
-        "avg": -0.0486
-      },
-      "oos": {
-        "n": 94,
-        "losers": 67,
-        "wilson_lo": 61.4,
-        "sign_p": 0.0,
-        "avg": 0.0394
-      },
-      "bar": 0.025,
-      "passed": false
-    },
-    "reason": "failed gate"
-  },
-  {
-    "ts": "2026-07-17T05:48:00",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:48:22",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
-    "ts": "2026-07-17T05:48:45",
-    "action": "proposed",
-    "factor": {
-      "id": "f_de36d975",
-      "expr": {
-        "op": "sub",
-        "a": "ret_1d",
-        "b": "price"
-      },
-      "direction": "low_is_bad",
-      "threshold": 0.05,
-      "horizon": 7
-    },
-    "metrics": {},
-    "reason": "ok"
-  },
-  {
     "ts": "2026-07-17T05:49:08",
     "action": "proposed",
     "factor": {
@@ -23101,5 +20653,2504 @@
     },
     "metrics": {},
     "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:22:44",
+    "action": "proposed",
+    "factor": {
+      "id": "f_92d5bef7",
+      "expr": {
+        "op": "sub",
+        "a": "price",
+        "b": "ret_1d"
+      },
+      "direction": "low_is_bad",
+      "threshold": 1.0,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:22:45",
+    "action": "rejected",
+    "factor": {
+      "id": "f_92d5bef7",
+      "expr": {
+        "op": "sub",
+        "a": "price",
+        "b": "ret_1d"
+      },
+      "direction": "low_is_bad",
+      "threshold": 1.0,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 366,
+        "losers": 213,
+        "wilson_lo": 53.1,
+        "sign_p": 0.002,
+        "avg": 0.0088
+      },
+      "oos": {
+        "n": 147,
+        "losers": 107,
+        "wilson_lo": 65.1,
+        "sign_p": 0.0,
+        "avg": 0.0262
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:23:07",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:23:34",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:23:57",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:23:57",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 280,
+        "losers": 163,
+        "wilson_lo": 52.4,
+        "sign_p": 0.0071,
+        "avg": -0.0486
+      },
+      "oos": {
+        "n": 94,
+        "losers": 67,
+        "wilson_lo": 61.4,
+        "sign_p": 0.0,
+        "avg": 0.0394
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:24:20",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:24:43",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "high_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:24:43",
+    "action": "rejected",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "high_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 51,
+        "losers": 35,
+        "wilson_lo": 55.0,
+        "sign_p": 0.011,
+        "avg": 0.3705
+      },
+      "oos": {
+        "n": 39,
+        "losers": 29,
+        "wilson_lo": 58.9,
+        "sign_p": 0.0034,
+        "avg": 0.1213
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:25:06",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:25:28",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:25:51",
+    "action": "proposed",
+    "factor": {
+      "id": "f_92d5bef7",
+      "expr": {
+        "op": "sub",
+        "a": "price",
+        "b": "ret_1d"
+      },
+      "direction": "high_is_bad",
+      "threshold": 1.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:26:14",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:26:37",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:27:00",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:27:22",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:27:45",
+    "action": "proposed",
+    "factor": {
+      "id": "f_92d5bef7",
+      "expr": {
+        "op": "sub",
+        "a": "price",
+        "b": "ret_1d"
+      },
+      "direction": "high_is_bad",
+      "threshold": 1.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:28:08",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:28:31",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:28:54",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "high_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:28:54",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "high_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 138,
+        "losers": 85,
+        "wilson_lo": 53.3,
+        "sign_p": 0.0081,
+        "avg": 0.0633
+      },
+      "oos": {
+        "n": 69,
+        "losers": 54,
+        "wilson_lo": 67.2,
+        "sign_p": 0.0,
+        "avg": -0.0389
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:29:17",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "high_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:29:17",
+    "action": "rejected",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "high_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 51,
+        "losers": 35,
+        "wilson_lo": 55.0,
+        "sign_p": 0.011,
+        "avg": 0.3705
+      },
+      "oos": {
+        "n": 39,
+        "losers": 29,
+        "wilson_lo": 58.9,
+        "sign_p": 0.0034,
+        "avg": 0.1213
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:29:40",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "high_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:29:40",
+    "action": "rejected",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "high_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 51,
+        "losers": 35,
+        "wilson_lo": 55.0,
+        "sign_p": 0.011,
+        "avg": 0.3705
+      },
+      "oos": {
+        "n": 39,
+        "losers": 29,
+        "wilson_lo": 58.9,
+        "sign_p": 0.0034,
+        "avg": 0.1213
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:30:03",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:30:26",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "high_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:30:26",
+    "action": "rejected",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "high_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 51,
+        "losers": 35,
+        "wilson_lo": 55.0,
+        "sign_p": 0.011,
+        "avg": 0.3705
+      },
+      "oos": {
+        "n": 39,
+        "losers": 29,
+        "wilson_lo": 58.9,
+        "sign_p": 0.0034,
+        "avg": 0.1213
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:30:48",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:31:11",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:31:11",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 280,
+        "losers": 163,
+        "wilson_lo": 52.4,
+        "sign_p": 0.0071,
+        "avg": -0.0486
+      },
+      "oos": {
+        "n": 94,
+        "losers": 67,
+        "wilson_lo": 61.4,
+        "sign_p": 0.0,
+        "avg": 0.0394
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:31:34",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:31:57",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "high_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:31:57",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "high_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 138,
+        "losers": 85,
+        "wilson_lo": 53.3,
+        "sign_p": 0.0081,
+        "avg": 0.0633
+      },
+      "oos": {
+        "n": 69,
+        "losers": 54,
+        "wilson_lo": 67.2,
+        "sign_p": 0.0,
+        "avg": -0.0389
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:32:20",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:32:43",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:33:06",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "high_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:33:06",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "high_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 138,
+        "losers": 85,
+        "wilson_lo": 53.3,
+        "sign_p": 0.0081,
+        "avg": 0.0633
+      },
+      "oos": {
+        "n": 69,
+        "losers": 54,
+        "wilson_lo": 67.2,
+        "sign_p": 0.0,
+        "avg": -0.0389
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:33:28",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:33:52",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:34:15",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:34:37",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:35:00",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:35:23",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.01,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:35:24",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.01,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 262,
+        "losers": 159,
+        "wilson_lo": 54.7,
+        "sign_p": 0.0007,
+        "avg": -0.0507
+      },
+      "oos": {
+        "n": 90,
+        "losers": 65,
+        "wilson_lo": 62.2,
+        "sign_p": 0.0,
+        "avg": 0.0447
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:35:46",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:36:09",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:36:32",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:36:32",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 280,
+        "losers": 163,
+        "wilson_lo": 52.4,
+        "sign_p": 0.0071,
+        "avg": -0.0486
+      },
+      "oos": {
+        "n": 94,
+        "losers": 67,
+        "wilson_lo": 61.4,
+        "sign_p": 0.0,
+        "avg": 0.0394
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:36:54",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:37:17",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:37:17",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 280,
+        "losers": 163,
+        "wilson_lo": 52.4,
+        "sign_p": 0.0071,
+        "avg": -0.0486
+      },
+      "oos": {
+        "n": 94,
+        "losers": 67,
+        "wilson_lo": 61.4,
+        "sign_p": 0.0,
+        "avg": 0.0394
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:37:40",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:38:03",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.02,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:38:03",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.02,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 272,
+        "losers": 161,
+        "wilson_lo": 53.3,
+        "sign_p": 0.0029,
+        "avg": -0.0497
+      },
+      "oos": {
+        "n": 91,
+        "losers": 65,
+        "wilson_lo": 61.4,
+        "sign_p": 0.0001,
+        "avg": 0.045
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:38:26",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:38:26",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 280,
+        "losers": 163,
+        "wilson_lo": 52.4,
+        "sign_p": 0.0071,
+        "avg": -0.0486
+      },
+      "oos": {
+        "n": 94,
+        "losers": 67,
+        "wilson_lo": 61.4,
+        "sign_p": 0.0,
+        "avg": 0.0394
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:38:48",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:39:11",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:39:34",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:39:57",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:39:57",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 280,
+        "losers": 163,
+        "wilson_lo": 52.4,
+        "sign_p": 0.0071,
+        "avg": -0.0486
+      },
+      "oos": {
+        "n": 94,
+        "losers": 67,
+        "wilson_lo": 61.4,
+        "sign_p": 0.0,
+        "avg": 0.0394
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:40:20",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:40:43",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:41:05",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:41:28",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "high_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:41:28",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "high_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 138,
+        "losers": 85,
+        "wilson_lo": 53.3,
+        "sign_p": 0.0081,
+        "avg": 0.0633
+      },
+      "oos": {
+        "n": 69,
+        "losers": 54,
+        "wilson_lo": 67.2,
+        "sign_p": 0.0,
+        "avg": -0.0389
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:41:51",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:41:51",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 280,
+        "losers": 163,
+        "wilson_lo": 52.4,
+        "sign_p": 0.0071,
+        "avg": -0.0486
+      },
+      "oos": {
+        "n": 94,
+        "losers": 67,
+        "wilson_lo": 61.4,
+        "sign_p": 0.0,
+        "avg": 0.0394
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:42:14",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:42:14",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 280,
+        "losers": 163,
+        "wilson_lo": 52.4,
+        "sign_p": 0.0071,
+        "avg": -0.0486
+      },
+      "oos": {
+        "n": 94,
+        "losers": 67,
+        "wilson_lo": 61.4,
+        "sign_p": 0.0,
+        "avg": 0.0394
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:42:37",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "high_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:42:37",
+    "action": "rejected",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "high_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 51,
+        "losers": 35,
+        "wilson_lo": 55.0,
+        "sign_p": 0.011,
+        "avg": 0.3705
+      },
+      "oos": {
+        "n": 39,
+        "losers": 29,
+        "wilson_lo": 58.9,
+        "sign_p": 0.0034,
+        "avg": 0.1213
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:43:00",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:43:22",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:43:23",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 280,
+        "losers": 163,
+        "wilson_lo": 52.4,
+        "sign_p": 0.0071,
+        "avg": -0.0486
+      },
+      "oos": {
+        "n": 94,
+        "losers": 67,
+        "wilson_lo": 61.4,
+        "sign_p": 0.0,
+        "avg": 0.0394
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:43:46",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:43:46",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 280,
+        "losers": 163,
+        "wilson_lo": 52.4,
+        "sign_p": 0.0071,
+        "avg": -0.0486
+      },
+      "oos": {
+        "n": 94,
+        "losers": 67,
+        "wilson_lo": 61.4,
+        "sign_p": 0.0,
+        "avg": 0.0394
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:44:09",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:44:09",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 280,
+        "losers": 163,
+        "wilson_lo": 52.4,
+        "sign_p": 0.0071,
+        "avg": -0.0486
+      },
+      "oos": {
+        "n": 94,
+        "losers": 67,
+        "wilson_lo": 61.4,
+        "sign_p": 0.0,
+        "avg": 0.0394
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:44:32",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:44:32",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 280,
+        "losers": 163,
+        "wilson_lo": 52.4,
+        "sign_p": 0.0071,
+        "avg": -0.0486
+      },
+      "oos": {
+        "n": 94,
+        "losers": 67,
+        "wilson_lo": 61.4,
+        "sign_p": 0.0,
+        "avg": 0.0394
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:44:55",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "high_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:44:55",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "high_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 138,
+        "losers": 85,
+        "wilson_lo": 53.3,
+        "sign_p": 0.0081,
+        "avg": 0.0633
+      },
+      "oos": {
+        "n": 69,
+        "losers": 54,
+        "wilson_lo": 67.2,
+        "sign_p": 0.0,
+        "avg": -0.0389
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:45:18",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:45:40",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:46:03",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:46:26",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:46:49",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:46:49",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 280,
+        "losers": 163,
+        "wilson_lo": 52.4,
+        "sign_p": 0.0071,
+        "avg": -0.0486
+      },
+      "oos": {
+        "n": 94,
+        "losers": 67,
+        "wilson_lo": 61.4,
+        "sign_p": 0.0,
+        "avg": 0.0394
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:47:12",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:47:12",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 280,
+        "losers": 163,
+        "wilson_lo": 52.4,
+        "sign_p": 0.0071,
+        "avg": -0.0486
+      },
+      "oos": {
+        "n": 94,
+        "losers": 67,
+        "wilson_lo": 61.4,
+        "sign_p": 0.0,
+        "avg": 0.0394
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:47:34",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.02,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:47:34",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.02,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 272,
+        "losers": 161,
+        "wilson_lo": 53.3,
+        "sign_p": 0.0029,
+        "avg": -0.0497
+      },
+      "oos": {
+        "n": 91,
+        "losers": 65,
+        "wilson_lo": 61.4,
+        "sign_p": 0.0001,
+        "avg": 0.045
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:47:57",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:48:20",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:48:43",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:49:05",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:49:05",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 280,
+        "losers": 163,
+        "wilson_lo": 52.4,
+        "sign_p": 0.0071,
+        "avg": -0.0486
+      },
+      "oos": {
+        "n": 94,
+        "losers": 67,
+        "wilson_lo": 61.4,
+        "sign_p": 0.0,
+        "avg": 0.0394
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:49:28",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:49:51",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:50:14",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:50:37",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:50:37",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 280,
+        "losers": 163,
+        "wilson_lo": 52.4,
+        "sign_p": 0.0071,
+        "avg": -0.0486
+      },
+      "oos": {
+        "n": 94,
+        "losers": 67,
+        "wilson_lo": 61.4,
+        "sign_p": 0.0,
+        "avg": 0.0394
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:50:59",
+    "action": "proposed",
+    "factor": {
+      "id": "f_de36d975",
+      "expr": {
+        "op": "sub",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:51:22",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "high_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:51:22",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "high_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 138,
+        "losers": 85,
+        "wilson_lo": 53.3,
+        "sign_p": 0.0081,
+        "avg": 0.0633
+      },
+      "oos": {
+        "n": 69,
+        "losers": 54,
+        "wilson_lo": 67.2,
+        "sign_p": 0.0,
+        "avg": -0.0389
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:51:45",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.01,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:51:45",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.01,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 262,
+        "losers": 159,
+        "wilson_lo": 54.7,
+        "sign_p": 0.0007,
+        "avg": -0.0507
+      },
+      "oos": {
+        "n": 90,
+        "losers": 65,
+        "wilson_lo": 62.2,
+        "sign_p": 0.0,
+        "avg": 0.0447
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:52:08",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.01,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:52:08",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.01,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 262,
+        "losers": 159,
+        "wilson_lo": 54.7,
+        "sign_p": 0.0007,
+        "avg": -0.0507
+      },
+      "oos": {
+        "n": 90,
+        "losers": 65,
+        "wilson_lo": 62.2,
+        "sign_p": 0.0,
+        "avg": 0.0447
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
+  },
+  {
+    "ts": "2026-07-17T09:52:31",
+    "action": "proposed",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {},
+    "reason": "ok"
+  },
+  {
+    "ts": "2026-07-17T09:52:31",
+    "action": "rejected",
+    "factor": {
+      "id": "f_668170e3",
+      "expr": {
+        "op": "div",
+        "a": "ret_1d",
+        "b": "price"
+      },
+      "direction": "low_is_bad",
+      "threshold": 0.05,
+      "horizon": 7
+    },
+    "metrics": {
+      "in_sample": {
+        "n": 280,
+        "losers": 163,
+        "wilson_lo": 52.4,
+        "sign_p": 0.0071,
+        "avg": -0.0486
+      },
+      "oos": {
+        "n": 94,
+        "losers": 67,
+        "wilson_lo": 61.4,
+        "sign_p": 0.0,
+        "avg": 0.0394
+      },
+      "bar": 0.025,
+      "passed": false
+    },
+    "reason": "failed gate"
   }
 ]
