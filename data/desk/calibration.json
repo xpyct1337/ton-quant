@@ -58,5 +58,62 @@
       "avg": -0.0007347460559224437
     }
   },
-  "signal_separates_at_7d": true
+  "bundle_backtest": {
+    "feature": "bundle",
+    "threshold": 0.2,
+    "horizon": 7,
+    "available": true,
+    "missing": [],
+    "high": {
+      "n": 166,
+      "avg": -0.055
+    },
+    "low": {
+      "n": 615,
+      "avg": 0.0149
+    },
+    "candidate": true,
+    "confidence": {
+      "available": true,
+      "passed": false,
+      "bar": 0.05,
+      "in_sample": {
+        "n": 102,
+        "losers": 65,
+        "wilson_lo": 54.1,
+        "sign_p": 0.0072,
+        "avg": -0.0615
+      },
+      "oos": {
+        "n": 64,
+        "losers": 40,
+        "wilson_lo": 50.3,
+        "sign_p": 0.0599,
+        "avg": -0.0447
+      }
+    }
+  },
+  "momentum_test": {
+    "available": true,
+    "passed": false,
+    "feature": "mom_7d",
+    "threshold": -0.1,
+    "bar": 0.05,
+    "in_sample": {
+      "n": 82,
+      "losers": 55,
+      "wilson_lo": 56.3,
+      "sign_p": 0.0026,
+      "avg": -0.1525
+    },
+    "oos": {
+      "n": 107,
+      "losers": 55,
+      "wilson_lo": 42.0,
+      "sign_p": 0.8468,
+      "avg": 0.0484
+    }
+  },
+  "signal_separates_at_7d": false,
+  "signal_high_vs_low_at_7d": true
 }
